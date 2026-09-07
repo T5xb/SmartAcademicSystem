@@ -1,21 +1,32 @@
 import logging
 import os
 
-from llama_index.core.indices import load_index_from_storage
-from llama_index.core.storage import StorageContext
+import chromadb
+from llama_index.core import VectorStoreIndex
+from llama_index.vector_stores.chroma import ChromaVectorStore
 
 logger = logging.getLogger("uvicorn")
 
-STORAGE_DIR = "src/storage"
+# Where source documents (PDFs, docx, txt...) live. Shared by the indexer
+# (src/generate.py) and the server (for browsing raw files).
+DATA_DIR = os.environ.get("DATA_DIR", "docs")
+
+# Persistent on-disk ChromaDB store for the vector index.
+CHROMA_DIR = os.environ.get("CHROMA_DIR", "chroma_db")
+CHROMA_COLLECTION = os.environ.get("CHROMA_COLLECTION", "academic_advising")
+
+
+def get_chroma_collection():
+    client = chromadb.PersistentClient(path=CHROMA_DIR)
+    return client.get_or_create_collection(CHROMA_COLLECTION)
 
 
 def get_index():
-    # check if storage already exists
-    if not os.path.exists(STORAGE_DIR):
+    collection = get_chroma_collection()
+    if collection.count() == 0:
         return None
-    # load the existing index
-    logger.info(f"Loading index from {STORAGE_DIR}...")
-    storage_context = StorageContext.from_defaults(persist_dir=STORAGE_DIR)
-    index = load_index_from_storage(storage_context)
-    logger.info(f"Finished loading index from {STORAGE_DIR}")
+    logger.info(f"Loading index from Chroma collection '{CHROMA_COLLECTION}' ({CHROMA_DIR})...")
+    vector_store = ChromaVectorStore(chroma_collection=collection)
+    index = VectorStoreIndex.from_vector_store(vector_store)
+    logger.info("Finished loading index from Chroma")
     return index

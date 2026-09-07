@@ -1,5 +1,11 @@
 __pycache__
 storage
+chroma_db
 .env
 output
 .ui/
+
+# Large raw scanned PDFs kept only as local archive material before OCR --
+# the extracted, indexed text already lives in docs/. Not needed to run
+# or reproduce the project, and too large to be worth versioning.
+raw_sources/
