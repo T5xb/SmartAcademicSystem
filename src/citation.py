@@ -1,3 +1,12 @@
+"""
+Source-attributed answers: the Arabic prompts, and turning the model's
+citation tags into a real "المصادر" list.
+
+The guiding rule (ARCHITECTURE.md §4.5-4.6): the LLM only ever emits
+opaque markers, and this module substitutes the real text. It never
+transcribes a filename, page number or email itself.
+"""
+
 import os
 import re
 from typing import Any, List, Optional
@@ -10,28 +19,53 @@ from llama_index.core.response_synthesizers import CompactAndRefine
 from llama_index.core.schema import NodeWithScore
 from llama_index.core.tools.query_engine import QueryEngineTool
 
-# Matches an Arabic legal "Article" marker, e.g. "المادة الأولى" or
-# "المادة 12", so a chunk can be tagged with which article it's from.
-ARTICLE_RE = re.compile(r"المادة\s+(?:ال)?\S+")
-
-
-# Prompts for the citation-aware synthesizer, in Arabic (the users are
-# Arabic speakers, and writing the instructions themselves in Arabic keeps
-# the whole prompt in one language, which this small local model follows
-# more reliably than switching between English instructions and an Arabic
-# answer). Kept short and concrete: this model degrades (repeats itself,
-# echoes instructions, mixes in other languages) on long, English, few-shot
-# style prompts -- an earlier version with a literal example block caused
-# it to copy the example's fake citation IDs verbatim instead of using
-# real ones.
+# Tags a chunk with the article it comes from, e.g. "المادة الأولى",
+# "المادة الثانية والعشرون", "المادة 12".
 #
-# There are two templates because the underlying synthesizer (see
-# CitationSynthesizer below) packs as many retrieved chunks as fit into
-# one call using CITATION_QA_PROMPT, then -- only if chunks are left over --
-# folds each remaining chunk in with CITATION_REFINE_PROMPT. Both must
-# carry the same citation/Arabic/"don't guess" rules, or the refine step
-# (which otherwise falls back to a generic English default with none of
-# those rules) undoes them.
+# Matches a closed set of ordinals plus an optional "tens" tail rather
+# than "المادة" + any one token: that looser version collapsed articles
+# 2, 12 and 22 into the same label (so citations named the wrong article)
+# and also matched OCR noise like "المادة )". The tens tail allows the
+# missing-waw spelling the OCR produces ("المادة الخامسة العشرون").
+_ORDINAL = (
+    r"(?:ال)?(?:أولى|اولى|ثانية|ثالثة|رابعة|خامسة|سادسة|سابعة|ثامنة|تاسعة|"
+    r"عاشرة|حادية)"
+)
+_TENS = (
+    r"(?:\s+(?:عشرة|عشر|و?ال(?:عشرون|عشرين|ثلاثون|ثلاثين|أربعون|أربعين|"
+    r"خمسون|خمسين|ستون|ستين|سبعون|سبعين)))?"
+)
+ARTICLE_RE = re.compile(rf"المادة\s+(?:{_ORDINAL}{_TENS}|\d+)")
+
+
+# When the documents don't answer the question, hand off to a human
+# advisor instead of a vague "not found". The model only emits the
+# sentinel; the message and email below are substituted by our code, since
+# an LLM transcribing an email address risks mangling it and a wrong
+# advising address is worse than none.
+NO_ANSWER_SENTINEL = "لا_توجد_إجابة_في_الوثائق"
+
+# Overridable so a different department/advisor can be pointed to without
+# touching code.
+ADVISING_EMAIL = os.getenv("ADVISING_EMAIL", "cs.acadv@imamu.edu.sa")
+
+NO_ANSWER_MESSAGE = (
+    "لم أجد إجابة لسؤالك في الوثائق الرسمية المتاحة لي.\n\n"
+    "الرجاء التواصل مع الإرشاد الأكاديمي لخدمتك على البريد الإلكتروني:\n"
+    f"{ADVISING_EMAIL}"
+)
+
+
+# Prompts are written in Arabic throughout: keeping instructions and
+# answer in one language is followed more reliably than mixing English
+# instructions with an Arabic answer, and they are kept short because weak
+# models start echoing long prompts back (an early version with a worked
+# example made the model copy that example's fake citation ids).
+#
+# Two templates: the synthesizer packs as many chunks as fit into one call
+# with the QA prompt, then folds any leftovers in with the REFINE prompt.
+# Both must carry the same rules, or the refine step (whose default is a
+# generic English prompt) undoes them.
 CITATION_QA_PROMPT = """السياق التالي مقتطفات من وثائق، كل مقطع منه يبدأ برقم تعريف (citation_id).
 
 السياق:
@@ -45,7 +79,7 @@ CITATION_QA_PROMPT = """السياق التالي مقتطفات من وثائق
 - أجب بالعربية الفصحى فقط، بإجابة واحدة مباشرة وواضحة.
 - اعتمد فقط على معلومات السياق أعلاه، ولا تستخدم أي معرفة خارجية.
 - بعد كل معلومة تنقلها من السياق، أضف رمز الاقتباس الحقيقي المرتبط بها بهذا الشكل: [citation:المعرف].
-- إذا لم يحتوِ السياق على إجابة للسؤال، قل بجملة واحدة إن المعلومة غير متوفرة في الوثائق المتاحة، ولا تخترع إجابة.
+- إذا لم يحتوِ السياق على إجابة للسؤال، فاكتب هذه الكلمة وحدها بلا أي نص آخر: لا_توجد_إجابة_في_الوثائق — ولا تخترع إجابة ولا تعتذر ولا تضف شيئًا بعدها.
 - لا تكتب أمثلة توضيحية، ولا تكرر السؤال، ولا تشرح طريقة عملك.
 
 الإجابة:
@@ -64,6 +98,8 @@ CITATION_REFINE_PROMPT = """أنت تُكمل إجابة عربية عن سؤا�
 
 التعليمات:
 - إذا أضاف هذا المقطع معلومة مفيدة غير موجودة بالإجابة الحالية، وسّع الإجابة لتشملها مع رمز اقتباسها [citation:المعرف].
+- إذا كانت الإجابة الحالية هي لا_توجد_إجابة_في_الوثائق وكان هذا المقطع يحتوي الإجابة، فاكتب الإجابة الصحيحة مع رمز اقتباسها واحذف تلك الكلمة.
+- إذا كانت الإجابة الحالية هي لا_توجد_إجابة_في_الوثائق وهذا المقطع أيضًا لا يحتوي الإجابة، فأعد كتابة لا_توجد_إجابة_في_الوثائق وحدها بلا أي نص آخر.
 - إذا لم يكن مفيدًا، أعد الإجابة الحالية كما هي دون أي تغيير.
 - أجب بالعربية الفصحى فقط، بإجابة واحدة مباشرة، بدون شرح طريقة عملك.
 
@@ -120,14 +156,6 @@ class CitationSynthesizer(CompactAndRefine):
         )
 
 
-# Add this prompt to your agent system prompt
-CITATION_SYSTEM_PROMPT = (
-    "\nAnswer the user question using the response from the query tool. "
-    "It's important to respect the citation information in the response. "
-    "Don't mix up the citation_id, keep them at the correct fact."
-)
-
-
 def enable_citation(query_engine_tool: QueryEngineTool) -> QueryEngineTool:
     """
     Enable citation for a query engine tool by using CitationSynthesizer and NodePostprocessor.
@@ -149,29 +177,30 @@ def enable_citation(query_engine_tool: QueryEngineTool) -> QueryEngineTool:
     return query_engine_tool
 
 
-# Matches [citation:id] and, since the model sometimes writes it with
-# parens instead of the requested square brackets, (citation: id) too.
-# Captures everything up to the closing bracket/paren, not just a single
-# "word" -- a weak model sometimes writes a multi-word phrase (its own
-# wording, not the real id) inside the tag instead of the real node id.
-# We still want to catch and strip those, not leave them visible.
+# Matches [citation:id], and (citation: id) too since the model sometimes
+# uses parens. Captures up to the closing bracket rather than one word, so
+# that a model writing its own phrase instead of the real id still gets
+# stripped rather than shown to the user.
 CITATION_TAG_RE = re.compile(r"[\[(]citation:\s*([^\])]*?)\s*[\])]")
 
 
 def format_citations(answer: str, source_nodes: List[NodeWithScore]) -> str:
     """
-    Replace the model's [citation:<node_id>] tags with numbered footnote
-    markers ([1], [2], ...), and append a "المصادر" (Sources) section built
-    from the *actual* retrieved nodes' metadata -- file name, page number
-    (when known), and article marker (when detected).
+    Turns [citation:<node_id>] tags into footnote markers ([1], [2], ...)
+    and appends a "المصادر" section built from the *actual* retrieved
+    nodes' metadata: file name, page number and article when known.
 
-    This is deliberately not left to the LLM: asking a small local model to
-    transcribe an exact file name and page number into free text is asking
-    it to hallucinate. Here the model only has to copy an opaque id it was
-    given verbatim, which is a much easier task, and our own code resolves
-    that id to the real source. A tag that doesn't match any retrieved node
-    (e.g. a stray or fabricated id) is silently dropped rather than shown.
+    Resolving ids here rather than asking the LLM for filenames is the
+    whole point — the model copies back an opaque id it was just given,
+    which it can do reliably. Tags matching no retrieved node (stray or
+    fabricated) are dropped rather than shown.
+
+    The "no answer" sentinel replaces the whole answer with the advisor
+    handoff, with no sources section since nothing was cited.
     """
+    if NO_ANSWER_SENTINEL in answer:
+        return NO_ANSWER_MESSAGE
+
     nodes_by_id = {n.node.node_id: n.node for n in source_nodes}
     order: List[str] = []
     numbers: dict[str, int] = {}

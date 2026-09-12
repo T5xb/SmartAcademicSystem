@@ -50,32 +50,36 @@ def _load_documents(data_dir: str) -> list:
 
 def generate_index():
     """
-    Index the documents in DATA_DIR into the persistent Chroma vector store.
+    Index the documents in DATA_DIR into the Supabase Postgres/pgvector
+    store.
     """
-    import chromadb
     from llama_index.core import StorageContext, VectorStoreIndex
-    from llama_index.vector_stores.chroma import ChromaVectorStore
 
-    from src.index import CHROMA_COLLECTION, CHROMA_DIR, DATA_DIR
+    from src.index import (
+        DATA_DIR,
+        PGVECTOR_REAL_TABLE,
+        count_indexed_chunks,
+        get_vector_store,
+        reset_vector_table,
+    )
     from src.settings import init_settings
 
-    load_dotenv()
-    init_settings()
+    load_dotenv("src/.env")
+    # Indexing only needs the embedding model, never the generation LLM.
+    init_settings(require_llm=False)
 
     logger.info(f"Loading documents from {DATA_DIR}")
     documents = _load_documents(DATA_DIR)
     logger.info(f"Loaded {len(documents)} document(s)")
 
-    # Reset the collection so re-running `generate` doesn't accumulate
-    # duplicate/stale chunks from a previous run.
-    client = chromadb.PersistentClient(path=CHROMA_DIR)
-    try:
-        client.delete_collection(CHROMA_COLLECTION)
-    except Exception:
-        pass
-    collection = client.get_or_create_collection(CHROMA_COLLECTION)
-    vector_store = ChromaVectorStore(chroma_collection=collection)
-    storage_context = StorageContext.from_defaults(vector_store=vector_store)
+    # Reset the table so re-running `generate` doesn't accumulate
+    # duplicate/stale chunks from a previous run. Done before building the
+    # store so its setup pass recreates the table (and the pgvector
+    # extension/index) from scratch.
+    reset_vector_table()
+    storage_context = StorageContext.from_defaults(
+        vector_store=get_vector_store(perform_setup=True)
+    )
 
     logger.info("Creating new index")
     VectorStoreIndex.from_documents(
@@ -84,5 +88,6 @@ def generate_index():
         show_progress=True,
     )
     logger.info(
-        f"Finished creating index in Chroma collection '{CHROMA_COLLECTION}' ({CHROMA_DIR})"
+        f"Finished creating index in Postgres table '{PGVECTOR_REAL_TABLE}' "
+        f"({count_indexed_chunks()} chunk(s))"
     )

@@ -1,3 +1,11 @@
+"""
+Retriever setup: wraps the index as a query engine tool.
+
+TOP_K comes from src/.env (8). It was 12 while embeddings were
+English-trained and the right Arabic chunk ranked ~10th; bge-m3 ranks it
+first, so fewer, cleaner chunks work better. See ARCHITECTURE.md §4.1.
+"""
+
 import os
 from typing import Any, Optional
 

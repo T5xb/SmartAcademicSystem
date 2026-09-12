@@ -4,7 +4,9 @@ hand-written HTML/JS chat page instead of Gradio (see SmartAcademicSystem.py
 -- that one is the primary front end; this one is a second option / API-only
 server, same underlying src/workflow.py).
 
-Runs entirely locally: LlamaIndex + Ollama (no API keys, no cloud calls).
+Retrieval runs against Supabase Postgres/pgvector, embeddings against a
+local Ollama, and answer generation through whichever LLM provider
+src/.env selects (see src/settings.py).
 Serves a simple chat UI at http://localhost:8000 and a JSON API at
 POST /api/chat.
 
@@ -119,7 +121,7 @@ HTML_PAGE = """<!doctype html>
 <body>
   <header>
     <h1>المرشد الأكاديمي الذكي</h1>
-    <p>اسأل عن الأنظمة واللوائح الأكاديمية بجامعة الإمام &mdash; الإجابات مبنية على الوثائق الرسمية وتُعالَج محليًا بدون إنترنت خارجي.</p>
+    <p>اسأل عن الأنظمة واللوائح الأكاديمية بجامعة الإمام &mdash; كل إجابة مبنية على الوثائق الرسمية للجامعة، مع ذكر المصدر والصفحة.</p>
   </header>
   <div id="chat"></div>
   <div id="starters"></div>
@@ -165,7 +167,7 @@ form.addEventListener('submit', async (e) => {
   sendBtn.disabled = true;
   startersEl.hidden = true;
   addMsg('user', message);
-  const pendingEl = addMsg('bot', 'جارِ التفكير... (قد يأخذ دقيقة على جهاز محلي)', true);
+  const pendingEl = addMsg('bot', 'جارِ البحث في الوثائق...', true);
 
   try {
     const res = await fetch('/api/chat', {
