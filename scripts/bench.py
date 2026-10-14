@@ -1,20 +1,3 @@
-"""
-Run the same questions through the chatbot and report answer + latency,
-for whichever LLM provider is selected.
-
-Used to produce the local-vs-hosted comparison in GP2: run it once per
-provider and put the two latency columns side by side. Recorded results
-are in ARCHITECTURE.md §5.
-
-Usage:
-    .venv/Scripts/python.exe scripts/bench.py                  # provider from src/.env
-    .venv/Scripts/python.exe scripts/bench.py --provider ollama
-    .venv/Scripts/python.exe scripts/bench.py --provider hosted "سؤالك هنا"
-
-With no questions on the command line it uses NEXT_PUBLIC_STARTER_QUESTIONS
-from src/.env, so both runs are compared on identical inputs.
-"""
-
 import argparse
 import asyncio
 import json
@@ -37,7 +20,7 @@ async def main() -> None:
     load_dotenv("src/.env")
     if args.provider:
         os.environ["LLM_PROVIDER"] = args.provider
-    # Keep the report readable: the HTTP/index chatter isn't what we measure.
+    
     logging.disable(logging.INFO)
 
     questions = args.questions or json.loads(

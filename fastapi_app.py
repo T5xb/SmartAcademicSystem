@@ -1,18 +1,3 @@
-"""
-Alternative front end for the RAG chatbot, using plain FastAPI + a
-hand-written HTML/JS chat page instead of Gradio (see SmartAcademicSystem.py
--- that one is the primary front end; this one is a second option / API-only
-server, same underlying src/workflow.py).
-
-Retrieval runs against Supabase Postgres/pgvector, embeddings against a
-local Ollama, and answer generation through whichever LLM provider
-src/.env selects (see src/settings.py).
-Serves a simple chat UI at http://localhost:8000 and a JSON API at
-POST /api/chat.
-
-Usage:
-    uv run fastapi_app.py
-"""
 
 import json
 import logging

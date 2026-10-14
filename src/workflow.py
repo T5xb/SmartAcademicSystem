@@ -9,21 +9,7 @@ from src.settings import init_settings
 
 
 class DirectQueryWorkflow:
-    """
-    A minimal, non-agentic RAG "workflow" exposing a `run(user_msg=...)`
-    interface, similar to AgentWorkflow's but without the agent.
-
-    This used to run through `AgentWorkflow`, which lets the LLM decide
-    whether/how to call the search tool. With a single tool that should
-    always be used to answer document questions, that decision step just
-    adds latency -- and on small local models it sometimes made the LLM
-    write out a fake tool-call as plain text instead of actually invoking
-    it (especially when it wasn't sure the answer was in the document).
-    Calling the tool directly avoids both problems.
-
-    Note: there's no conversational memory -- each question is answered
-    independently from the document.
-    """
+  
 
     def __init__(self, query_engine_tool: QueryEngineTool):
         self._query_engine_tool = query_engine_tool

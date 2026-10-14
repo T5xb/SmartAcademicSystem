@@ -8,20 +8,7 @@ logger = logging.getLogger()
 
 
 def _load_documents(data_dir: str) -> list:
-    """
-    Load every document under data_dir.
-
-    .txt and .pdf are loaded by hand instead of through
-    SimpleDirectoryReader's defaults:
-    - .txt: OCR'd files (see scripts/ocr_pdf.py) mark page boundaries as
-      "--- Page N ---" text; splitting those into one Document per page
-      here keeps a real page number in each chunk's metadata for citations.
-    - .pdf: SimpleDirectoryReader's default PDFReader is pypdf-based, which
-      garbles Arabic (RTL) text -- see src/pdf_loader.py for why. We
-      extract with PyMuPDF instead, also split per page.
-
-    Everything else (docx, ...) goes through SimpleDirectoryReader as usual.
-    """
+    
     from llama_index.core import Document
     from llama_index.core.readers import SimpleDirectoryReader
 
@@ -49,10 +36,7 @@ def _load_documents(data_dir: str) -> list:
 
 
 def generate_index():
-    """
-    Index the documents in DATA_DIR into the Supabase Postgres/pgvector
-    store.
-    """
+   
     from llama_index.core import StorageContext, VectorStoreIndex
 
     from src.index import (
@@ -65,17 +49,14 @@ def generate_index():
     from src.settings import init_settings
 
     load_dotenv("src/.env")
-    # Indexing only needs the embedding model, never the generation LLM.
+    
     init_settings(require_llm=False)
 
     logger.info(f"Loading documents from {DATA_DIR}")
     documents = _load_documents(DATA_DIR)
     logger.info(f"Loaded {len(documents)} document(s)")
 
-    # Reset the table so re-running `generate` doesn't accumulate
-    # duplicate/stale chunks from a previous run. Done before building the
-    # store so its setup pass recreates the table (and the pgvector
-    # extension/index) from scratch.
+   
     reset_vector_table()
     storage_context = StorageContext.from_defaults(
         vector_store=get_vector_store(perform_setup=True)

@@ -1,17 +1,3 @@
-"""
-One-off OCR utility: convert a scanned PDF to a plain-text file using
-EasyOCR (Arabic + English), so it can be indexed by the RAG pipeline.
-
-Memory-conscious and crash-resilient: writes each page's text to the
-output file as soon as it's OCR'd (rather than holding everything in
-memory and writing once at the end), and skips pages already present
-in an existing output file -- so if it crashes partway (e.g. out of
-memory) or is interrupted, re-running the same command resumes instead
-of starting over and losing progress.
-
-Usage:
-    .venv/Scripts/python.exe scripts/ocr_pdf.py <input.pdf> <output.txt>
-"""
 
 import gc
 import re
@@ -51,14 +37,7 @@ def ocr_pdf(pdf_path: str, out_path: str, dpi: int = 130, canvas_size: int = 128
                 continue
 
             t0 = time.time()
-            # Lower DPI keeps the source image small, and a lower
-            # canvas_size caps how large the detector resizes it to
-            # internally (default 2560 -- its activation memory scales
-            # with this squared, so halving it cuts memory ~4x). Both
-            # together are what actually got this under the ~1GB single
-            # allocations that kept OOM-crashing on this machine even with
-            # several GB "free" (likely fragmentation/other apps' usage,
-            # not truly available headroom).
+          
             pix = page.get_pixmap(dpi=dpi)
             img_bytes = pix.tobytes("png")
             result = reader.readtext(
@@ -69,8 +48,7 @@ def ocr_pdf(pdf_path: str, out_path: str, dpi: int = 130, canvas_size: int = 128
             out_f.write(f"--- Page {page_num} ---\n{text}\n\n")
             out_f.flush()
 
-            # Release the page image and any per-page torch tensors before
-            # the next iteration instead of letting them pile up.
+            
             del pix, img_bytes, result
             gc.collect()
 
