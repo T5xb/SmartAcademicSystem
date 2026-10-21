@@ -34,11 +34,9 @@ if (!hasSession()) window.location.replace(SIGN_IN_PAGE);
 /* ----------------------------------------------------------
    Constants
    ---------------------------------------------------------- */
-const DEFAULT_API_URL = 'http://localhost:8000';
-const API_URL_KEY = 'academic-ai-api-url';
+const API_URL = 'http://localhost:8000';   // where fastapi_app.py runs
 const STORAGE_KEY = 'academic-ai-chats';
 const REQUEST_TIMEOUT = 90000;       // ms before a question is given up on
-const HEALTH_INTERVAL = 30000;       // ms between connection checks
 const MAX_MESSAGE_LENGTH = 2000;     // matches ChatRequest.max_length on the server
 const USER_NAME = 'Ahmed Al-Rashid';
 const FIRST_NAME = 'Ahmed';
@@ -70,10 +68,6 @@ const ICONS = {
   alert: '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
   info: '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
   copy: '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
-  regenerate: '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"></path><path d="M21 3v5h-5"></path></svg>',
-  share: '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path><polyline points="16 6 12 2 8 6"></polyline><line x1="12" y1="2" x2="12" y2="15"></line></svg>',
-  up: '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path></svg>',
-  down: '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path></svg>',
   send: '<svg fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>',
   stop: '<svg fill="currentColor" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"></rect></svg>',
   arrow: '<svg class="suggestion__arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>',
@@ -115,38 +109,17 @@ const linkifyEmails = (html) =>
   html.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, (email) => `<a href="mailto:${email}">${email}</a>`);
 
 /* ----------------------------------------------------------
-   Server connection
+   Server API
    ---------------------------------------------------------- */
-function getApiUrl() {
-  try {
-    return localStorage.getItem(API_URL_KEY) || DEFAULT_API_URL;
-  } catch {
-    return DEFAULT_API_URL;
-  }
-}
-
-function setApiUrl(url) {
-  try {
-    if (url === DEFAULT_API_URL) localStorage.removeItem(API_URL_KEY);
-    else localStorage.setItem(API_URL_KEY, url);
-  } catch {
-    /* Storage unavailable — the URL lasts until the page closes */
-  }
-  apiUrlOverride = url;
-}
-
-let apiUrlOverride = null;
-const apiUrl = () => (apiUrlOverride || getApiUrl()).replace(/\/+$/, '');
-
 /* fetch() with a timeout that can also be cancelled by the Stop button */
-async function apiFetch(path, options = {}, { timeout = REQUEST_TIMEOUT, signal, base = apiUrl() } = {}) {
+async function apiFetch(path, options = {}, { timeout = REQUEST_TIMEOUT, signal } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort('timeout'), timeout);
   const onAbort = () => controller.abort('stopped');
   if (signal) signal.addEventListener('abort', onAbort);
 
   try {
-    return await fetch(`${base}${path}`, { ...options, signal: controller.signal });
+    return await fetch(`${API_URL}${path}`, { ...options, signal: controller.signal });
   } catch (err) {
     if (controller.signal.aborted) {
       const reason = controller.signal.reason === 'stopped' ? 'stopped' : 'timeout';
@@ -164,7 +137,7 @@ function describeError(err, status, detail) {
   if (err && err.kind === 'stopped') return 'You stopped this response.';
   if (err && err.kind === 'timeout') return 'The server took too long to answer. Please try again.';
   if (err && err.kind === 'network') {
-    return `Couldn't reach the Academic AI server at ${apiUrl()}. Make sure fastapi_app.py is running, or change the server URL in Server Settings.`;
+    return `Couldn't reach the Academic AI server at ${API_URL}. Make sure the server is running (Start-API.bat).`;
   }
   if (status === 422) return 'The question is empty or too long. Please shorten it and try again.';
   if (detail) return detail;
@@ -195,43 +168,6 @@ async function askServer(question, signal) {
     throw Object.assign(new Error(describeError(null, res.status, detail)), { kind: 'http' });
   }
   return data.response;
-}
-
-/* Live status pill in the strip */
-const connection = { state: 'checking', latency: null };
-
-async function checkHealth(base = apiUrl()) {
-  const started = performance.now();
-  try {
-    const res = await apiFetch('/api/health', {}, { timeout: 8000, base });
-    const data = await res.json();
-    const latency = Math.round(performance.now() - started);
-    return { ok: res.ok, ready: Boolean(data && data.ready), latency };
-  } catch {
-    return { ok: false, ready: false, latency: null };
-  }
-}
-
-async function refreshConnection() {
-  connection.state = 'checking';
-  renderConnection();
-  const result = await checkHealth();
-  connection.state = result.ok ? 'online' : 'offline';
-  connection.latency = result.latency;
-  connection.ready = result.ready;
-  renderConnection();
-}
-
-function renderConnection() {
-  const el = $('#server-status');
-  el.dataset.state = connection.state;
-  $('#server-latency').textContent = connection.latency != null ? `${connection.latency}ms` : '— ms';
-  $('#server-status-text').textContent = {
-    checking: 'Connecting…',
-    online: connection.ready ? 'Server online' : 'Server starting…',
-    offline: 'Server offline',
-  }[connection.state];
-  el.title = `${apiUrl()} — click to check again`;
 }
 
 /* Starter questions come from the server's NEXT_PUBLIC_STARTER_QUESTIONS */
@@ -445,20 +381,12 @@ function renderBotBody(msg) {
 }
 
 function renderBotActions(msg) {
-  if (msg.status === 'typing') return '';
-  const canCopy = msg.status === 'done';
+  if (msg.status !== 'done') return '';
   return `
     <div class="msg-actions">
       <div class="msg-actions__group">
-        ${canCopy ? `<button type="button" class="action-btn" data-action="copy" data-id="${msg.id}" title="Copy response">${ICONS.copy}Copy</button>` : ''}
-        <button type="button" class="action-btn" data-action="regenerate" data-id="${msg.id}" title="Ask the server again">${ICONS.regenerate}Regenerate</button>
-        ${canCopy ? `<button type="button" class="action-btn" data-action="share" data-id="${msg.id}" title="Share question and answer">${ICONS.share}Share</button>` : ''}
+        <button type="button" class="action-btn" data-action="copy" data-id="${msg.id}" title="Copy response">${ICONS.copy}Copy</button>
       </div>
-      ${canCopy ? `
-      <div class="msg-actions__group">
-        <button type="button" class="action-btn action-btn--icon${msg.feedback === 'up' ? ' is-up' : ''}" data-action="up" data-id="${msg.id}" title="Helpful answer" aria-pressed="${msg.feedback === 'up'}">${ICONS.up}</button>
-        <button type="button" class="action-btn action-btn--icon${msg.feedback === 'down' ? ' is-down' : ''}" data-action="down" data-id="${msg.id}" title="Poor answer" aria-pressed="${msg.feedback === 'down'}">${ICONS.down}</button>
-      </div>` : ''}
     </div>`;
 }
 
@@ -534,11 +462,6 @@ async function requestAnswer(chatId, botMessageId, question) {
     result = { status: 'done', text: await askServer(question, controller.signal) };
   } catch (err) {
     result = { status: 'error', errorText: err.message };
-    if (err.kind === 'network') {
-      connection.state = 'offline';
-      connection.latency = null;
-      renderConnection();
-    }
   }
   pending.delete(botMessageId);
 
@@ -550,7 +473,6 @@ async function requestAnswer(chatId, botMessageId, question) {
   Object.assign(msg, { text: '', errorText: '' }, result, { thinking: performance.now() - started });
   chat.updatedAt = Date.now();
   saveChats();
-  if (result.status === 'done' && connection.state !== 'online') refreshConnection();
 
   if (state.activeId === chatId) {
     renderMessages();
@@ -581,7 +503,7 @@ function sendMessage(text) {
 
   const now = Date.now();
   const user = { id: makeId(), role: 'user', text: content, time: now };
-  const bot = { id: makeId(), role: 'bot', status: 'typing', time: now, feedback: null, questionId: user.id };
+  const bot = { id: makeId(), role: 'bot', status: 'typing', time: now };
   chat.messages.push(user, bot);
   chat.updatedAt = now;
 
@@ -602,19 +524,6 @@ function stopActiveResponse() {
   chat.messages
     .filter((m) => m.status === 'typing')
     .forEach((m) => pending.get(m.id)?.abort());
-}
-
-/* The user question that a bot message answers */
-function questionFor(chat, botMsg) {
-  if (botMsg.questionId) {
-    const q = chat.messages.find((m) => m.id === botMsg.questionId);
-    if (q) return q.text;
-  }
-  const index = chat.messages.indexOf(botMsg);
-  for (let i = index - 1; i >= 0; i--) {
-    if (chat.messages[i].role === 'user') return chat.messages[i].text;
-  }
-  return '';
 }
 
 function startNewChat() {
@@ -662,38 +571,7 @@ function handleMessageAction(action, id) {
   const msg = chat && chat.messages.find((m) => m.id === id);
   if (!msg) return;
 
-  switch (action) {
-    case 'copy':
-      copyText(msg.text, 'Response copied');
-      break;
-    case 'regenerate': {
-      if (isBusy(chat)) return;
-      const question = questionFor(chat, msg);
-      if (!question) return;
-      Object.assign(msg, { status: 'typing', text: '', errorText: '', feedback: null, thinking: 0 });
-      saveChats();
-      renderMessages();
-      renderComposer();
-      requestAnswer(chat.id, msg.id, question);
-      break;
-    }
-    case 'share': {
-      const text = `${questionFor(chat, msg)}\n\n${msg.text}\n\n— Academic AI`;
-      if (navigator.share) {
-        navigator.share({ title: chat.title, text }).catch(() => {});
-      } else {
-        copyText(text, 'Question and answer copied — ready to share');
-      }
-      break;
-    }
-    case 'up':
-    case 'down':
-      msg.feedback = msg.feedback === action ? null : action;
-      saveChats();
-      renderMessages();
-      showToast(msg.feedback ? 'Thanks for your feedback' : 'Feedback removed');
-      break;
-  }
+  if (action === 'copy') copyText(msg.text, 'Response copied');
 }
 
 /* Clicking a [n] marker highlights that source */
@@ -706,47 +584,14 @@ function flashSource(msgId, num) {
 }
 
 /* ----------------------------------------------------------
-   Server Settings
+   Settings (empty for now — add future options to #settings-body)
    ---------------------------------------------------------- */
-function setSettingsStatus(text, status = 'idle') {
-  const el = $('#settings-status');
-  el.textContent = text;
-  el.dataset.state = status;
-}
-
 function openSettings() {
-  $('#api-url-input').value = apiUrl();
-  setSettingsStatus('');
   $('#settings-modal').hidden = false;
-  $('#api-url-input').focus();
 }
 
 function closeSettings() {
   $('#settings-modal').hidden = true;
-}
-
-function readUrlInput() {
-  const value = $('#api-url-input').value.trim().replace(/\/+$/, '');
-  try {
-    const url = new URL(value);
-    if (!/^https?:$/.test(url.protocol)) throw new Error();
-    return value;
-  } catch {
-    setSettingsStatus('Enter a full URL, e.g. http://localhost:8000', 'error');
-    return null;
-  }
-}
-
-async function testSettings() {
-  const url = readUrlInput();
-  if (!url) return;
-  setSettingsStatus('Testing connection…');
-  const result = await checkHealth(url);
-  if (result.ok) {
-    setSettingsStatus(`Connected in ${result.latency}ms${result.ready ? '' : ' — server is still loading the index'}.`, 'ok');
-  } else {
-    setSettingsStatus("Couldn't reach the server at this URL.", 'error');
-  }
 }
 
 /* ----------------------------------------------------------
@@ -809,9 +654,6 @@ function bindEvents() {
   document.querySelectorAll('[data-sign-out]').forEach((btn) => btn.addEventListener('click', signOut));
   $('#notifications-btn').addEventListener('click', () => showToast('No new notifications'));
   $('#settings-btn').addEventListener('click', openSettings);
-  $('#tune-btn').addEventListener('click', openSettings);
-  $('#encrypted-btn').addEventListener('click', () => showToast('Only your question is sent to the advising server — no student data'));
-  $('#server-status').addEventListener('click', refreshConnection);
 
   // Sidebar
   $('#collapse-btn').addEventListener('click', () => setSidebar(false));
@@ -890,23 +732,8 @@ function bindEvents() {
     showToast("Attachments aren't supported yet — the advisor answers from the official regulations. Type your question instead.")
   );
 
-  // Server settings
+  // Settings (empty placeholder)
   document.querySelectorAll('[data-close-settings]').forEach((el) => el.addEventListener('click', closeSettings));
-  $('#api-test-btn').addEventListener('click', testSettings);
-  $('#api-reset-btn').addEventListener('click', () => {
-    $('#api-url-input').value = DEFAULT_API_URL;
-    setSettingsStatus('Default URL restored — press Save to use it.');
-  });
-  $('#settings-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const url = readUrlInput();
-    if (!url) return;
-    setApiUrl(url);
-    closeSettings();
-    showToast(`Server set to ${url}`);
-    refreshConnection();
-    loadSuggestions();
-  });
 
   // Keyboard: Escape closes dialogs, menus and the mobile sidebar
   document.addEventListener('keydown', (e) => {
@@ -927,11 +754,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isMobile()) setSidebar(false);
   bindEvents();
   render();
-  renderConnection();
-  refreshConnection();
   loadSuggestions();
-  setInterval(() => {
-    if (document.visibilityState === 'visible') refreshConnection();
-  }, HEALTH_INTERVAL);
   $('#prompt').focus();
 });
