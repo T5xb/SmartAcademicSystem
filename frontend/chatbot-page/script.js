@@ -210,7 +210,7 @@ function loadChats() {
     chats.forEach((chat) => chat.messages.forEach((m) => {
       if (m.status === 'typing') {
         m.status = 'error';
-        m.errorText = 'This response was interrupted when the page closed. Press Regenerate to ask again.';
+        m.errorText = 'This response was interrupted when the page closed. Please ask your question again.';
       }
     }));
     return chats;
