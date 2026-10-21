@@ -1,0 +1,29 @@
+__pycache__
+storage
+output
+.ui/
+
+# Secrets: API keys, the Supabase password, the ngrok token.
+# Copy src/.env.example to src/.env and fill it in locally.
+.env
+!.env.example
+
+# Local virtual environment (recreate with `uv sync`).
+.venv/
+
+# Editor / OS / tooling clutter.
+.claude/
+Thumbs.db
+.DS_Store
+
+# Gradio's local cache/flag directory, created at runtime.
+.gradio/
+
+# Superseded by the Supabase/pgvector store (see ARCHITECTURE.md 4.3).
+# Kept ignored so an old local index left on a machine is never committed.
+chroma_db
+
+# Large raw scanned PDFs kept only as local archive material before OCR --
+# the extracted, indexed text already lives in docs/. Not needed to run
+# or reproduce the project, and too large to be worth versioning.
+raw_sources/

@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Academic AI - Study Schedule</title>
+
+  <!-- Google Fonts: Inter + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- ======================= Header ======================= -->
+  <header class="header">
+    <div class="header__left">
+
+      <!-- Brand (same logo as Sign In page) -->
+      <a href="../welcome-page/index.html" class="brand">
+        <div class="brand__logo">
+          <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+            <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+          </svg>
+        </div>
+        <span class="brand__name">Academic AI</span>
+      </a>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs" aria-label="Main tabs">
+        <a href="../chatbot-page/index.html" class="nav-tab">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span class="nav-tab__label">AI Chatbot</span>
+        </a>
+        <a href="index.html" class="nav-tab is-active" aria-current="page">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span class="nav-tab__label">Study Schedule</span>
+          <span class="dot dot--small dot--pulse"></span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="header__right">
+      <div class="status-pill">
+        <span class="dot dot--pulse"></span>
+        <span class="status-pill__text">Fall 2025 Online</span>
+      </div>
+
+      <!-- Action Icons -->
+      <div class="icon-actions">
+        <button type="button" id="notifications-btn" class="icon-btn" title="Notifications" aria-label="Notifications">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="icon-btn__badge"></span>
+        </button>
+        <button type="button" id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- User -->
+      <div class="user">
+        <div class="user__avatar">AR</div>
+        <div class="user__info">
+          <div class="user__name">Ahmed Al-Rashid</div>
+          <div class="user__id">s202100000</div>
+        </div>
+        <button type="button" id="sign-out-btn" class="sign-out" title="Sign Out" aria-label="Sign Out">
+          <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================= Layout ======================= -->
+  <div class="layout">
+
+    <!-- ===================== Sidebar (Filters) ===================== -->
+    <aside class="sidebar">
+      <div class="sidebar__header">
+        <div class="sidebar__title">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+          </svg>
+          <h2>Schedule Customization</h2>
+        </div>
+        <button type="button" id="reset-btn" class="text-btn">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+            <path d="M21 3v5h-5"></path>
+            <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+            <path d="M8 16H3v5"></path>
+          </svg>
+          Reset All
+        </button>
+      </div>
+
+      <div class="sidebar__body">
+
+        <!-- Import Academic Record -->
+        <button type="button" id="open-import-btn" class="import-card">
+          <span class="import-card__icon">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <line x1="12" y1="18" x2="12" y2="12"></line>
+              <polyline points="9 15 12 12 15 15"></polyline>
+            </svg>
+          </span>
+          <span class="import-card__text">
+            <span class="import-card__title">Import Academic Record <span class="mono-tag">PDF</span></span>
+            <span class="import-card__desc">Upload transcript or degree audit to auto-fill courses</span>
+          </span>
+          <svg class="import-card__arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+
+        <!-- Courses -->
+        <section class="courses">
+          <div class="section-head">
+            <h3 class="section-head__title section-head__title--caps">Courses</h3>
+            <div class="stats-pill">
+              <span id="stat-selected" class="stats-pill__accent">Selected: 0</span>
+              <span class="stats-pill__sep">|</span>
+              <span id="stat-credits">Credits: 0 / 30</span>
+            </div>
+          </div>
+
+          <div class="search">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="course-search" class="search__input" placeholder="Search course code or title..." autocomplete="off">
+          </div>
+
+          <div class="segmented" id="course-filter">
+            <button type="button" class="segmented__btn is-active" data-filter="all" id="filter-all">All (0)</button>
+            <button type="button" class="segmented__btn" data-filter="selected" id="filter-selected">Selected (0)</button>
+          </div>
+
+          <div class="course-list" id="course-list"></div>
+        </section>
+
+        <!-- Days Off -->
+        <section class="panel">
+          <div class="section-head">
+            <span class="section-head__title">Days Off (At least)</span>
+            <span class="badge badge--solid" id="days-off-badge">0 Days</span>
+          </div>
+          <div class="days-off" id="days-off">
+            <button type="button" class="days-off__btn is-active" data-days="0">0</button>
+            <button type="button" class="days-off__btn" data-days="1">1</button>
+            <button type="button" class="days-off__btn" data-days="2">2</button>
+            <button type="button" class="days-off__btn" data-days="3">3</button>
+            <button type="button" class="days-off__btn" data-days="4">4</button>
+          </div>
+        </section>
+
+        <!-- Lock Specific Sections -->
+        <section class="panel">
+          <div class="section-head">
+            <span class="section-head__title">Lock Specific Sections</span>
+            <span class="badge" id="lock-badge">0 Locked</span>
+          </div>
+          <p class="panel__desc">Lock specific sections to generate schedules containing only these selections.</p>
+          <div class="lock-list" id="lock-list"></div>
+        </section>
+
+        <!-- Time Range -->
+        <section class="panel">
+          <div class="section-head">
+            <span class="section-head__title">Time Range</span>
+            <span class="badge badge--mono" id="time-badge">08:00 — 24:00</span>
+          </div>
+
+          <div class="time-pickers">
+            <label class="time-picker">
+              <span class="time-picker__head">FROM <span class="dot dot--small"></span></span>
+              <span class="time-picker__control">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <select id="time-from" class="time-picker__select"></select>
+              </span>
+            </label>
+            <label class="time-picker">
+              <span class="time-picker__head">TO <span class="dot dot--small"></span></span>
+              <span class="time-picker__control">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <select id="time-to" class="time-picker__select"></select>
+              </span>
+            </label>
+          </div>
+
+          <div class="range">
+            <div class="range__track"></div>
+            <div class="range__fill" id="range-fill"></div>
+            <input type="range" id="range-from" class="range__input" min="480" max="1440" step="30" value="480" aria-label="From time">
+            <input type="range" id="range-to" class="range__input" min="480" max="1440" step="30" value="1440" aria-label="To time">
+          </div>
+          <div class="range__labels">
+            <span>08:00</span><span>12:00</span><span>16:00</span><span>20:00</span><span>24:00</span>
+          </div>
+
+          <p class="panel__note">* Schedules containing lecture slots outside this boundary are discarded.</p>
+        </section>
+
+        <!-- Include Closed Sections -->
+        <div class="panel panel--row">
+          <div>
+            <span class="section-head__title">Include Closed Sections</span>
+            <span class="panel__desc">Show sections even if enrollment is full</span>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="include-closed" class="switch__input">
+            <span class="switch__track"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="sidebar__footer">
+        <button type="button" id="generate-btn" class="btn-generate">
+          <svg fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+          Generate Optimal Schedules
+        </button>
+      </div>
+    </aside>
+
+    <!-- ===================== Main (Schedules) ===================== -->
+    <main class="content">
+
+      <!-- Final Exam Conflict Banner -->
+      <div class="conflict-banner" id="conflict-banner" hidden>
+        <div class="conflict-banner__body">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+            <line x1="12" y1="9" x2="12" y2="13"></line>
+            <line x1="12" y1="17" x2="12.01" y2="17"></line>
+          </svg>
+          <div class="conflict-banner__text" id="conflict-text"></div>
+        </div>
+        <button type="button" id="resolve-btn" class="conflict-banner__btn">Resolve</button>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <button type="button" id="save-image-btn" class="btn-ghost">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Save Image
+        </button>
+
+        <div class="toolbar__right">
+          <div class="results">
+            <span class="results__label">Suggested Results</span>
+            <span class="results__count" id="result-count">0 Schedules</span>
+          </div>
+          <div class="stepper">
+            <button type="button" id="prev-btn" class="stepper__btn" aria-label="Previous schedule">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            </button>
+            <div class="stepper__value">
+              <span class="stepper__current" id="page-current">0</span>
+              <span class="stepper__sep">/</span>
+              <span id="page-total">0</span>
+            </div>
+            <button type="button" id="next-btn" class="stepper__btn" aria-label="Next schedule">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="content__scroll">
+
+        <!-- Timetable -->
+        <div class="timetable-wrap">
+          <div class="timetable" id="timetable"></div>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary" id="summary">
+          <div class="summary__legend" id="legend"></div>
+          <button type="button" id="toggle-details-btn" class="btn-ghost btn-ghost--small" aria-expanded="true">
+            Detailed Card View
+            <svg class="chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"></polyline></svg>
+          </button>
+        </div>
+
+        <!-- Section Details -->
+        <section class="details" id="details">
+          <div class="details__head">
+            <div class="details__title">
+              <span class="details__icon">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                  <line x1="3" y1="9" x2="21" y2="9"></line>
+                  <line x1="9" y1="21" x2="9" y2="9"></line>
+                </svg>
+              </span>
+              <h3>Section Details</h3>
+            </div>
+            <button type="button" id="copy-all-btn" class="btn-ghost">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy All CRNs
+            </button>
+          </div>
+          <div class="details__grid" id="details-grid"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- ======================= Import Modal ======================= -->
+  <div class="modal" id="import-modal" hidden>
+    <div class="modal__backdrop" data-close-modal></div>
+
+    <div class="modal__dialog" role="dialog" aria-modal="true" aria-labelledby="import-title">
+      <div class="modal__header">
+        <span class="modal__icon">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <line x1="10" y1="9" x2="8" y2="9"></line>
+          </svg>
+        </span>
+        <div class="modal__heading">
+          <h2 id="import-title">Import Academic Record <span class="mono-tag mono-tag--pill">PDF Audit</span></h2>
+          <p>Upload your transcript or degree audit PDF to auto-fill completed courses, remaining credits, and prerequisites.</p>
+        </div>
+        <button type="button" class="modal__close" data-close-modal aria-label="Close">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="modal__body">
+        <!-- Drop Zone -->
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload transcript">
+          <input type="file" id="file-input" accept=".pdf,.html,.htm" hidden>
+
+          <div class="dropzone__empty" id="dz-empty">
+            <span class="dropzone__icon">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+            </span>
+            <p class="dropzone__title">Drag &amp; drop your academic transcript here</p>
+            <p class="dropzone__sub">or click to browse files from your computer</p>
+            <span class="btn-ghost btn-ghost--small dropzone__browse">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+              </svg>
+              Browse Files
+            </span>
+            <p class="dropzone__hint">Supports PDF, HTML, or Degree Audit (.pdf up to 15MB)</p>
+          </div>
+
+          <div class="dropzone__file" id="dz-file" hidden>
+            <span class="dropzone__icon">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <polyline points="9 15 11 17 15 13"></polyline>
+              </svg>
+            </span>
+            <p class="dropzone__title" id="dz-file-name"></p>
+            <p class="dropzone__sub" id="dz-file-meta"></p>
+            <button type="button" class="text-btn text-btn--danger" id="dz-remove">Remove file</button>
+          </div>
+
+          <p class="dropzone__error" id="dz-error" hidden></p>
+        </div>
+
+        <!-- Sample -->
+        <div class="sample-row">
+          <span class="dot"></span>
+          <span class="sample-row__label">Sample available:</span>
+          <span class="sample-row__file">KFUPM_Audit_Sample.pdf</span>
+          <button type="button" class="sample-row__btn" id="load-sample-btn">Load Sample</button>
+        </div>
+
+        <p class="secure-note">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          End-to-end encrypted • Extracted data is used solely for schedule generation and course validation.
+        </p>
+      </div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn-ghost" data-close-modal>Cancel</button>
+        <button type="button" class="btn-primary" id="process-btn" disabled>
+          <span id="process-label">Process Transcript &amp; Auto-fill</span>
+          <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+</body>
+</html>

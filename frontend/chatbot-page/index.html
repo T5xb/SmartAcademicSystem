@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Academic AI - AI Chatbot</title>
+
+  <!-- Google Fonts: Inter + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- ======================= Header ======================= -->
+  <header class="header">
+    <div class="header__left">
+
+      <!-- Brand (same logo as Sign In page) -->
+      <a href="../welcome-page/index.html" class="brand">
+        <div class="brand__logo">
+          <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+            <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+          </svg>
+        </div>
+        <span class="brand__name">Academic AI</span>
+      </a>
+
+      <!-- Navigation Tabs -->
+      <nav class="nav-tabs" aria-label="Main tabs">
+        <a href="index.html" class="nav-tab is-active" aria-current="page">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span class="nav-tab__label">AI Chatbot</span>
+          <span class="dot dot--small dot--pulse"></span>
+        </a>
+        <a href="../schedule-page/index.html" class="nav-tab">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <span class="nav-tab__label">Study Schedule</span>
+        </a>
+      </nav>
+    </div>
+
+    <div class="header__right">
+      <div class="status-pill">
+        <span class="dot dot--pulse"></span>
+        <span class="status-pill__text">Fall 2025 Online</span>
+      </div>
+
+      <!-- Action Icons -->
+      <div class="icon-actions">
+        <button type="button" id="notifications-btn" class="icon-btn" title="Notifications" aria-label="Notifications">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+          </svg>
+          <span class="icon-btn__badge"></span>
+        </button>
+        <button type="button" id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- User -->
+      <div class="user">
+        <div class="avatar">AR</div>
+        <div class="user__info">
+          <div class="user__name">Ahmed Al-Rashid</div>
+          <div class="user__id">s202100000</div>
+        </div>
+        <button type="button" class="sign-out" data-sign-out title="Sign Out" aria-label="Sign Out">
+          <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================= Layout ======================= -->
+  <div class="layout">
+
+    <!-- ===================== Sidebar (Chat History) ===================== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__top">
+        <button type="button" id="collapse-btn" class="text-btn" title="Collapse sidebar">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+            <line x1="9" y1="3" x2="9" y2="21"></line>
+          </svg>
+          Collapse
+        </button>
+
+        <button type="button" id="new-chat-btn" class="new-chat">
+          <span class="new-chat__label">
+            <svg fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            New Chat
+          </span>
+          <svg class="new-chat__icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+            <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+          </svg>
+        </button>
+
+        <nav class="history" id="history" aria-label="Chat history"></nav>
+      </div>
+
+      <!-- Profile (same avatar as the header) -->
+      <div class="profile">
+        <div class="profile__user">
+          <div class="avatar avatar--large">AR</div>
+          <div>
+            <div class="profile__name">Ahmed Al-Rashid</div>
+            <div class="profile__meta">CS Senior</div>
+          </div>
+        </div>
+        <button type="button" id="profile-menu-btn" class="icon-btn" aria-label="More options" aria-haspopup="menu" aria-expanded="false">
+          <svg fill="currentColor" viewBox="0 0 24 24">
+            <circle cx="5" cy="12" r="2"></circle>
+            <circle cx="12" cy="12" r="2"></circle>
+            <circle cx="19" cy="12" r="2"></circle>
+          </svg>
+        </button>
+
+        <div class="menu" id="profile-menu" role="menu" hidden>
+          <button type="button" class="menu__item" role="menuitem" id="clear-chats-btn">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+              <path d="M10 11v6M14 11v6"></path>
+              <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+            </svg>
+            Clear all chats
+          </button>
+          <button type="button" class="menu__item menu__item--danger" role="menuitem" data-sign-out>
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Sign out
+          </button>
+        </div>
+      </div>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebar-backdrop"></div>
+
+    <!-- ===================== Chat ===================== -->
+    <main class="chat">
+
+      <!-- Telemetry Strip -->
+      <div class="strip">
+        <div class="strip__left">
+          <button type="button" id="open-sidebar-btn" class="icon-btn strip__open" title="Open sidebar" aria-label="Open sidebar">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+          </button>
+          <!-- Live server status (click to re-check) -->
+          <button type="button" class="telemetry" id="server-status" data-state="checking" title="Check server connection">
+            <span class="telemetry__dot"></span>
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M12 14l4-4"></path>
+              <path d="M3.34 19a10 10 0 1 1 17.32 0"></path>
+            </svg>
+            <span id="server-latency">— ms</span>
+            <span class="telemetry__sep">•</span>
+            <span class="telemetry__accent" id="server-status-text">Connecting…</span>
+          </button>
+        </div>
+        <div class="strip__right">
+          <button type="button" id="encrypted-btn" class="pill-btn">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <span class="pill-btn__label">Fully Encrypted</span>
+          </button>
+          <button type="button" id="tune-btn" class="icon-btn" title="Server settings" aria-label="Server settings">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <line x1="4" y1="21" x2="4" y2="14"></line>
+              <line x1="4" y1="10" x2="4" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="12"></line>
+              <line x1="12" y1="8" x2="12" y2="3"></line>
+              <line x1="20" y1="21" x2="20" y2="16"></line>
+              <line x1="20" y1="12" x2="20" y2="3"></line>
+              <line x1="1" y1="14" x2="7" y2="14"></line>
+              <line x1="9" y1="8" x2="15" y2="8"></line>
+              <line x1="17" y1="16" x2="23" y2="16"></line>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="chat__scroll" id="chat-scroll">
+        <div class="chat__inner" id="messages"></div>
+      </div>
+
+      <!-- Composer -->
+      <div class="composer-dock">
+        <form class="composer" id="composer">
+          <textarea id="prompt" class="composer__input" rows="2" dir="auto" maxlength="2000"
+            placeholder="اكتب سؤالك الأكاديمي هنا...  Ask about academic regulations" aria-label="Message"></textarea>
+
+          <div class="composer__bar">
+            <div class="composer__tools">
+              <button type="button" id="attach-btn" class="icon-btn" title="Attach file" aria-label="Attach file">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
+                </svg>
+              </button>
+              <span class="composer__count" id="char-count">0 / 2000</span>
+            </div>
+            <!-- Becomes a Stop button while an answer is loading -->
+            <button type="submit" id="send-btn" class="send-btn" title="Send message" aria-label="Send message" disabled></button>
+          </div>
+        </form>
+        <p class="disclaimer">Academic AI answers only from IMSIU's official regulations and can make mistakes. Verify important decisions with your academic advisor.</p>
+      </div>
+    </main>
+  </div>
+
+  <!-- ======================= Server Settings Modal ======================= -->
+  <div class="modal" id="settings-modal" hidden>
+    <div class="modal__backdrop" data-close-settings></div>
+    <form class="modal__dialog" id="settings-form" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <div class="modal__header">
+        <div>
+          <h2 id="settings-title">Server Settings</h2>
+          <p>The chatbot sends questions to the Smart Academic System API (<code>fastapi_app.py</code>).</p>
+        </div>
+        <button type="button" class="icon-btn" data-close-settings aria-label="Close">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <label class="field">
+        <span class="field__label">Server URL</span>
+        <input type="url" id="api-url-input" class="field__input" placeholder="http://localhost:8000" required spellcheck="false">
+        <span class="field__hint">Use the ngrok link here if the server runs on a teammate's laptop.</span>
+      </label>
+
+      <div class="settings-status" id="settings-status" data-state="idle"></div>
+
+      <div class="modal__footer">
+        <button type="button" class="btn btn--ghost" id="api-reset-btn">Reset to default</button>
+        <div class="modal__actions">
+          <button type="button" class="btn btn--ghost" id="api-test-btn">Test connection</button>
+          <button type="submit" class="btn btn--primary">Save</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+</body>
+</html>

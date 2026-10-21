@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Academic AI - Choose Your Workspace</title>
+
+  <!-- Google Fonts: Inter + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- ======================= Header ======================= -->
+  <header class="header">
+
+    <!-- Brand (same logo as Sign In page) -->
+    <div class="brand">
+      <div class="brand__logo">
+        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+          <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+        </svg>
+      </div>
+      <span class="brand__name">Academic AI</span>
+    </div>
+
+    <!-- Session Info & Status -->
+    <div class="header__right">
+      <div class="status-pill">
+        <span class="dot dot--pulse"></span>
+        <span class="status-pill__text">Fall 2025 Online</span>
+      </div>
+
+      <div class="user">
+        <div class="user__avatar">AR</div>
+        <div class="user__info">
+          <div class="user__name">Ahmed Al-Rashid</div>
+          <div class="user__id">s202100000</div>
+        </div>
+        <button type="button" id="sign-out-btn" class="sign-out" title="Sign Out" aria-label="Sign Out">
+          <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================= Main ======================= -->
+  <main class="main">
+    <div class="hub">
+
+      <!-- Center Emblem (same logo as Sign In page) -->
+      <div class="emblem">
+        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+          <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+        </svg>
+      </div>
+
+      <!-- Heading -->
+      <h1 class="hub__title">Academic AI</h1>
+      <p class="hub__subtitle">
+        Welcome back, Ahmed. Choose your specialized tool below to begin your academic session.
+      </p>
+
+      <!-- Option Cards -->
+      <div class="options">
+
+        <!-- Option 1: AI Chatbot -->
+        <div class="option-card">
+          <div>
+            <div class="option-card__top">
+              <div class="option-card__icon">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+                </svg>
+              </div>
+              <span class="tag tag--primary">
+                <span class="dot dot--pulse"></span>
+                Interactive Assistant
+              </span>
+            </div>
+
+            <h2 class="option-card__title">
+              AI Chatbot
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </h2>
+
+            <p class="option-card__desc">
+              Chat in real-time with an intelligent university assistant trained on your syllabi, lecture slides, and course requirements. Ask complex academic questions, summarize lectures, generate practice exam problems, and resolve university queries instantly.
+            </p>
+
+            <ul class="features">
+              <li>
+                <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                Upload lecture notes &amp; course documents
+              </li>
+              <li>
+                <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                Mock exam generation &amp; code explanations
+              </li>
+              <li>
+                <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                Direct university guidelines and policy support
+              </li>
+            </ul>
+          </div>
+
+          <a href="../chatbot-page/index.html" class="btn btn--outline">
+            Launch AI Chatbot
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </a>
+        </div>
+
+        <!-- Option 2: Study Schedule Planner -->
+        <div class="option-card">
+          <div>
+            <div class="option-card__top">
+              <div class="option-card__icon">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+              </div>
+              <span class="tag tag--emerald">
+                <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                </svg>
+                Optimal Timetable Builder
+              </span>
+            </div>
+
+            <h2 class="option-card__title">
+              Study Schedule Planner
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </h2>
+
+            <p class="option-card__desc">
+              Generate conflict-free weekly timetables in seconds. Filter by preferred days off, specific lecture time boundaries, lock designated course sections, and inspect detailed section cards with one-click CRN copying and final exam conflict detection.
+            </p>
+
+            <ul class="features">
+              <li>
+                <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                Automated conflict resolution &amp; days-off optimization
+              </li>
+              <li>
+                <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                Lock specific sections, professors &amp; classroom rooms
+              </li>
+              <li>
+                <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+                One-click transcript PDF audit import &amp; auto-fill
+              </li>
+            </ul>
+          </div>
+
+          <a href="../schedule-page/index.html" class="btn btn--outline">
+            Configure Study Schedule
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      <!-- Info Note -->
+      <div class="note">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>You can switch between the <strong>AI Chatbot</strong> and <strong>Study Schedule</strong> at any time from the top navigation bar.</span>
+      </div>
+    </div>
+  </main>
+
+  <!-- ======================= Footer ======================= -->
+  <footer class="footer">
+    <div class="footer__trust">
+      <span class="dot"></span>
+      <span>End-to-end encrypted</span>
+      <span class="footer__separator">•</span>
+      <span>Designed for University Students &amp; Faculty</span>
+    </div>
+    <nav class="footer__links">
+      <a href="#">Privacy Policy</a>
+      <a href="#">Terms of Service</a>
+      <a href="#">Help Center</a>
+    </nav>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="script.js"></script>
+</body>
+</html>
