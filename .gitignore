@@ -27,3 +27,18 @@ chroma_db
 # the extracted, indexed text already lives in docs/. Not needed to run
 # or reproduce the project, and too large to be worth versioning.
 raw_sources/
+
+# Browser profile used to log in to the Nizam regulations platform (holds session cookies).
+# Never commit it.
+.crawl_browser_profile/
+
+# Raw crawl output of the IMSIU website (scripts/crawl_university.py): large and
+# reproducible, so only its index and summaries are versioned. Curated files live in docs/imamu_web/.
+raw_university_docs/*
+!raw_university_docs/INDEX.csv
+!raw_university_docs/SUMMARY.md
+!raw_university_docs/FILES_LIST.md
+
+# Over GitHub's 50 MB recommendation (62 MB); download it again from the URL in
+# raw_university_docs/FILES_LIST.md when rebuilding the index.
+docs/imamu_web/ccis/study_plans/الدليل_التعريفي_بكالوريوس_نظم_المعلومات.pdf

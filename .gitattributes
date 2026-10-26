@@ -1,0 +1,6 @@
+# Keep documents byte-for-byte (no line-ending conversion).
+*.pdf binary
+*.docx binary
+*.doc binary
+*.xlsx binary
+*.pptx binary
