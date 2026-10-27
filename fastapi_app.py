@@ -270,7 +270,8 @@ if __name__ == "__main__":
         else:
             print(">>> No public link: check NGROK_AUTHTOKEN in src/.env\n", flush=True)
 
-    if "--open" in sys.argv:
+    # --no-open wins, so the auto-start shortcut doesn't pop a browser at login.
+    if "--open" in sys.argv and "--no-open" not in sys.argv:
         # Give the index a few seconds to load before the browser asks for pages.
         threading.Timer(3.0, webbrowser.open, args=(local_url,)).start()
 
