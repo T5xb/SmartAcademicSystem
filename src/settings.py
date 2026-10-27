@@ -21,7 +21,7 @@ HOSTED_CONTEXT_WINDOW = 131042
 # Groq's free tier rejects a request whose *expected* output exceeds its
 # per-minute budget; unset, that expectation is the model's full 16384.
 # A grounded answer runs ~300 tokens.
-MAX_ANSWER_TOKENS = 512
+MAX_ANSWER_TOKENS = 900
 
 
 def _build_llm() -> LLM:
