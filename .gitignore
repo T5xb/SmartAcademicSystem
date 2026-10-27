@@ -42,3 +42,6 @@ raw_university_docs/*
 # Over GitHub's 50 MB recommendation (62 MB); download it again from the URL in
 # raw_university_docs/FILES_LIST.md when rebuilding the index.
 docs/imamu_web/ccis/study_plans/الدليل_التعريفي_بكالوريوس_نظم_المعلومات.pdf
+
+# Raw Telegram group export (students' messages). Private: never commit or serve it.
+private_data/
