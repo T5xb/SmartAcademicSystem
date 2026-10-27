@@ -109,6 +109,15 @@ function historyGroup(timestamp) {
 const linkifyEmails = (html) =>
   html.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, (email) => `<a href="mailto:${email}">${email}</a>`);
 
+/* Turns [label](url) in already-escaped text into a link. The server uses it
+   to hand over a file (study plan, calendar): /data/... paths are served by
+   the API server, so they are resolved against API_URL. */
+const linkifyFileLinks = (html) =>
+  html.replace(/\[([^\]\n]+)\]\((https:\/\/[^\s)]+|\/data\/[^\s)]+)\)/g, (_, label, url) => {
+    const href = url.startsWith('/') ? API_URL + url : url;
+    return `<a class="file-link" href="${href}" target="_blank" rel="noopener">${label}</a>`;
+  });
+
 /* ----------------------------------------------------------
    Server API
    ---------------------------------------------------------- */
@@ -255,7 +264,7 @@ function renderAnswerBody(body, msgId) {
   return body
     .split(/\n{2,}/)
     .map((para) => {
-      const html = linkifyEmails(escapeHtml(para))
+      const html = linkifyEmails(linkifyFileLinks(escapeHtml(para)))
         .replace(/\[(\d+)\]/g, (_, n) =>
           `<button type="button" class="cite" data-cite="${n}" data-msg="${msgId}" title="Show source ${n}">${n}</button>`);
       return `<p dir="auto">${html}</p>`;

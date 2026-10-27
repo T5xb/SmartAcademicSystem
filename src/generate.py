@@ -1,5 +1,6 @@
 import logging
 import os
+import unicodedata
 
 from dotenv import load_dotenv
 
@@ -32,6 +33,16 @@ def _load_documents(data_dir: str) -> list:
 
     reader = SimpleDirectoryReader(data_dir, recursive=True, exclude=["*.txt", "*.pdf"])
     documents.extend(reader.load_data())
+
+    # Several PDFs (the study plans especially) store Arabic as presentation
+    # forms (e.g. "ﻣﻘﺪﻣﺔ" instead of "مقدمة"). They look right but are different
+    # code points, so the embedding never matched a student's question and
+    # the model read them poorly. NFKC folds them back to normal letters.
+    for doc in documents:
+        text = doc.get_content()
+        normalized = unicodedata.normalize("NFKC", text)
+        if normalized != text:
+            doc.set_content(normalized)
     return documents
 
 

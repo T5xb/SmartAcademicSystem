@@ -37,8 +37,14 @@ STIFF_OPENERS = re.compile(r"بناءً على|بناء على|وفقًا للس
 def behaviour(answer: str) -> str:
     from src.citation import NO_ANSWER_MESSAGE
 
+    if answer.startswith("ERROR:"):
+        return "error"  # e.g. the LLM provider's rate limit, not a real answer
     if NO_ANSWER_MESSAGE.splitlines()[0] in answer:
         return "no_answer"
+    if "[📄" in answer:
+        return "file"
+    if "المصدر: التقويم الدراسي" in answer:
+        return "date"
     if "المصادر:" in answer:
         return "answer"
     return "small_talk" if len(answer) < 300 else "answer"
@@ -66,11 +72,14 @@ def score(item: dict, answer: str) -> dict:
 async def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--limit", type=int, default=0)
+    parser.add_argument("--grep", help="only questions or topics matching this regex")
     args = parser.parse_args()
 
     load_dotenv("src/.env")
     logging.disable(logging.INFO)
     items = json.load(open(QUESTIONS, encoding="utf-8"))["questions"]
+    if args.grep:
+        items = [i for i in items if re.search(args.grep, i["q"] + " " + i["topic"])]
     if args.limit:
         items = items[: args.limit]
 

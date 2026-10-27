@@ -54,6 +54,28 @@ GLOSSARY: list[tuple[str, str]] = [
     (r"زائر", "الطالب الزائر"),
     (r"ارشاد|إرشاد|مرشد", "الإرشاد الأكاديمي"),
     (r"اعاد[هة]\s*ماد|أعيد|اعيد", "إعادة دراسة المقرر"),
+    (r"متطلب\s*(ل|لـ)?\s*(ايش|إيش|وش|ماذا)|يفتح\s*(لي)?\s*(ايش|وش)|يقفل", "المتطلب السابق للمقررات التالية"),
+    # Course nicknames -> official Arabic name, code and English name, so the
+    # question lands on the plan / syllabus page of that course.
+    (r"برمج[هة]\s*(1|١|وحد[هة])\b|مقدم[هة]\s*برمج", "مقدمة في برمجة الحاسب عال 1140 Introduction to Computer Programming"),
+    (r"برمج[هة]\s*(2|٢)\b|شيئي[هة]|اوبجكت|object", "البرمجة الشيئية عال 1241 Object-Oriented Programming"),
+    (r"تراكيب\s*(ال)?بيانات|داتا\s*ستركتشر|data\s*structure", "تراكيب البيانات عال 1242 Data Structures"),
+    (r"تراكيب\s*محدد[هة]|ديسكريت|discrete", "تراكيب محددة عال 1100 Discrete Structures"),
+    (r"تفاضل|كالكولس|calculus", "حساب التفاضل والتكامل التطبيقي ريض 1112 Applied Calculus"),
+    (r"فيزياء|فيز", "الفيزياء العامة فيز 1103 والفيزياء التطبيقية فيز 1104"),
+    (r"حوسب[هة]", "أساسيات الحوسبة والأخلاقيات عال 1111 Computing Fundamentals and Ethics"),
+    (r"قواعد\s*(ال)?بيانات|داتابيس|database", "مبادئ قواعد البيانات Database"),
+    (r"خوارزمي", "تصميم وتحليل الخوارزميات Algorithms"),
+    (r"شبكات", "شبكات الحاسب Computer Networks"),
+    (r"(انظم[هة]|أنظم[هة])\s*(ال)?تشغيل", "أنظمة التشغيل Operating Systems"),
+    (r"عمار[هة]", "عمارة الحاسب Computer Architecture"),
+    (r"منطق\s*رقمي|ديجتال", "تصميم المنطق الرقمي Digital Logic Design"),
+    (r"هندس[هة]\s*(ال)?برمجيات|سوفتوير", "هندسة البرمجيات Software Engineering"),
+    (r"جبر\s*خطي|لينير", "الجبر الخطي ريض 1227 Linear Algebra"),
+    (r"احصاء|إحصاء|احتمالات", "مقدمة في الاحتمالات والإحصاء احص 1011"),
+    (r"ذكاء\s*اصطناعي|\bai\b", "الذكاء الاصطناعي Artificial Intelligence"),
+    (r"مشروع\s*(ال)?تخرج|جراد", "مشروع التخرج Graduation Project"),
+    (r"المواد\s*(ال)?حر[هة]|مقرر\s*حر|الحرة", "المقررات الجامعية الحرة وآلية اختيار المتطلبات الجامعية"),
 ]
 
 _COMPILED = [(re.compile(p, re.IGNORECASE), terms) for p, terms in GLOSSARY]
