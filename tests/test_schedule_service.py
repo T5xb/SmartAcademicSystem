@@ -62,6 +62,23 @@ def test_suggestion_is_schedulable():
     assert service.generate(suggested, completed_courses=[])["schedules"]
 
 
+def test_transcript_rows():
+    from src.scheduling.code_mapping import map_transcript_codes
+    from src.scheduling.transcript_parser import _parse_course_row
+
+    # Normal row, with the extra empty title column some pages export.
+    row = _parse_course_row(["CS 1141", "Object-Oriented Programming", None, "4", "12", "C"])
+    assert row.code == "CS 1141" and row.credit_hours == 4 and row.passed
+    assert not _parse_course_row(["PH 1104", "Applied Physics", None, "0", "0", "W"]).passed
+    # Equivalency table: code | title | hours, no grade -> counted as passed.
+    eq = _parse_course_row(["CS 114", "Discrete structures 1", "3"])
+    assert eq.passed and eq.grade == "EQ"
+    assert _parse_course_row(["Equivalent Credit Hours Sum:", None, "9"]) is None
+    # Old and newer English codes both reach the plan's Arabic codes.
+    mapped, unmapped = map_transcript_codes({"CS 252", "CS 1242", "CS 1141", "QUR 1001"})
+    assert mapped == {"عال 1242", "عال 1241"} and unmapped == {"QUR 1001"}
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

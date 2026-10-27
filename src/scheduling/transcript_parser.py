@@ -17,7 +17,12 @@
 from dataclasses import dataclass, field
 from typing import BinaryIO, List, Optional, Set, Union
 
+import re
+
 import pdfplumber
+
+# تقدير اصطلاحي لمقرر معادَل (منقول من جهة أخرى) — يظهر في السجل بلا تقدير ولا نقاط
+EQUIVALENT_GRADE = "EQ"
 
 # تقديرات لا تُحتسب كنجاح في المقرر (رسوب / انسحاب / لم يحضر / قيد التنفيذ)
 NON_PASSING_GRADES = {"F", "W", "DN", "IP", "IC"}
@@ -76,12 +81,27 @@ def _to_int(value: str) -> Optional[int]:
     return int(f) if f is not None else None
 
 
+_COURSE_CODE_RE = re.compile(r"^[A-Z]{2,5} ?\d{3,4}$")
+
+
+def _looks_like_course_code(value: str) -> bool:
+    return bool(_COURSE_CODE_RE.match(str(value).strip()))
+
+
 def _parse_course_row(row: List[Optional[str]]) -> Optional[TranscriptCourseRecord]:
     """
     يحلل صف مقرر واحد بغض النظر عن وجود خانة None إضافية بين الرمز والعنوان
     (بعض صفحات المستند تُصدّر عمود عنوان إضافي فارغ، وبعضها لا).
     """
     cells = [c for c in row if c is not None and str(c).strip() != ""]
+    if len(cells) == 3 and _looks_like_course_code(cells[0]):
+        # جدول "المقررات المعادلة" أعلى السجل: رمز | اسم | ساعات، بلا تقدير.
+        # هذه مقررات محتسبة للطالب (ضمن الساعات المكتسبة)، فتُعامل كمجتازة.
+        hours = _to_float(cells[2])
+        if hours is None:
+            return None
+        return TranscriptCourseRecord(code=cells[0].strip(), title=cells[1].strip(),
+                                      credit_hours=hours, grade=EQUIVALENT_GRADE)
     if len(cells) < 4:
         return None  # صف غير مكتمل، لا يمكن اعتباره مقرراً بثقة
 
@@ -140,7 +160,8 @@ def parse_transcript(pdf_source: Union[str, BinaryIO]) -> TranscriptData:
                         continue
                     first_cell = str(row[0]).strip()
 
-                    if first_cell == "Course Code" or first_cell == "Hours" or first_cell == "Term":
+                    if (first_cell in ("Course Code", "Hours", "Term")
+                            or first_cell.startswith("Equivalent Credit Hours")):
                         continue  # ترويسات متكررة أو إحصاء فصل غير مستخدم هنا
 
                     if first_cell == "Accumulative":

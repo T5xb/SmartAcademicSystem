@@ -69,6 +69,30 @@ TRANSCRIPT_TO_PLAN_CODE: Dict[str, str] = {
     "CS 456": "عال 1464",    # Digital Image Processing -> معالجة الصور الرقمية (لم يُجتز بعد في السجل)
     "CS 1471": "عال 1471",   # Advanced Database -> قواعد البيانات المتقدمة
     "CS 442": "عال 1475",    # Software security -> أمن البرمجيات (لم يُجتز بعد في السجل)
+
+    # الترميز الإنجليزي الأحدث (4 أرقام) كما يظهر في سجلات الدفعات الأحدث.
+    # بعض الأرقام تطابق رقم الخطة وبعضها لا (مثل CS 1141 = البرمجة الشيئية = عال 1241)،
+    # لذلك كل سطر مُطابق يدوياً باسم المقرر وليس بقاعدة آلية على الرقم.
+    "CS 1141": "عال 1241",   # Object-Oriented Programming -> البرمجة الشيئية
+    "CS 1180": "عال 1111",   # Computer Science Ethics -> أساسيات الحوسبة والأخلاقيات
+    "CS 1201": "عال 1201",   # Discrete Structures 2 -> تراكيب محددة 2
+    "CS 1211": "عال 1312",   # Design and Analysis of Algorithms -> تصميم وتحليل الخوارزميات
+    "CS 1222": "عال 1322",   # Operating Systems -> أنظمة التشغيل
+    "CS 1242": "عال 1242",   # Data Structures -> تراكيب البيانات
+    "CS 1250": "عال 1350",   # Software Engineering 1 -> هندسة البرمجيات 1
+    "CS 1251": "عال 1351",   # Software Engineering 2 -> هندسة البرمجيات 2
+    "CS 1330": "عال 1330",   # Computer Networks -> شبكات الحاسب
+    "CS 1352": "عال 1352",   # Human Centered Intelligent Systems Design -> تصميم الأنظمة الذكية
+    "CS 1360": "عال 1360",   # Artificial Intelligence -> الذكاء الاصطناعي
+    "CS 1370": "عال 1370",   # Principles of Database -> مبادئ قواعد البيانات
+    "CS 1433": "عال 1433",   # Distributed Systems -> النظم الموزعة
+    "CS 1461": "عال 1461",   # Machine Learning -> تعلم الآلة
+    "CS 1472": "عال 1472",   # Information Security -> أمن المعلومات
+    "MATH 1112": "ريض 1112", # Applied Calculus 1 -> التفاضل والتكامل التطبيقي 1
+    "MATH 1227": "ريض 1227", # Linear Algebra -> الجبر الخطي
+    "STA 1011": "احص 1011",  # Introduction to Probability and Statistics
+    "PH 1103": "فيز 1103",   # General Physics -> الفيزياء العامة
+    "PH 1104": "فيز 1104",   # Applied Physics -> الفيزياء التطبيقية
 }
 
 
