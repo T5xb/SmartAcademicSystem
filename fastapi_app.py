@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -50,8 +50,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="GP2 RAG Chatbot", lifespan=lifespan)
 
-# The GP2 front end (chatbot-page) is opened from another origin — a file://
-# page, another port, or an ngrok URL — so the browser needs CORS headers.
+# The GP2 pages are normally served by this server (/app), but can still be
+# opened straight from disk (file://) or another port, which needs CORS.
 # Override with a comma-separated CORS_ORIGINS list to lock this down.
 cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
 app.add_middleware(
@@ -66,6 +66,12 @@ app.include_router(schedule_router)
 
 # Serve any files the user drops in DATA_DIR (optional, handy for debugging)
 app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
+
+# The GP2 web pages (sign-in, welcome, chatbot, schedule) are served from the
+# same server, so one run and one link (local or public) is all a user needs.
+# The folder layout is kept, so the pages' relative links keep working.
+FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend")
+app.mount("/app", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 
 class ChatRequest(BaseModel):
@@ -104,8 +110,15 @@ async def chat(req: ChatRequest):
     return ChatResponse(response=response)
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", include_in_schema=False)
 async def index():
+    # The welcome page sends visitors without a session to sign-in first.
+    return RedirectResponse("/app/welcome-page/index.html")
+
+
+@app.get("/simple", response_class=HTMLResponse)
+async def simple_chat():
+    # The original minimal chat page, kept for quick debugging.
     return rendered_html
 
 
@@ -217,7 +230,48 @@ form.addEventListener('submit', async (e) => {
 """
 
 
+def _start_public_tunnel(port: int) -> str | None:
+    """
+    Open an ngrok tunnel to this server and return its public https URL.
+
+    Uses NGROK_AUTHTOKEN from src/.env, or a token already saved in ngrok's
+    own config. NGROK_DOMAIN (optional) pins a free static ngrok domain so
+    the link stays the same between runs.
+    """
+    from pyngrok import ngrok
+
+    token = os.getenv("NGROK_AUTHTOKEN")
+    if token:
+        ngrok.set_auth_token(token)
+    domain = (os.getenv("NGROK_DOMAIN") or "").strip()
+    options = {"domain": domain} if domain else {}
+    try:
+        return ngrok.connect(port, "http", **options).public_url
+    except Exception:
+        logger.exception("Could not open the public ngrok tunnel")
+        return None
+
+
 if __name__ == "__main__":
+    import sys
+    import threading
+    import webbrowser
+
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", "8000"))
+    local_url = f"http://localhost:{port}"
+    print(f"\n>>> Local (this machine):  {local_url}", flush=True)
+
+    if "--public" in sys.argv:
+        public_url = _start_public_tunnel(port)
+        if public_url:
+            print(f">>> Public (share it):     {public_url}\n", flush=True)
+        else:
+            print(">>> No public link: check NGROK_AUTHTOKEN in src/.env\n", flush=True)
+
+    if "--open" in sys.argv:
+        # Give the index a few seconds to load before the browser asks for pages.
+        threading.Timer(3.0, webbrowser.open, args=(local_url,)).start()
+
+    uvicorn.run(app, host="0.0.0.0", port=port)

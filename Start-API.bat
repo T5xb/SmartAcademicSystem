@@ -1,5 +1,5 @@
 @echo off
-rem Starts the chatbot API used by the GP2 web pages (chatbot-page).
+rem Starts Academic AI (chatbot + schedule pages) and opens it in the browser.
 rem Keep this window open while using the chat; close it to stop the server.
 cd /d "%~dp0"
 
@@ -17,6 +17,6 @@ if errorlevel 1 (
   timeout /t 5 /nobreak >nul
 )
 
-echo Starting Academic AI API on http://localhost:8000 ...
-".venv\Scripts\python.exe" fastapi_app.py
+echo Starting Academic AI on http://localhost:8000 ...
+".venv\Scripts\python.exe" fastapi_app.py --open %*
 pause

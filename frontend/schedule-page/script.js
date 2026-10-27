@@ -40,7 +40,8 @@ let MAX_CREDITS = 18;                 // replaced by the server's default on loa
 const ROW_HEIGHT = 96;               // px per hour (matches --row-height)
 
 // The CSP scheduler runs in fastapi_app.py (src/scheduling) — same server as the chatbot.
-const API_URL = 'http://localhost:8000';
+// Same server that serves this page; opened from disk (file://) → the local server.
+const API_URL = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
 const SERVER_DOWN = `Couldn't reach the Academic AI server at ${API_URL}. Make sure the server is running (Start-API.bat).`;
 
 const DEFAULT_SELECTED = ['ريض 1112', 'عال 1140', 'عال 1220'];

@@ -34,7 +34,8 @@ if (!hasSession()) window.location.replace(SIGN_IN_PAGE);
 /* ----------------------------------------------------------
    Constants
    ---------------------------------------------------------- */
-const API_URL = 'http://localhost:8000';   // where fastapi_app.py runs
+// Same server that serves this page; opened from disk (file://) → the local server.
+const API_URL = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
 const STORAGE_KEY = 'academic-ai-chats';
 const REQUEST_TIMEOUT = 90000;       // ms before a question is given up on
 const MAX_MESSAGE_LENGTH = 2000;     // matches ChatRequest.max_length on the server

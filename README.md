@@ -28,9 +28,12 @@ copy src\.env.example src\.env    # then paste the team's keys into src\.env
 Get the real `src/.env` values (Groq key, Supabase URL) from the team
 privately — **never commit `src/.env`** (it is git-ignored).
 
-Then double-click `Start-API.bat` and open
-`frontend/sign-in-page/index.html` in the browser (any email/password
-signs in for the demo).
+Then double-click `Start-API.bat`: it starts the server and opens
+http://localhost:8000 in the browser (any email/password signs in for the
+demo). To share it, double-click `Start-Public.bat` instead: it also prints
+a public ngrok link (needs `NGROK_AUTHTOKEN` in `src/.env`; set
+`NGROK_DOMAIN` to a free ngrok static domain to keep the same link every
+run). The link only works while that window and this laptop stay on.
 
 ## Architecture
 
@@ -69,7 +72,8 @@ so it never accumulates stale chunks.
 
 ```bash
 .venv/Scripts/python.exe SmartAcademicSystem.py   # Gradio UI  -> http://127.0.0.1:7860
-.venv/Scripts/python.exe fastapi_app.py           # FastAPI UI -> http://localhost:8000
+.venv/Scripts/python.exe fastapi_app.py           # GP2 web pages -> http://localhost:8000
+.venv/Scripts/python.exe fastapi_app.py --public  # same, plus a public ngrok link
 ```
 
 `fastapi_app.py` also exposes the chatbot as JSON for any other front end:
@@ -82,17 +86,18 @@ curl -X POST http://localhost:8000/api/chat \
 
 ### GP2 web front end (`frontend/chatbot-page`)
 
-The GP2 chatbot page calls this API directly, so start `fastapi_app.py`
-first and then open the page. Besides `POST /api/chat` it uses:
+`fastapi_app.py` serves the GP2 pages itself under `/app` (`/` redirects
+there; the old minimal chat page is at `/simple`), so the pages and the
+API share one address. Besides `POST /api/chat` the chatbot page uses:
 
 | endpoint | used for |
 | --- | --- |
 | `GET /api/health` | the live "Server online / offline" pill and latency |
 | `GET /api/starters` | suggested questions (`NEXT_PUBLIC_STARTER_QUESTIONS`) |
 
-The page defaults to `http://localhost:8000`; change it (e.g. to an ngrok
-link) from the page's **Server Settings** (sliders icon). CORS is open by
-default so the page works from `file://` or another port — set
+The pages call the server they were loaded from; opened straight from
+disk (`file://`) they fall back to `http://localhost:8000`. CORS is open by
+default so that still works — set
 `CORS_ORIGINS` in `src/.env` (comma-separated) to restrict it.
 
 ## Which LLM answers
