@@ -9,6 +9,7 @@ resolved from the actual retrieved text.
 | path | what it is |
 | --- | --- |
 | `fastapi_app.py`, `src/` | RAG chatbot server (API on port 8000) |
+| `src/scheduling/` | CSP study-schedule generator + transcript import (same server, `/api/schedule/*`) |
 | `frontend/` | GP2 web pages: `sign-in-page` → `welcome-page` → `chatbot-page` / `schedule-page` |
 | `docs/` | official regulation documents that answers are drawn from |
 

@@ -128,7 +128,7 @@
           </span>
           <span class="import-card__text">
             <span class="import-card__title">Import Academic Record <span class="mono-tag">PDF</span></span>
-            <span class="import-card__desc">Upload transcript or degree audit to auto-fill courses</span>
+            <span class="import-card__desc">Upload your IMSIU transcript to auto-fill courses</span>
           </span>
           <svg class="import-card__arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <polyline points="9 18 15 12 9 6"></polyline>
@@ -353,7 +353,7 @@
         </span>
         <div class="modal__heading">
           <h2 id="import-title">Import Academic Record <span class="mono-tag mono-tag--pill">PDF Audit</span></h2>
-          <p>Upload your transcript or degree audit PDF to auto-fill completed courses, remaining credits, and prerequisites.</p>
+          <p>Upload your academic transcript PDF to mark completed courses, check prerequisites, and suggest next-term courses.</p>
         </div>
         <button type="button" class="modal__close" data-close-modal aria-label="Close">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -366,7 +366,7 @@
       <div class="modal__body">
         <!-- Drop Zone -->
         <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload transcript">
-          <input type="file" id="file-input" accept=".pdf,.html,.htm" hidden>
+          <input type="file" id="file-input" accept=".pdf" hidden>
 
           <div class="dropzone__empty" id="dz-empty">
             <span class="dropzone__icon">
@@ -384,7 +384,7 @@
               </svg>
               Browse Files
             </span>
-            <p class="dropzone__hint">Supports PDF, HTML, or Degree Audit (.pdf up to 15MB)</p>
+            <p class="dropzone__hint">Text-based transcript PDF exported from the university system (up to 15MB)</p>
           </div>
 
           <div class="dropzone__file" id="dz-file" hidden>
@@ -404,7 +404,7 @@
         </div>
 
         <!-- Sample -->
-        <div class="sample-row">
+        <div class="sample-row" hidden>
           <span class="dot"></span>
           <span class="sample-row__label">Sample available:</span>
           <span class="sample-row__file">KFUPM_Audit_Sample.pdf</span>
@@ -416,7 +416,7 @@
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          End-to-end encrypted • Extracted data is used solely for schedule generation and course validation.
+          Processed by the Academic AI server • Extracted data is used only for schedule generation and course validation, and is not stored.
         </p>
       </div>
 

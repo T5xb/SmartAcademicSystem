@@ -33,117 +33,18 @@ if (!hasSession()) window.location.replace(SIGN_IN_PAGE);
    Constants
    ---------------------------------------------------------- */
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
-const DAY_CODES = { U: 0, M: 1, T: 2, W: 3, R: 4 };
 const SCALE_START = 8 * 60;          // 08:00
 const SCALE_END = 24 * 60;           // 24:00
 const TIME_STEP = 30;                // minutes
-const MAX_RESULTS = 300;
-const MAX_CREDITS = 30;
+let MAX_CREDITS = 18;                 // replaced by the server's default on load
 const ROW_HEIGHT = 96;               // px per hour (matches --row-height)
 
-const DEFAULT_SELECTED = ['CS1223', 'CS1241', 'CS1242'];
-const IMPORT_COURSES = ['CS1223', 'CS1241', 'CS1242', 'CS2310', 'MATH2201'];
-const SAMPLE_FILE = { name: 'KFUPM_Audit_Sample.pdf', size: 248 * 1024 };
-const MAX_UPLOAD_SIZE = 15 * 1024 * 1024;
+// The CSP scheduler runs in fastapi_app.py (src/scheduling) — same server as the chatbot.
+const API_URL = 'http://localhost:8000';
+const SERVER_DOWN = `Couldn't reach the Academic AI server at ${API_URL}. Make sure the server is running (Start-API.bat).`;
 
-/* ----------------------------------------------------------
-   Mock Course Data
-   Meeting format: "<days> <start>-<end> <room> [Lab]"
-   Days: U = Sun, M = Mon, T = Tue, W = Wed, R = Thu
-   seats: [capacity, enrolled]  (enrolled >= capacity → closed)
-   ---------------------------------------------------------- */
-const COURSE_DATA = [
-  {
-    code: 'CS1223', name: 'Computer Architecture', short: 'Computer Arch', credits: 3, color: '#16d076',
-    exam: '2026-12-31 10:00-11:30',
-    sections: [
-      { id: 'B01', crn: '29123', seats: [40, 31], instructor: 'Dr. Khalid Al-Harbi', meet: ['UTR 08:00-08:50 2169'] },
-      { id: 'B02', crn: '29124', seats: [40, 40], instructor: 'Dr. Khalid Al-Harbi', meet: ['UTR 10:00-10:50 2169'] },
-      { id: 'B03', crn: '29125', seats: [35, 22], instructor: '', meet: ['MW 13:00-14:15 2171'] },
-    ],
-  },
-  {
-    code: 'CS1241', name: 'Object-Oriented Programming', short: 'OOP', credits: 4, color: '#a855f7',
-    exam: '2026-12-27 10:00-12:00',
-    sections: [
-      { id: 'B01', crn: '29101', seats: [30, 18], instructor: 'Ganesh Kuma Biromal', meet: ['UTR 09:00-09:50 1057', 'W 15:00-16:50 1060 Lab'] },
-      { id: 'B02', crn: '29103', seats: [30, 27], instructor: 'Dr. Nora Al-Shehri', meet: ['MW 10:00-11:15 1057', 'R 13:00-14:50 1060 Lab'] },
-      { id: 'B03', crn: '29105', seats: [30, 30], instructor: 'Ganesh Kuma Biromal', meet: ['UTR 13:00-13:50 1057', 'M 08:00-09:50 1060 Lab'] },
-    ],
-  },
-  {
-    code: 'CS1242', name: 'Data Structures & Algorithms', short: 'Data Structures', credits: 4, color: '#3b82f6',
-    exam: '2026-12-27 07:30-09:30',
-    sections: [
-      { id: 'B01', crn: '29096', seats: [25, 19], instructor: 'Mohamed Hussein Fayez Al-Khatib', meet: ['MW 08:00-09:15 1057', 'T 15:00-16:50 1055 Lab'] },
-      { id: 'B02', crn: '29097', seats: [25, 24], instructor: 'Dr. Faisal Al-Mutairi', meet: ['UTR 11:00-11:50 1055', 'W 13:00-14:50 1055 Lab'] },
-      { id: 'B03', crn: '29098', seats: [25, 12], instructor: '', meet: ['MW 16:00-17:15 1057', 'R 10:00-11:50 1055 Lab'], exam: '2026-12-29 07:30-09:30' },
-    ],
-  },
-  {
-    code: 'CS1201', name: 'Discrete Structures II', short: 'Discrete II', credits: 3, color: '#f97316',
-    exam: '2026-12-28 08:00-10:00',
-    sections: [
-      { id: 'B01', crn: '29140', seats: [45, 30], instructor: 'Dr. Huda Al-Otaibi', meet: ['UTR 10:00-10:50 2203'] },
-      { id: 'B02', crn: '29141', seats: [45, 44], instructor: 'Dr. Huda Al-Otaibi', meet: ['MW 11:30-12:45 2203'] },
-      { id: 'B03', crn: '29142', seats: [45, 20], instructor: 'Dr. Omar Al-Zahrani', meet: ['UTR 14:00-14:50 2205'] },
-    ],
-  },
-  {
-    code: 'CS1220', name: 'Digital Logic Design', short: 'Digital Logic', credits: 3, color: '#06b6d4',
-    exam: '2026-12-30 13:00-15:00',
-    sections: [
-      { id: 'B01', crn: '29150', seats: [30, 25], instructor: 'Dr. Yousef Al-Ghamdi', meet: ['MW 09:30-10:45 3112', 'U 15:00-17:50 3120 Lab'] },
-      { id: 'B02', crn: '29151', seats: [30, 29], instructor: 'Dr. Yousef Al-Ghamdi', meet: ['UTR 12:00-12:50 3112', 'W 08:00-10:50 3120 Lab'] },
-      { id: 'B03', crn: '29152', seats: [30, 30], instructor: '', meet: ['MW 14:30-15:45 3114', 'T 08:00-10:50 3120 Lab'] },
-    ],
-  },
-  {
-    code: 'CS2310', name: 'Operating Systems', short: 'Operating Sys', credits: 3, color: '#ec4899',
-    exam: '2026-12-29 10:00-12:00',
-    sections: [
-      { id: 'B01', crn: '29210', seats: [35, 28], instructor: 'Dr. Majed Al-Dossary', meet: ['UTR 09:00-09:50 1210'] },
-      { id: 'B02', crn: '29211', seats: [35, 33], instructor: 'Dr. Reem Al-Saud', meet: ['MW 13:00-14:15 1210'] },
-      { id: 'B03', crn: '29212', seats: [35, 35], instructor: 'Dr. Majed Al-Dossary', meet: ['UTR 16:00-16:50 1212'] },
-    ],
-  },
-  {
-    code: 'CS2320', name: 'Database Systems', short: 'Databases', credits: 3, color: '#eab308',
-    exam: '2026-12-28 13:00-15:00',
-    sections: [
-      { id: 'B01', crn: '29220', seats: [40, 26], instructor: 'Dr. Abdullah Al-Shammari', meet: ['MW 08:00-09:15 1301'] },
-      { id: 'B02', crn: '29221', seats: [40, 39], instructor: 'Dr. Lama Al-Rashed', meet: ['UTR 11:00-11:50 1301'] },
-      { id: 'B03', crn: '29222', seats: [40, 15], instructor: '', meet: ['MW 18:00-19:15 1303'] },
-    ],
-  },
-  {
-    code: 'CS2350', name: 'Computer Networks', short: 'Networks', credits: 3, color: '#14b8a6',
-    exam: '2026-12-30 08:00-10:00',
-    sections: [
-      { id: 'B01', crn: '29250', seats: [30, 22], instructor: 'Dr. Turki Al-Anazi', meet: ['UTR 08:00-08:50 1405'] },
-      { id: 'B02', crn: '29251', seats: [30, 27], instructor: 'Dr. Turki Al-Anazi', meet: ['MW 10:00-11:15 1405'] },
-      { id: 'B03', crn: '29252', seats: [30, 10], instructor: '', meet: ['UTR 17:00-17:50 1407'] },
-    ],
-  },
-  {
-    code: 'CS2401', name: 'Software Engineering', short: 'Software Eng', credits: 3, color: '#6366f1',
-    exam: '2026-12-31 13:00-15:00',
-    sections: [
-      { id: 'B01', crn: '29401', seats: [40, 36], instructor: 'Dr. Hessa Al-Mansour', meet: ['MW 11:30-12:45 2310'] },
-      { id: 'B02', crn: '29402', seats: [40, 18], instructor: 'Dr. Saleh Al-Juhani', meet: ['UTR 15:00-15:50 2310'] },
-      { id: 'B03', crn: '29403', seats: [40, 9], instructor: '', meet: ['MW 19:30-20:45 2312'] },
-    ],
-  },
-  {
-    code: 'MATH2201', name: 'Linear Algebra', short: 'Linear Algebra', credits: 3, color: '#ef4444',
-    exam: '2026-12-26 08:00-10:00',
-    sections: [
-      { id: 'B01', crn: '30201', seats: [50, 47], instructor: 'Dr. Ibrahim Al-Fahad', meet: ['UTR 08:00-08:50 5101'] },
-      { id: 'B02', crn: '30202', seats: [50, 50], instructor: 'Dr. Mona Al-Harthi', meet: ['UTR 12:00-12:50 5101'] },
-      { id: 'B03', crn: '30203', seats: [50, 31], instructor: 'Dr. Ibrahim Al-Fahad', meet: ['MW 16:00-17:15 5103'] },
-    ],
-  },
-];
+const DEFAULT_SELECTED = ['ريض 1112', 'عال 1140', 'عال 1220'];
+const MAX_UPLOAD_SIZE = 15 * 1024 * 1024;
 
 /* ----------------------------------------------------------
    Helpers
@@ -167,51 +68,47 @@ const formatExamDate = (date) => {
   return `${weekday} (${m}/${d}/${y})`;
 };
 
-const formatExam = (exam) => `${formatExamDate(exam.date)} • ${formatTime(exam.start)} - ${formatTime(exam.end)}`;
+const formatExam = (exam) => {
+  if (!exam) return 'No final exam / not scheduled';
+  return `${formatExamDate(exam.date)} • ${formatTime(exam.start)}${exam.end != null ? ` - ${formatTime(exam.end)}` : ''}`;
+};
 
 const formatFileSize = (bytes) =>
   bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
 
-const isClosed = (section) => section.enrolled >= section.capacity;
+// A section without a capacity has unlimited seats.
+const isClosed = (section) => section.capacity != null && section.enrolled >= section.capacity;
 
-function parseExam(text) {
-  const [date, range] = text.split(' ');
-  const [start, end] = range.split('-');
-  return { date, start: toMinutes(start), end: toMinutes(end) };
-}
+// Validation messages from the server use **bold** markers.
+const plainText = (text) => String(text).replace(/\*\*/g, '');
 
-function parseMeeting(text) {
-  const [days, range, room, type = 'Lecture'] = text.split(' ');
-  const [start, end] = range.split('-');
-  return [...days].map((code) => ({
-    day: DAY_CODES[code],
-    start: toMinutes(start),
-    end: toMinutes(end),
-    room,
-    type,
-  }));
-}
+/* Course plan, loaded from GET /api/schedule/courses */
+let COURSES = [];
+let COURSE_BY_CODE = {};
 
-/* Normalized courses */
-const COURSES = COURSE_DATA.map((course, index) => {
-  const exam = parseExam(course.exam);
-  return {
+function setCourses(list) {
+  COURSES = list.map((course, index) => ({
     ...course,
     index,
-    exam,
-    sections: course.sections.map((s) => ({
-      id: s.id,
-      crn: s.crn,
-      capacity: s.seats[0],
-      enrolled: s.seats[1],
-      instructor: s.instructor,
-      meetings: s.meet.flatMap(parseMeeting),
-      exam: s.exam ? parseExam(s.exam) : exam,
-    })),
-  };
-});
+    sections: course.sections.map((s) => ({ ...s, exam: course.exam })),
+  }));
+  COURSE_BY_CODE = Object.fromEntries(COURSES.map((c) => [c.code, c]));
+}
 
-const COURSE_BY_CODE = Object.fromEntries(COURSES.map((c) => [c.code, c]));
+async function apiFetch(path, options = {}) {
+  let res;
+  try {
+    res = await fetch(`${API_URL}${path}`, options);
+  } catch {
+    throw new Error(SERVER_DOWN);
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const detail = typeof data.detail === 'string' ? data.detail : `Server error (${res.status})`;
+    throw new Error(detail);
+  }
+  return data;
+}
 
 /* Icons used in rendered markup */
 const ICONS = {
@@ -241,21 +138,17 @@ const state = {
   truncated: false,
   emptyReason: '',
   index: 0,
+  loading: false,
+  completed: null,       // Set of plan codes from an imported transcript (null = unknown)
 };
 
 /* ----------------------------------------------------------
-   Schedule Generator
+   Schedule Generator (CSP on the server: POST /api/schedule/generate)
+   Hard constraints (time clash, same final-exam slot, seats, locks,
+   time range, days off, credit limit, prerequisites) are enforced by
+   the solver; this page only lays out what it returns.
    ---------------------------------------------------------- */
-function isSectionAllowed(course, section) {
-  const locked = state.locks[course.code];
-  if (locked && locked !== section.id) return false;
-  if (!state.includeClosed && isClosed(section)) return false;
-  return section.meetings.every((m) => m.start >= state.timeFrom && m.end <= state.timeTo);
-}
-
-const overlaps = (a, b) => a.day === b.day && a.start < b.end && b.start < a.end;
-
-function buildSchedule(picks) {
+function buildSchedule(picks, score) {
   const entries = [...picks].sort((a, b) => a.course.index - b.course.index);
   const meetings = entries.flatMap((e) => e.section.meetings);
   const days = new Set(meetings.map((m) => m.day));
@@ -267,76 +160,89 @@ function buildSchedule(picks) {
     for (let i = 1; i < list.length; i++) gaps += Math.max(0, list[i].start - list[i - 1].end);
   });
 
-  // Two final exams on the same date = conflict
+  // Same exam slot is already ruled out by the solver; two finals on the
+  // same day is still worth a warning.
   const conflicts = [];
   for (let i = 0; i < entries.length; i++) {
     for (let j = i + 1; j < entries.length; j++) {
-      if (entries[i].section.exam.date === entries[j].section.exam.date) {
-        conflicts.push({ date: entries[i].section.exam.date, a: entries[i], b: entries[j] });
+      const a = entries[i].section.exam;
+      const b = entries[j].section.exam;
+      if (a && b && a.date === b.date) {
+        conflicts.push({ date: a.date, a: entries[i], b: entries[j] });
       }
     }
   }
 
-  return { entries, daysUsed: days.size, gaps, conflicts };
+  return { entries, daysUsed: days.size, gaps, conflicts, score };
 }
 
-function generateSchedules() {
+function scheduleRequest() {
+  return {
+    courses: COURSES.filter((c) => state.selected.has(c.code)).map((c) => c.code),
+    locks: state.locks,
+    time_from: formatTime(state.timeFrom),
+    time_to: formatTime(state.timeTo),
+    min_days_off: state.daysOff,
+    include_closed: state.includeClosed,
+    completed_courses: state.completed ? [...state.completed] : null,
+    max_credit_hours: MAX_CREDITS,
+  };
+}
+
+let requestSeq = 0;
+
+async function generateSchedules() {
+  const seq = ++requestSeq;
   state.schedules = [];
   state.truncated = false;
   state.emptyReason = '';
   state.index = 0;
 
-  const courses = COURSES.filter((c) => state.selected.has(c.code));
-  if (!courses.length) return;
-
-  const options = courses.map((c) => c.sections.filter((s) => isSectionAllowed(c, s)));
-  const blockedIndex = options.findIndex((list) => !list.length);
-  if (blockedIndex !== -1) {
-    const course = courses[blockedIndex];
-    state.emptyReason = `No section of ${course.code} (${course.short}) fits your current filters. Try widening the time range, including closed sections, or unlocking its section.`;
+  const body = scheduleRequest();
+  if (!body.courses.length) {
+    state.loading = false;
     return;
   }
 
-  // Courses with fewer options first → faster pruning
-  const order = courses.map((_, i) => i).sort((a, b) => options[a].length - options[b].length);
-  const maxDays = 5 - state.daysOff;
-  const results = [];
-  const picks = [];
+  state.loading = true;
+  let data;
+  try {
+    data = await apiFetch('/api/schedule/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    if (seq !== requestSeq) return;
+    state.loading = false;
+    state.emptyReason = err.message;
+    return;
+  }
+  if (seq !== requestSeq) return; // a newer request replaced this one
+  state.loading = false;
 
-  const walk = (depth, taken, days) => {
-    if (results.length >= MAX_RESULTS) {
-      state.truncated = true;
-      return;
-    }
-    if (depth === order.length) {
-      results.push(buildSchedule(picks));
-      return;
-    }
-    const course = courses[order[depth]];
-    for (const section of options[order[depth]]) {
-      if (section.meetings.some((m) => taken.some((t) => overlaps(m, t)))) continue;
-      const nextDays = new Set(days);
-      section.meetings.forEach((m) => nextDays.add(m.day));
-      if (nextDays.size > maxDays) continue;
+  if (data.errors && data.errors.length) {
+    state.emptyReason = data.errors.map(plainText).join('\n');
+    return;
+  }
 
-      picks.push({ course, section });
-      walk(depth + 1, taken.concat(section.meetings), nextDays);
-      picks.pop();
-    }
-  };
-
-  walk(0, [], new Set());
-
-  // Best first: no exam conflicts, fewer campus days, fewer idle gaps
-  results.sort((a, b) =>
-    a.conflicts.length - b.conflicts.length ||
-    a.daysUsed - b.daysUsed ||
-    a.gaps - b.gaps
+  const schedules = data.schedules.map((s) =>
+    buildSchedule(
+      s.picks.map((p) => {
+        const course = COURSE_BY_CODE[p.code];
+        return { course, section: course.sections.find((sec) => sec.id === p.section) };
+      }),
+      s.score
+    )
   );
+  // Server order is best score first; keep it, but push same-day finals back.
+  schedules.sort((a, b) => a.conflicts.length - b.conflicts.length);
 
-  state.schedules = results;
-  if (!results.length) {
-    state.emptyReason = 'Every combination of the selected courses clashes in time or breaks your filters. Try fewer days off, a wider time range, or unlocking a section.';
+  state.schedules = schedules;
+  state.truncated = data.truncated;
+  if (!schedules.length) {
+    state.emptyReason = data.failure_reason ||
+      'Every combination of the selected courses clashes in time or breaks your filters. Try fewer days off, a wider time range, or unlocking a section.';
   }
 }
 
@@ -374,12 +280,22 @@ function renderCourseList() {
 
   $('#course-list').innerHTML = list.map((c) => {
     const selected = state.selected.has(c.code);
+    const done = Boolean(state.completed && state.completed.has(c.code));
+    const missing = state.completed ? c.prerequisites.filter((p) => !state.completed.has(p.code)) : [];
+    const tags = [
+      c.elective ? 'Elective' : '',
+      done ? 'Completed' : '',
+      !done && missing.length ? `Needs ${missing.map((p) => p.name).join(', ')}` : '',
+    ].filter(Boolean).map((t) => ` • ${escapeHtml(t)}`).join('');
+    const prereqTitle = c.prerequisites.length
+      ? `Prerequisites: ${c.prerequisites.map((p) => `${p.name} (${p.code})`).join(', ')}`
+      : 'No prerequisites';
     return `
-      <label class="course-item${selected ? ' is-selected' : ''}" style="--c: ${c.color}">
-        <input type="checkbox" class="course-item__check" data-code="${c.code}" ${selected ? 'checked' : ''}>
+      <label class="course-item${selected ? ' is-selected' : ''}" style="--c: ${c.color}${done ? '; opacity: .5' : ''}" title="${escapeHtml(prereqTitle)}">
+        <input type="checkbox" class="course-item__check" data-code="${escapeHtml(c.code)}" ${selected ? 'checked' : ''} ${done ? 'disabled' : ''}>
         <span class="course-item__text">
-          <span class="course-item__name">${escapeHtml(c.name)}</span>
-          <span class="course-item__meta">${c.code} • ${c.credits} Credit Hrs • ${c.sections.length} Sections</span>
+          <span class="course-item__name" dir="auto">${escapeHtml(c.name)}</span>
+          <span class="course-item__meta">${escapeHtml(c.code)} • ${c.credits} Credit Hrs • ${c.sections.length} Section${c.sections.length === 1 ? '' : 's'}${tags}</span>
         </span>
         <span class="course-item__dot"></span>
       </label>`;
@@ -480,7 +396,7 @@ function renderConflictBanner(schedule) {
   const [first, ...rest] = schedule.conflicts;
   const label = (entry) => `${escapeHtml(entry.course.short)} (${entry.course.code})`;
   $('#conflict-text').innerHTML = `
-    <strong>Final Exam Conflict Detected:</strong>
+    <strong>Two Final Exams on the Same Day:</strong>
     <span class="conflict-banner__date">${formatExamDate(first.date)}</span>
     <span class="conflict-banner__muted">between</span>
     <span class="conflict-chip">${label(first.a)}</span>
@@ -492,11 +408,15 @@ function renderConflictBanner(schedule) {
 
 function renderEmptyTimetable() {
   const noCourses = state.selected.size === 0;
+  const title = noCourses ? 'No courses selected' : state.loading ? 'Generating schedules…' : 'No schedules found';
+  const text = noCourses
+    ? 'Select courses from the sidebar to start building your schedule.'
+    : state.loading ? 'The CSP solver is checking every constraint.' : state.emptyReason;
   $('#timetable').innerHTML = `
     <div class="timetable__empty">
       ${ICONS.emptyCalendar}
-      <h3>${noCourses ? 'No courses selected' : 'No schedules found'}</h3>
-      <p>${noCourses ? 'Select courses from the sidebar to start building your schedule.' : escapeHtml(state.emptyReason)}</p>
+      <h3>${title}</h3>
+      <p dir="auto" style="white-space: pre-line">${escapeHtml(text)}</p>
     </div>`;
 }
 
@@ -526,14 +446,14 @@ function renderTimetable(schedule) {
           const title = isLab ? `${course.short} ${m.type}` : `${course.short} (${course.code})`;
           return `
             <div class="tt-block${isLab ? ' tt-block--lab' : ''}" style="--c: ${course.color}; top: ${top}px; height: ${blockHeight}px"
-              title="${escapeHtml(course.name)} — ${section.id} • ${formatTime(m.start)}-${formatTime(m.end)} • Rm ${m.room}">
+              title="${escapeHtml(course.name)} — ${section.id} • ${formatTime(m.start)}-${formatTime(m.end)}${m.room ? ` • Rm ${m.room}` : ''}">
               <div class="tt-block__top">
-                <span class="tt-block__title">${escapeHtml(title)}</span>
+                <span class="tt-block__title" dir="auto">${escapeHtml(title)}</span>
                 <span class="tt-block__badge">${section.id}</span>
               </div>
               <div class="tt-block__bottom">
                 <span>${ICONS.clock}${formatTime(m.start)} - ${formatTime(m.end)}</span>
-                <span class="tt-block__room">Rm ${m.room}</span>
+                ${m.room ? `<span class="tt-block__room">Rm ${m.room}</span>` : ''}
               </div>
             </div>`;
         })
@@ -585,7 +505,7 @@ function renderDetails(schedule) {
   const conflictCodes = new Set(schedule.conflicts.flatMap((c) => [c.a.course.code, c.b.course.code]));
 
   $('#details-grid').innerHTML = schedule.entries.map(({ course, section }) => {
-    const rooms = [...new Set(section.meetings.map((m) => m.room))].join(', ');
+    const rooms = [...new Set(section.meetings.map((m) => m.room).filter(Boolean))].join(', ');
     const times = groupMeetings(section.meetings).map((g) => `
       <div class="info-row">
         <span class="info-row__main">${ICONS.clock}
@@ -600,7 +520,7 @@ function renderDetails(schedule) {
         <div class="section-card__main">
           <div class="section-card__top">
             <div>
-              <h4 class="section-card__name">${escapeHtml(course.name)}</h4>
+              <h4 class="section-card__name" dir="auto">${escapeHtml(course.name)}</h4>
               <div class="section-card__code">${course.code} • ${course.credits} Credit Hrs</div>
             </div>
             <span class="section-card__badge">Section ${section.id}</span>
@@ -609,7 +529,7 @@ function renderDetails(schedule) {
           <div class="section-card__stats">
             <div class="seats">
               <span class="section-card__label">Seats:</span>
-              <span class="seats__value${isClosed(section) ? ' is-full' : ''}">${section.enrolled} / ${section.capacity}${isClosed(section) ? ' Full' : ''}</span>
+              <span class="seats__value${isClosed(section) ? ' is-full' : ''}">${section.capacity == null ? 'Open' : `${section.enrolled} / ${section.capacity}`}${isClosed(section) ? ' Full' : ''}</span>
             </div>
             <div class="crn">
               <span class="section-card__label">CRN:</span>
@@ -620,9 +540,9 @@ function renderDetails(schedule) {
 
           <div class="info-list">
             ${times}
-            <div class="info-row">
+            ${rooms ? `<div class="info-row">
               <span class="info-row__main">${ICONS.room}<span>Room: <strong>${rooms}</strong></span></span>
-            </div>
+            </div>` : ''}
             <div class="info-row">
               <span class="info-row__main">${ICONS.user}
                 <span class="instructor${section.instructor ? '' : ' is-tba'}">${escapeHtml(section.instructor || 'To Be Announced')}</span>
@@ -651,11 +571,29 @@ function renderResults() {
   renderDetails(schedule);
 }
 
-/* Regenerate + redraw everything */
+/* Regenerate + redraw everything. The sidebar redraws at once; the solver
+   call is debounced so dragging the time slider doesn't flood the server. */
+let updateTimer;
+let pendingUpdate = null;
 function update() {
-  generateSchedules();
   renderSidebar();
+  state.loading = state.selected.size > 0;
+  state.schedules = [];
   renderResults();
+  clearTimeout(updateTimer);
+  if (!pendingUpdate) {
+    let resolve;
+    pendingUpdate = { promise: new Promise((r) => { resolve = r; }), resolve };
+  }
+  const pending = pendingUpdate;
+  updateTimer = setTimeout(async () => {
+    pendingUpdate = null;
+    const seq = requestSeq + 1;
+    await generateSchedules();
+    if (seq === requestSeq) renderResults();
+    pending.resolve();
+  }, 200);
+  return pending.promise;
 }
 
 /* ----------------------------------------------------------
@@ -814,7 +752,7 @@ async function saveImage() {
       ctx.fillText(fitText(ctx, title, w - 16), x + 8, y + 16);
 
       ctx.font = '500 10px "JetBrains Mono", monospace';
-      ctx.fillText(`${formatTime(m.start)}-${formatTime(m.end)}  Rm ${m.room}`, x + 8, Math.min(y + h - 8, y + 32));
+      ctx.fillText(`${formatTime(m.start)}-${formatTime(m.end)}${m.room ? `  Rm ${m.room}` : ''}`, x + 8, Math.min(y + h - 8, y + 32));
     });
   });
 
@@ -828,7 +766,7 @@ async function saveImage() {
 /* ----------------------------------------------------------
    Import Academic Record Modal
    ---------------------------------------------------------- */
-let importSource = null;   // { name, size, sample }
+let importSource = null;   // { name, size, file }
 let processing = false;
 
 function renderImport() {
@@ -840,7 +778,7 @@ function renderImport() {
 
   if (hasFile) {
     $('#dz-file-name').textContent = importSource.name;
-    $('#dz-file-meta').textContent = `${formatFileSize(importSource.size)} • ${importSource.sample ? 'Sample audit' : 'Ready to process'}`;
+    $('#dz-file-meta').textContent = `${formatFileSize(importSource.size)} • Ready to process`;
   }
 }
 
@@ -868,9 +806,9 @@ function closeImportModal() {
 
 function handleFile(file) {
   if (!file) return;
-  const valid = /\.(pdf|html?)$/i.test(file.name);
+  const valid = /\.pdf$/i.test(file.name);
   if (!valid) {
-    setImportError('Unsupported file type. Please upload a PDF or HTML file.');
+    setImportError('Unsupported file type. Please upload your transcript as a PDF.');
     return;
   }
   if (file.size > MAX_UPLOAD_SIZE) {
@@ -878,33 +816,65 @@ function handleFile(file) {
     return;
   }
   setImportError('');
-  importSource = { name: file.name, size: file.size, sample: false };
+  importSource = { name: file.name, size: file.size, file };
   renderImport();
 }
 
-function processImport() {
+function setUser(student) {
+  if (!student) return;
+  if (student.name) {
+    $('.user__name').textContent = student.name;
+    const initials = student.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('');
+    $('.user__avatar').textContent = initials.toUpperCase();
+  }
+  if (student.id) $('.user__id').textContent = student.id;
+}
+
+async function processImport() {
   if (!importSource || processing) return;
   processing = true;
+  setImportError('');
   const button = $('#process-btn');
   button.disabled = true;
   $('#process-label').textContent = 'Processing…';
   button.querySelector('svg').outerHTML = '<span class="spinner"></span>';
 
-  // Demo: parsing is simulated — the record auto-fills a recommended course set
-  setTimeout(() => {
-    const name = importSource.name;
-    state.selected = new Set(IMPORT_COURSES);
-    state.locks = {};
-    state.listFilter = 'selected';
-
+  const finish = () => {
     processing = false;
     $('#process-label').textContent = 'Process Transcript & Auto-fill';
     button.querySelector('.spinner').outerHTML = '<svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+    renderImport();
+  };
 
-    closeImportModal();
-    update();
-    showToast(`Auto-filled ${IMPORT_COURSES.length} courses from ${name}`);
-  }, 1200);
+  // The transcript is parsed on the server (pdfplumber) and mapped to plan codes.
+  const form = new FormData();
+  form.append('file', importSource.file, importSource.name);
+  let data;
+  try {
+    data = await apiFetch('/api/schedule/transcript', { method: 'POST', body: form });
+  } catch (err) {
+    finish();
+    setImportError(err.message);
+    return;
+  }
+  finish();
+
+  if (!data.parsed_courses) {
+    setImportError(data.warnings[0] || 'No courses were found in this file.');
+    return;
+  }
+
+  const name = importSource.name;
+  state.completed = new Set(data.completed);
+  state.selected = new Set(data.suggested);
+  state.locks = {};
+  state.listFilter = 'selected';
+  setUser(data.student);
+
+  closeImportModal();
+  update();
+  const gpa = data.gpa != null ? ` • GPA ${data.gpa}` : '';
+  showToast(`${name}: ${data.completed.length} completed courses${gpa} — suggested ${data.suggested.length} courses`);
 }
 
 /* ----------------------------------------------------------
@@ -1013,8 +983,8 @@ function bindEvents() {
   });
 
   // Generate & reset
-  $('#generate-btn').addEventListener('click', () => {
-    update();
+  $('#generate-btn').addEventListener('click', async () => {
+    await update();
     const total = state.schedules.length;
     showToast(total ? `Generated ${total}${state.truncated ? '+' : ''} schedule${total === 1 ? '' : 's'}` : 'No schedules match your filters');
     if (window.innerWidth < 1024) $('.content').scrollIntoView({ behavior: 'smooth' });
@@ -1048,11 +1018,11 @@ function bindEvents() {
       if (!state.schedules[i].conflicts.length) {
         state.index = i;
         renderResults();
-        showToast(`Switched to schedule ${i + 1} — no exam conflicts`);
+        showToast(`Switched to schedule ${i + 1} — no two finals on the same day`);
         return;
       }
     }
-    showToast('Every matching schedule has an exam clash — try a different course or section');
+    showToast('Every matching schedule has two finals on one day — try a different course or section');
   });
 
   // Toolbar & details
@@ -1115,20 +1085,28 @@ function bindEvents() {
     renderImport();
   });
 
-  $('#load-sample-btn').addEventListener('click', () => {
-    setImportError('');
-    importSource = { ...SAMPLE_FILE, sample: true };
-    renderImport();
-  });
-
   $('#process-btn').addEventListener('click', processImport);
 }
 
 /* ----------------------------------------------------------
    Init
    ---------------------------------------------------------- */
-document.addEventListener('DOMContentLoaded', () => {
+async function loadCourses() {
+  try {
+    const data = await apiFetch('/api/schedule/courses');
+    setCourses(data.courses);
+    MAX_CREDITS = data.default_max_credits || MAX_CREDITS;
+    return true;
+  } catch (err) {
+    state.selected = new Set();
+    renderSidebar();
+    $('#course-list').innerHTML = `<p class="course-list__empty">${escapeHtml(err.message)}</p>`;
+    return false;
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
   fillTimeSelects();
   bindEvents();
-  update();
+  if (await loadCourses()) update();
 });

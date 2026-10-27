@@ -17,8 +17,9 @@ document, page and article, which is what an academic-regulations
 assistant actually needs.
 
 Implements GP1 Use Case 2 (*Ask Academic Question via Chatbot*) and
-Use Case 3 (*Receive Source-Based Answer*). CSP scheduling, transcript
-analysis and sign-in remain unbuilt.
+Use Case 3 (*Receive Source-Based Answer*). CSP study-schedule generation
+and transcript import are in `src/scheduling/` (section 7); sign-in remains
+unbuilt.
 
 ## 2. Request flow
 
@@ -214,7 +215,7 @@ Reproduce with `scripts/bench.py` (see README).
 
 ## 6. Known gaps
 
-- CSP scheduling, transcript analysis, sign-in: not built.
+- Sign-in: not built (the pages accept any email/password for the demo).
 - No conversational memory — each question is answered independently.
 - **No quantitative accuracy metric.** GP1 §2.5 promises
   "Performance Evaluation & Metrics"; we have latency and manual spot
@@ -226,3 +227,32 @@ Reproduce with `scripts/bench.py` (see README).
   embedding dependency in §4.1).
 - `data_academic_advising` has no row-level security. Fine while only the
   server connects, but must be addressed before any public deployment.
+
+## 7. Study-schedule generator (CSP)
+
+`frontend/schedule-page` calls three routes on the same server
+([src/scheduling/api.py](src/scheduling/api.py)), so one `Start-API.bat`
+runs both the chatbot and the scheduler:
+
+| Route | What it does |
+| --- | --- |
+| `GET /api/schedule/courses` | the CS study plan (`course_data.py`) as JSON |
+| `POST /api/schedule/generate` | validates the selection, runs the CSP, returns schedules best-first |
+| `POST /api/schedule/transcript` | parses a transcript PDF (pdfplumber), maps its codes to plan codes, suggests next-term courses |
+
+The solver ([csp_scheduler.py](src/scheduling/csp_scheduler.py)) is a
+backtracking CSP with node consistency, MRV, LCV and forward checking.
+Hard constraints: no lecture clash (H2), no two finals in the same slot
+(H3), open seats (H5), locked sections (H6), time window and minimum days
+off (H7). Before solving, [validation.py](src/scheduling/validation.py)
+checks the credit-hour limit, the 3-elective limit and, only after a
+transcript import, prerequisites. Schedules are ranked by
+`evaluate_schedule` (free days, idle gaps, morning preference, instructor
+preference).
+
+The transcript is parsed in memory and never stored. Section times and
+instructors in `course_data.py` are still placeholders until the real
+offered-sections timetable is available.
+
+Tests: `.venv/Scripts/python.exe -m tests.test_csp_scheduler` and
+`.venv/Scripts/python.exe -m tests.test_schedule_service`.

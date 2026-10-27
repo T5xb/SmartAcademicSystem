@@ -15,6 +15,7 @@ load_dotenv("src/.env")
 
 # Imported after load_dotenv() so DATA_DIR picks up an .env override, if any.
 from src.index import DATA_DIR  # noqa: E402
+from src.scheduling.api import router as schedule_router  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("gp2-chatbot")
@@ -59,6 +60,9 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
+
+# Study-schedule generator (CSP) used by frontend/schedule-page.
+app.include_router(schedule_router)
 
 # Serve any files the user drops in DATA_DIR (optional, handy for debugging)
 app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
