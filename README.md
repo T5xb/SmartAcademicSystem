@@ -12,6 +12,9 @@ resolved from the actual retrieved text.
 | `src/scheduling/` | CSP study-schedule generator + transcript import (same server, `/api/schedule/*`) |
 | `frontend/` | GP2 web pages: `sign-in-page` → `welcome-page` → `chatbot-page` / `schedule-page` |
 | `docs/` | official regulation documents that answers are drawn from |
+| `scripts/` | one-off data tools (crawl, OCR) and evaluation (`bench.py`, `eval_student_style.py`) |
+| `tests/` | pytest suite (`uv run pytest`) |
+| `Start-API.bat`, `Start-Public.bat` | double-click launchers (local / with a public ngrok link) |
 
 ## Quick start for teammates
 
@@ -71,7 +74,6 @@ so it never accumulates stale chunks.
 ## Run
 
 ```bash
-.venv/Scripts/python.exe SmartAcademicSystem.py   # Gradio UI  -> http://127.0.0.1:7860
 .venv/Scripts/python.exe fastapi_app.py           # GP2 web pages -> http://localhost:8000
 .venv/Scripts/python.exe fastapi_app.py --public  # same, plus a public ngrok link
 ```
@@ -87,7 +89,7 @@ curl -X POST http://localhost:8000/api/chat \
 ### GP2 web front end (`frontend/chatbot-page`)
 
 `fastapi_app.py` serves the GP2 pages itself under `/app` (`/` redirects
-there; the old minimal chat page is at `/simple`), so the pages and the
+there), so the pages and the
 API share one address. Besides `POST /api/chat` the chatbot page uses:
 
 | endpoint | used for |
@@ -131,17 +133,12 @@ Compare the two on identical questions:
 
 ## Letting your team reach it remotely
 
-By default `SmartAcademicSystem.py` only listens on `127.0.0.1` — nobody
-outside this machine can open it. To give teammates a real link:
+Run `Start-Public.bat` (or `fastapi_app.py --public`) to get a public ngrok
+link alongside the local one:
 
 1. Free token from https://dashboard.ngrok.com/get-started/your-authtoken
-2. Paste it into `NGROK_AUTHTOKEN` in `src/.env`
-3. Run `SmartAcademicSystem.py` as usual — it prints a `Public (share with
-   team)` link alongside the local one
+2. Paste it into `NGROK_AUTHTOKEN` in `src/.env` (optionally `NGROK_DOMAIN`
+   for a free static domain, so the link stays the same between runs)
+3. Run `Start-Public.bat` — it prints a `Public (share it)` link
 
-That link is only live while this process keeps running, and changes on
-every restart (free ngrok tier) — resend it to the team each time you
-restart. Without a token, it falls back to Gradio's own `share=True`
-tunnel — no signup needed, but on this network that tunnel's connection is
-blocked by the firewall (the binary downloads fine, then the link never
-comes up), which is why `NGROK_AUTHTOKEN` is the reliable option here.
+That link is only live while this process (and this laptop) keeps running.
