@@ -97,6 +97,26 @@ API share one address. Besides `POST /api/chat` the chatbot page uses:
 | `GET /api/health` | the live "Server online / offline" pill and latency |
 | `GET /api/starters` | suggested questions (`NEXT_PUBLIC_STARTER_QUESTIONS`) |
 
+`POST /api/chat` also takes `history` (the chat's last messages,
+`[{"role": "user"|"bot", "text": ...}]`, oldest first). The server uses it
+only to count its clarifying questions and stores nothing.
+
+### Unclear questions and advising tickets
+
+If a question is unclear or the documents don't answer it, the bot asks
+the student to clarify (up to `MAX_CLARIFY_ATTEMPTS`, default 2) before
+suggesting a ticket with academic advising. Settings in `src/.env`:
+
+| setting | effect |
+| --- | --- |
+| `MAX_CLARIFY_ATTEMPTS` | clarifying questions before the ticket suggestion |
+| `TICKET_URL` | link added to the ticket suggestion (empty = text only) |
+| `TICKETS_FILE` | turns on `POST /api/tickets` and saves tickets there as JSON lines (empty = off) |
+
+When the reply suggests a ticket, the `/api/chat` response also carries a
+`ticket` draft for the future ticket page / advisors' dashboard. Shape and
+details: [ARCHITECTURE.md §4.6](ARCHITECTURE.md).
+
 The pages call the server they were loaded from; opened straight from
 disk (`file://`) they fall back to `http://localhost:8000`. CORS is open by
 default so that still works — set

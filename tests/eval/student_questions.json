@@ -3,8 +3,9 @@
  "fields": {
   "q": "the student's message",
   "topic": "question type, from the group study",
-  "expect": "answer = from the documents; file = hands over the plan/calendar file; date = just the calendar date, no file; small_talk = greeting/thanks only; no_answer = outside the documents (should say so, not invent)",
-  "any_of": "at least one of these words should appear in a good answer"
+  "expect": "answer = from the documents; file = hands over the plan/calendar file; date = just the calendar date, no file; small_talk = greeting/thanks only; clarify = unclear or outside the documents, asks the student to clarify (not invent); ticket = still unanswered after the clarifying attempts in `history`, suggests an advising ticket; a list accepts any of them (for a borderline question either is fine)",
+  "any_of": "at least one of these words should appear in a good answer",
+  "history": "optional: earlier messages of the same chat [{role: user|bot, text}], oldest first"
  },
  "questions": [
   {
@@ -349,28 +350,28 @@
   {
    "q": "مين افضل دكتور يدرس تراكيب بيانات؟",
    "topic": "خارج الوثائق",
-   "expect": "no_answer",
+   "expect": "clarify",
    "any_of": [
-    "لم أجد",
-    "الإرشاد"
+    "وضّح",
+    "ودي أساعدك"
    ]
   },
   {
    "q": "احد عنده ملخصات تفاضل 1؟",
    "topic": "خارج الوثائق",
-   "expect": "no_answer",
+   "expect": "clarify",
    "any_of": [
-    "لم أجد",
-    "الإرشاد"
+    "وضّح",
+    "ودي أساعدك"
    ]
   },
   {
    "q": "وين القى قروبات الشعب؟",
    "topic": "خارج الوثائق",
-   "expect": "no_answer",
+   "expect": "clarify",
    "any_of": [
-    "لم أجد",
-    "الإرشاد"
+    "وضّح",
+    "ودي أساعدك"
    ]
   },
   {
@@ -471,6 +472,81 @@
     "3",
     "ساعات",
     "وحدات"
+   ]
+  },
+  {
+   "q": "عندي مشكلة",
+   "topic": "غير واضح",
+   "expect": "clarify",
+   "any_of": [
+    "وش الموضوع"
+   ]
+  },
+  {
+   "q": "السلام عليكم ممكن سؤال؟",
+   "topic": "غير واضح",
+   "expect": "clarify",
+   "any_of": [
+    "وضّح",
+    "وش الموضوع"
+   ]
+  },
+  {
+   "q": "عندي مشكلة بالحذف",
+   "topic": "غير واضح",
+   "expect": [
+    "answer",
+    "clarify"
+   ],
+   "any_of": [
+    "حذف"
+   ]
+  },
+  {
+   "q": "طيب كم نسبة الغياب اللي تحرمني من الاختبار؟",
+   "topic": "بعد توضيح",
+   "expect": "answer",
+   "any_of": [
+    "25",
+    "٢٥",
+    "حرمان",
+    "الغياب"
+   ],
+   "history": [
+    {
+     "role": "user",
+     "text": "عندي مشكلة بالغياب"
+    },
+    {
+     "role": "bot",
+     "text": "🤔| ودي أساعدك، بس أبي أفهم سؤالك أكثر 🙏\nسؤالك عن «الغياب والحرمان من دخول الاختبار»؟ وضّح لي وش اللي صار معك بالضبط أو وش تبي تعرف عنه."
+    }
+   ]
+  },
+  {
+   "q": "وين اوقف سيارتي؟",
+   "topic": "تذكرة بعد محاولتين",
+   "expect": "ticket",
+   "any_of": [
+    "تذكرة"
+   ],
+   "history": [
+    {
+     "role": "user",
+     "text": "وش نظام المواقف في الكلية؟"
+    },
+    {
+     "role": "bot",
+     "text": "🤔| ودي أساعدك، بس ما وضح لي سؤالك 🙏"
+    },
+    {
+     "role": "user",
+     "text": "اقصد مواقف السيارات للطلاب"
+    },
+    {
+     "role": "bot",
+     "text": "🤔| للحين ما لقيت جواب واضح، خلنا نجرب مرة ثانية"
+    }
    ]
   }
  ]

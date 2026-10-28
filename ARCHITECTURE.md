@@ -43,6 +43,7 @@ Files: [src/settings.py](src/settings.py) (models) →
 [src/index.py](src/index.py) (vector store) →
 [src/query.py](src/query.py) (retriever) →
 [src/citation.py](src/citation.py) (prompts + citations) →
+[src/clarify.py](src/clarify.py) (unclear questions, §4.6) →
 [src/workflow.py](src/workflow.py) (orchestration).
 
 ## 3. Indexing pipeline (run once, `generate`)
@@ -179,16 +180,36 @@ article — and also matched OCR noise like `المادة )`. The current patter
 uses a closed ordinal set plus an optional "tens" tail (including the
 missing-waw spelling the OCR produces): 50 articles matched, zero noise.
 
-### 4.6 Out-of-scope questions hand off to a human
+### 4.6 Unclear or unanswered questions: clarify first, then a ticket
 
-When the documents don't answer the question, the reply is the advising
-contact, not a vague "not found". Same pattern as citations: the model
-emits a sentinel, code substitutes the exact message and email — an LLM
-transcribing an email address risks mangling it, and a wrong advising
-address is worse than none. Email is overridable via `ADVISING_EMAIL`.
+When the documents don't answer, or the message has no topic at all
+("عندي مشكلة"، "ممكن سؤال؟"), the bot asks the student to clarify instead of
+sending them straight to advising ([src/clarify.py](src/clarify.py)):
 
-Verified both directions: two out-of-scope questions handed off, and four
-in-scope questions still answered — **zero false refusals**.
+1. Detection: the model's no-answer sentinel (as before, emitted by the
+   model, interpreted by code), or a message that only says "I have a
+   question" with no topic word — that one skips retrieval and the LLM.
+2. Up to `MAX_CLARIFY_ATTEMPTS` (default 2) short clarifying questions in
+   the group's style. The student's answers are searched together with
+   their first message, so "عندي مشكلة بالغياب" + "كم النسبة اللي تحرمني؟"
+   is one question.
+3. Still nothing: the reply suggests opening a ticket with academic
+   advising. Text only until the ticket page exists; `TICKET_URL` adds a
+   link to it.
+
+The attempt count comes from the last messages the chat page sends with
+each question (`history` in `POST /api/chat`), so nothing is stored on the
+server. Clarifying replies carry a fixed marker (`🤔|`) that code, not the
+model, writes and later counts.
+
+**Hook for the advisors' dashboard** ([src/tickets.py](src/tickets.py)):
+when the reply suggests a ticket, `/api/chat` also returns `ticket`, a draft
+(`id`, `created_at`, `status`, `summary`, `transcript`, `contact`) with
+long numbers and e-mails masked. A ticket page can post it to
+`POST /api/tickets` (`{summary, transcript, contact}`), which calls
+`create_ticket()`. That is off (503) until `TICKETS_FILE` is set, and then
+only appends JSON lines to that file; swap its body for the dashboard's
+database when it exists.
 
 ### 4.7 Free-tier limits shaped two settings
 

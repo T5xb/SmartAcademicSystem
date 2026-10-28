@@ -5,7 +5,9 @@ Score the chatbot on questions written the way students actually ask.
     uv run python scripts/eval_student_style.py --limit 5  # quick check
 
 For each question it checks:
-  - behaviour: answered / said "no answer" / small talk, against `expect`
+  - behaviour: answered / asked to clarify / suggested a ticket / small
+               talk, against `expect` (an item's `history` is sent as the
+               earlier messages of the same chat)
   - content:   at least one `any_of` word appears
   - citations: a sourced answer carries a "المصادر:" block
   - style:     no "بناءً على السياق"-type openers, not longer than 15 lines,
@@ -36,9 +38,14 @@ STIFF_OPENERS = re.compile(r"بناءً على|بناء على|وفقًا للس
 
 def behaviour(answer: str) -> str:
     from src.citation import NO_ANSWER_MESSAGE
+    from src.clarify import CLARIFY_MARK, TICKET_MARK
 
     if answer.startswith("ERROR:"):
         return "error"  # e.g. the LLM provider's rate limit, not a real answer
+    if CLARIFY_MARK in answer:
+        return "clarify"
+    if TICKET_MARK in answer:
+        return "ticket"
     if NO_ANSWER_MESSAGE.splitlines()[0] in answer:
         return "no_answer"
     if "[📄" in answer:
@@ -54,15 +61,16 @@ def score(item: dict, answer: str) -> dict:
     from src.student_style import opens_with_greeting
 
     got = behaviour(answer)
+    expected = item["expect"] if isinstance(item["expect"], list) else [item["expect"]]
     checks = {
-        "behaviour": got == item["expect"],
+        "behaviour": got in expected,
         "content": any(w in answer for w in item["any_of"]),
         # Length is judged on the answer body; the sources list can be long.
         "style": not STIFF_OPENERS.search(answer)
         and answer.split("المصادر:")[0].strip().count("\n") <= MAX_BODY_LINES
         and answer.count("وعليكم السلام") <= 1,
     }
-    if item["expect"] == "answer":
+    if expected == ["answer"]:
         checks["citations"] = "المصادر:" in answer
     if opens_with_greeting(item["q"]):
         checks["greeting"] = answer.startswith("وعليكم السلام")
@@ -90,7 +98,7 @@ async def main() -> None:
     for i, item in enumerate(items, 1):
         start = time.perf_counter()
         try:
-            answer = await workflow.run(user_msg=item["q"])
+            answer = await workflow.run(user_msg=item["q"], history=item.get("history"))
         except Exception as e:  # keep going: one rate-limit shouldn't end the run
             answer = f"ERROR: {e}"
         elapsed = time.perf_counter() - start

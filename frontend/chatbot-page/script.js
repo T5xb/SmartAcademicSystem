@@ -110,10 +110,11 @@ const linkifyEmails = (html) =>
   html.replace(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/g, (email) => `<a href="mailto:${email}">${email}</a>`);
 
 /* Turns [label](url) in already-escaped text into a link. The server uses it
-   to hand over a file (study plan, calendar): /data/... paths are served by
-   the API server, so they are resolved against API_URL. */
+   to hand over a file (study plan, calendar) or a page (/app/..., e.g. a
+   future ticket page): those paths are served by the API server, so they
+   are resolved against API_URL. */
 const linkifyFileLinks = (html) =>
-  html.replace(/\[([^\]\n]+)\]\((https:\/\/[^\s)]+|\/data\/[^\s)]+)\)/g, (_, label, url) => {
+  html.replace(/\[([^\]\n]+)\]\((https:\/\/[^\s)]+|\/(?:data|app)\/[^\s)]+)\)/g, (_, label, url) => {
     const href = url.startsWith('/') ? API_URL + url : url;
     return `<a class="file-link" href="${href}" target="_blank" rel="noopener">${label}</a>`;
   });
@@ -154,13 +155,23 @@ function describeError(err, status, detail) {
   return `The server returned an error (HTTP ${status}). Please try again.`;
 }
 
-async function askServer(question, signal) {
+/* The last messages of a chat, sent with each question so the server can
+   tell how many clarifying questions it has already asked. Not stored. */
+const HISTORY_LIMIT = 12;
+function chatHistory(chat) {
+  return chat.messages
+    .filter((m) => m.role === 'user' || (m.status === 'done' && m.text))
+    .slice(-HISTORY_LIMIT)
+    .map((m) => ({ role: m.role === 'user' ? 'user' : 'bot', text: m.text }));
+}
+
+async function askServer(question, history, signal) {
   let res;
   try {
     res = await apiFetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: question }),
+      body: JSON.stringify({ message: question, history }),
     }, { signal });
   } catch (err) {
     throw Object.assign(new Error(describeError(err)), { kind: err.kind });
@@ -177,7 +188,8 @@ async function askServer(question, signal) {
     const detail = data && typeof data.detail === 'string' ? data.detail : '';
     throw Object.assign(new Error(describeError(null, res.status, detail)), { kind: 'http' });
   }
-  return data.response;
+  // `ticket` is a draft for the advising ticket page (not built yet)
+  return { text: data.response, ticket: data.ticket || null };
 }
 
 /* Starter questions come from the server's NEXT_PUBLIC_STARTER_QUESTIONS */
@@ -462,14 +474,15 @@ function autoSizePrompt() {
 /* ----------------------------------------------------------
    Chat Actions
    ---------------------------------------------------------- */
-async function requestAnswer(chatId, botMessageId, question) {
+async function requestAnswer(chatId, botMessageId, question, history) {
   const controller = new AbortController();
   pending.set(botMessageId, controller);
   const started = performance.now();
 
   let result;
   try {
-    result = { status: 'done', text: await askServer(question, controller.signal) };
+    const answer = await askServer(question, history, controller.signal);
+    result = { status: 'done', text: answer.text, ticket: answer.ticket };
   } catch (err) {
     result = { status: 'error', errorText: err.message };
   }
@@ -511,6 +524,7 @@ function sendMessage(text) {
     state.activeId = chat.id;
   }
 
+  const history = chatHistory(chat);
   const now = Date.now();
   const user = { id: makeId(), role: 'user', text: content, time: now };
   const bot = { id: makeId(), role: 'bot', status: 'typing', time: now };
@@ -525,7 +539,7 @@ function sendMessage(text) {
 
   saveChats();
   render();
-  requestAnswer(chat.id, bot.id, content);
+  requestAnswer(chat.id, bot.id, content, history);
 }
 
 function stopActiveResponse() {

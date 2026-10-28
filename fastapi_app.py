@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from contextlib import asynccontextmanager
+from typing import Literal
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -14,6 +15,7 @@ from pydantic import BaseModel, Field
 load_dotenv("src/.env")
 
 # Imported after load_dotenv() so DATA_DIR picks up an .env override, if any.
+from src.clarify import MAX_HISTORY  # noqa: E402
 from src.index import DATA_DIR  # noqa: E402
 from src.scheduling.api import router as schedule_router  # noqa: E402
 
@@ -69,12 +71,29 @@ FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fronten
 app.mount("/app", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 
+class ChatTurn(BaseModel):
+    role: Literal["user", "bot"]
+    text: str = Field(max_length=4000)
+
+
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
+    # The conversation so far (oldest first), used only to count the bot's
+    # clarifying questions in this chat. Not stored.
+    history: list[ChatTurn] = Field(default_factory=list, max_length=40)
 
 
 class ChatResponse(BaseModel):
     response: str
+    # A ticket draft when the reply suggests opening a ticket (see
+    # src/tickets.py); the future ticket page posts it to /api/tickets.
+    ticket: dict | None = None
+
+
+class TicketRequest(BaseModel):
+    summary: str = Field(min_length=1, max_length=2000)
+    transcript: list[ChatTurn] = Field(default_factory=list, max_length=40)
+    contact: str = Field(default="", max_length=200)
 
 
 @app.get("/api/health")
@@ -93,7 +112,8 @@ async def chat(req: ChatRequest):
     if not message:
         raise HTTPException(status_code=422, detail="Message is empty.")
     try:
-        response = await workflow.run(user_msg=message)
+        history = [t.model_dump() for t in req.history[-MAX_HISTORY:]]
+        response, ticket = await workflow.respond(message, history)
     except Exception:
         # Retrieval or the LLM provider failed (rate limit, network, DB);
         # the front end shows this detail in its error card.
@@ -102,7 +122,24 @@ async def chat(req: ChatRequest):
             status_code=502,
             detail="The advising service could not generate an answer right now. Please try again.",
         )
-    return ChatResponse(response=response)
+    return ChatResponse(response=response, ticket=ticket)
+
+
+@app.post("/api/tickets")
+async def tickets(req: TicketRequest):
+    """
+    Hook for the advisors' dashboard: saves a student's ticket. Off until
+    TICKETS_FILE is set in src/.env; see src/tickets.py for the shape.
+    """
+    from src.tickets import build_ticket, create_ticket, tickets_enabled
+
+    if not tickets_enabled():
+        raise HTTPException(status_code=503, detail="Tickets are not enabled yet.")
+    ticket = build_ticket(req.summary, [t.model_dump() for t in req.transcript])
+    # Given by the student on the ticket page on purpose, so not masked.
+    ticket["contact"] = req.contact.strip()
+    create_ticket(ticket)
+    return {"id": ticket["id"], "status": ticket["status"]}
 
 
 @app.get("/", include_in_schema=False)
