@@ -47,7 +47,10 @@ def _load_documents(data_dir: str) -> list:
 
 
 def generate_index():
-   
+    # Before importing src.index: it reads PGVECTOR_TABLE at import time, and
+    # without the .env value it builds a table the server never reads.
+    load_dotenv("src/.env")
+
     from llama_index.core import StorageContext, VectorStoreIndex
 
     from src.index import (
@@ -59,8 +62,6 @@ def generate_index():
     )
     from src.settings import init_settings
 
-    load_dotenv("src/.env")
-    
     init_settings(require_llm=False)
 
     logger.info(f"Loading documents from {DATA_DIR}")
