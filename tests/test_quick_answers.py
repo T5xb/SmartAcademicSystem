@@ -64,3 +64,45 @@ def test_calendar_request_returns_the_calendar_file():
 def test_question_inside_the_plan_is_not_a_file_request():
     assert file_reply("كم ساعه خطة نظم؟") is None
     assert file_reply("خطة علوم حاسب وش متطلب برمجة 2") is None
+
+
+# ------------------------------------------------------------ prerequisites
+
+from src.quick_answers import load_cs_plan, prereq_reply  # noqa: E402
+
+PLAN = load_cs_plan()
+
+
+def test_plan_is_parsed():
+    assert PLAN["عال 1360"].name == "الذكاء الاصطناعي"
+    assert PLAN["عال 1111"].prereq == "لا يوجد"
+    assert "عال 1290" not in PLAN  # diploma section is skipped
+
+
+def test_dialect_question_by_name():
+    out = prereq_reply("وش متطلب مقرر الذكاء الاصطناعي؟", PLAN)
+    assert "عال 1312" in out and "ريض 1227" in out and "احص 1011" in out
+
+
+def test_nickname_maps_to_the_course():
+    out = prereq_reply("وش متطلب الشبكات؟", PLAN)
+    assert "عال 1330" in out and "عال 1322" in out
+
+
+def test_written_code():
+    assert "عال 1241" in prereq_reply("متطلب cs 1242", PLAN)
+
+
+def test_longest_official_name_wins():
+    out = prereq_reply("وش متطلب قواعد البيانات المتقدمة؟", PLAN)
+    assert "عال 1471" in out and "عال 1370 (مبادئ" not in out.split("\n")[0]
+
+
+def test_no_prerequisite():
+    assert "ما له متطلب سابق" in prereq_reply("متطلب أساسيات الحوسبة والأخلاقيات؟", PLAN)
+
+
+def test_other_questions_go_to_search():
+    assert prereq_reply("وش متطلبات التخرج؟", PLAN) is None
+    assert prereq_reply("متطلب الشبكات في تقنية المعلومات؟", PLAN) is None
+    assert prereq_reply("الذكاء الاصطناعي متطلب لإيش؟", PLAN) is None

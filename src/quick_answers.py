@@ -6,7 +6,10 @@ Modelled on how the college Telegram group's answer bot works:
 - "متى يبدأ الحذف؟" / "متى الإجازة الجاية؟" -> just the date, with a
   countdown ("بعد 12 يوم"), read straight from the official calendar.
 
-Both are exact lookups, so they are answered instantly and stay correct even
+- "وش متطلب الذكاء الاصطناعي؟" -> the course's prerequisites, read straight
+  from the CS two-semester plan.
+
+All are exact lookups, so they are answered instantly and stay correct even
 when the hosted LLM is rate-limited. Anything else returns None and goes
 through the normal RAG path.
 """
@@ -15,7 +18,10 @@ import os
 import re
 from dataclasses import dataclass
 from datetime import date
+from functools import lru_cache
 from urllib.parse import quote
+
+from src.student_style import formal_terms
 
 DOCS_DIR = os.environ.get("DATA_DIR", "docs")
 CALENDAR_TXT = os.path.join(DOCS_DIR, "imamu_web", "academic_calendar", "التقويم_الدراسي_1448_1449.txt")
@@ -203,6 +209,103 @@ def _format(e: CalendarEvent, today: date) -> str:
     return f"{body}\n\nالمصدر: {CALENDAR_NAME}"
 
 
+# ------------------------------------------------------------ prerequisites
+
+CS_PLAN_MD = os.path.join(DOCS_DIR, STUDY_PLANS_DIR, "الخطة_الدراسية_علوم_الحاسب_نظام_الفصلين.md")
+CS_PLAN_NAME = "الخطة الدراسية لبكالوريوس علوم الحاسب (نظام الفصلين)"
+
+_PREREQ_Q_RE = re.compile(r"متطلب")
+# "عال 1242 متطلب لإيش؟" asks what a course opens, not what it needs.
+_OPENS_Q_RE = re.compile(r"متطلب\s*(ل|لـ)?\s*(ايش|إيش|وش|ماذا)|يفتح|يقفل")
+# Another department's plan has different prerequisites.
+_OTHER_DEPT_RE = re.compile(r"تقني[هة]|نظم|\bit\b|\bis\b|ماجستير|دبلوم", re.IGNORECASE)
+_CODE_RE = re.compile(r"(عال|ريض|فيز|احص)\s*(\d{4})")
+_ENGLISH_PREFIX = {"cs": "عال", "mat": "ريض", "phy": "فيز", "sta": "احص"}
+_EN_CODE_RE = re.compile(r"\b(cs|mat|phy|sta)\s*(\d{4})\b", re.IGNORECASE)
+# "- عال 1360 (CS 1360) — الذكاء الاصطناعي (Artificial Intelligence) — ..."
+_PLAN_LINE_RE = re.compile(r"^- (عال|ريض|فيز|احص) (\d{4}) \([A-Z]+ \d{4}\) — (.+?) \(")
+
+
+@dataclass
+class PlanCourse:
+    code: str      # "عال 1360"
+    name: str      # "الذكاء الاصطناعي"
+    prereq: str    # "عال 1312 (تصميم وتحليل الخوارزميات) و ..." or "لا يوجد"
+
+
+def _norm(text: str) -> str:
+    """Spelling-insensitive form: no "ال", no hamza/taa-marbuta variants."""
+    text = re.sub("[أإآ]", "ا", text).replace("ة", "ه").replace("ى", "ي")
+    return " ".join(re.sub(r"^(ال|وال)", "", w) for w in re.findall(r"\w+", text))
+
+
+@lru_cache(maxsize=1)
+def load_cs_plan(path: str = CS_PLAN_MD) -> dict[str, PlanCourse]:
+    """Bachelor courses of the CS plan by code (the diploma section is skipped)."""
+    courses: dict[str, PlanCourse] = {}
+    with open(path, encoding="utf-8") as f:
+        for raw in f:
+            line = raw.strip()
+            if line.startswith("# ") and "دبلوم" in line:
+                break
+            m = _PLAN_LINE_RE.match(line)
+            if not m:
+                continue
+            prereq = "لا يوجد"
+            for part in line.split(" — "):
+                if part.startswith(("المتطلب السابق:", "المتطلبات السابقة:")):
+                    prereq = part.split(":", 1)[1].strip().rstrip(".")
+            code = f"{m.group(1)} {m.group(2)}"
+            courses[code] = PlanCourse(code, m.group(3), prereq)
+    return courses
+
+
+def _asked_codes(message: str, courses: dict[str, PlanCourse]) -> list[str]:
+    """
+    Plan courses the message names: a written code first, then an official
+    name (the longest wins, so "قواعد البيانات المتقدمة" is not also
+    "مبادئ قواعد البيانات"), then a nickname from the glossary.
+    """
+    codes = [f"{p} {n}" for p, n in _CODE_RE.findall(message)]
+    codes += [f"{_ENGLISH_PREFIX[p.lower()]} {n}" for p, n in _EN_CODE_RE.findall(message)]
+    if not codes:
+        asked = f" {_norm(message)} "
+        named = [c for c in courses.values() if f" {_norm(c.name)} " in asked]
+        codes = [c.code for c in named
+                 if not any(o is not c and _norm(c.name) in _norm(o.name) for o in named)]
+    if not codes:
+        codes = [f"{p} {n}" for p, n in _CODE_RE.findall(" ".join(formal_terms(message)))]
+    found: list[str] = []
+    for code in codes:
+        if code in courses and code not in found:
+            found.append(code)
+    return found
+
+
+def prereq_reply(message: str, courses: dict[str, PlanCourse] | None = None) -> str | None:
+    """The prerequisites of the CS course(s) the student names, else None."""
+    if not _PREREQ_Q_RE.search(message) or _OPENS_Q_RE.search(message):
+        return None
+    if _OTHER_DEPT_RE.search(message):
+        return None
+    if courses is None:
+        try:
+            courses = load_cs_plan()
+        except OSError:
+            return None
+    codes = _asked_codes(message, courses)
+    if not codes:
+        return None
+    lines = []
+    for code in codes:
+        c = courses[code]
+        if c.prereq == "لا يوجد":
+            lines.append(f"🔹| {c.name} ({c.code}): ما له متطلب سابق")
+        else:
+            lines.append(f"🔹| متطلب {c.name} ({c.code}):\n{c.prereq}")
+    return "\n\n".join(lines) + f"\n\nالمصدر: {CS_PLAN_NAME}"
+
+
 def quick_reply(message: str, today: date | None = None) -> str | None:
-    """A file or a date, if the message is one of those requests; else None."""
-    return date_reply(message, today) or file_reply(message)
+    """A file, a date or a prerequisite, if the message is one of those; else None."""
+    return date_reply(message, today) or prereq_reply(message) or file_reply(message)
