@@ -50,6 +50,20 @@ def test_university_deanships():
         assert "crm.imamu.edu.sa" in reply and "it.office" not in reply, q
 
 
+def test_contact_questions_without_the_word_email():
+    for q in ("عماده القبول والتسجيل", "كيف اتواصل مع عمادة القبول والتسجيل",
+              "رقم عمادة القبول والتسجيل", "ابي اتواصل مع شؤون الطلاب"):
+        reply = email_reply(q)
+        assert reply and ("admission@imamu.edu.sa" in reply or "crm.imamu.edu.sa" in reply), q
+    assert "fialmuqhim@imamu.edu.sa" in email_reply("كيف اتواصل مع رئيس قسم علوم الحاسب")
+
+
+def test_admission_content_questions_are_not_contact_questions():
+    assert email_reply("متى يبدأ التسجيل") is None
+    assert email_reply("وش شروط القبول في علوم الحاسب") is None
+    assert email_reply("عمادة القبول والتسجيل وش شروط التحويل بين الكليات") is None
+
+
 def test_non_email_questions_fall_through():
     assert email_reply("متى يبدأ الحذف") is None
     assert email_reply("وش ايميلي الجامعي") is None

@@ -21,6 +21,12 @@ SOURCE_NAME = "دليل التواصل - كلية علوم الحاسب والم
 
 _ASK_RE = re.compile(r"[اإأ]يمي?ل|[اإأ]يميلات|بريد|e-?mail|\bmail\b|\bميل\b", re.IGNORECASE)
 _EMAIL_RE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
+# Asking how to reach a unit without saying "email": answered only when a unit is named.
+_CONTACT_RE = re.compile(
+    r"[اأن]?تواصل|[اأ]كلم|[اأ]راسل|هاتف|تلفون|جوال|contact|"
+    r"رقم\s*(ال)?(هاتف|تلفون|جوال|تواصل)?\s*(ال)?(عماد|قسم|لجن|وحد|سكرتار|مكتب|[اإ]رشاد|دكتور|د\s*\.)",
+    re.IGNORECASE,
+)
 
 CS, IS, IT, COLLEGE = "علوم الحاسب", "نظم المعلومات", "تقنية المعلومات", "الكلية"
 UNIVERSITY = "الجامعة"  # university deanships: the same for every department
@@ -173,7 +179,11 @@ def _dept_main(units: list[Contact], dept: str) -> list[Contact]:
 
 def email_reply(message: str, contacts: tuple[Contact, ...] | None = None) -> str | None:
     """The email(s) the student asks for, else None."""
-    if not _ASK_RE.search(message):
+    asked_email = bool(_ASK_RE.search(message))
+    # "كيف اتواصل مع عمادة القبول" / a bare "عمادة القبول والتسجيل": the unit's contact.
+    asked_contact = bool(_CONTACT_RE.search(message)) or (
+        bool(_OTHER_DEANSHIP_RE.search(message)) and len(message.split()) <= 5)
+    if not asked_email and not asked_contact:
         return None
     if contacts is None:
         try:
@@ -208,12 +218,12 @@ def email_reply(message: str, contacts: tuple[Contact, ...] | None = None) -> st
                    + (f"\nتقدر تتواصل مع القسم على:\n\n" + "\n\n".join(_line(u) for u in fallback) if fallback else ""))
             return msg + footer
 
-    if _PERSON_RE.search(message) or not topics:
+    if _PERSON_RE.search(message) or (not topics and asked_email):
         named = _name_matches(message, people)
         if named:
             return "\n\n".join(_line(p) for p in named) + footer
 
-    if not topics and depts:
+    if not topics and depts and asked_email:
         main = [u for u in units if u.dept == COLLEGE] if depts == [COLLEGE] else \
             [u for d in depts if d != COLLEGE for u in _dept_main(units, d)]
         if main:
