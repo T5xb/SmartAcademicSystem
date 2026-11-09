@@ -45,3 +45,6 @@ docs/imamu_web/ccis/study_plans/الدليل_التعريفي_بكالوريوس
 
 # Raw Telegram group export (students' messages). Private: never commit or serve it.
 private_data/
+
+# graphify output
+graphify-out/
