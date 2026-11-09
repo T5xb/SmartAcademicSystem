@@ -21,6 +21,7 @@ from datetime import date
 from functools import lru_cache
 from urllib.parse import quote
 
+from src.contacts import email_reply
 from src.student_style import formal_terms
 
 DOCS_DIR = os.environ.get("DATA_DIR", "docs")
@@ -307,5 +308,6 @@ def prereq_reply(message: str, courses: dict[str, PlanCourse] | None = None) -> 
 
 
 def quick_reply(message: str, today: date | None = None) -> str | None:
-    """A file, a date or a prerequisite, if the message is one of those; else None."""
-    return date_reply(message, today) or prereq_reply(message) or file_reply(message)
+    """An email, a file, a date or a prerequisite, if the message is one of those; else None."""
+    return (email_reply(message) or date_reply(message, today)
+            or prereq_reply(message) or file_reply(message))
