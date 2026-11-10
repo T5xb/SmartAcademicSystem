@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from typing import Literal
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -17,6 +17,9 @@ from pydantic import BaseModel, Field
 load_dotenv("src/.env")
 
 # Imported after load_dotenv() so DATA_DIR picks up an .env override, if any.
+from src.accounts import documents, store  # noqa: E402
+from src.accounts.api import router as accounts_router  # noqa: E402
+from src.accounts.deps import current_user  # noqa: E402
 from src.clarify import MAX_HISTORY  # noqa: E402
 from src.index import DATA_DIR  # noqa: E402
 from src.scheduling.api import router as schedule_router  # noqa: E402
@@ -29,13 +32,25 @@ workflow = None
 starter_questions: list = []
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    global workflow, starter_questions
+def _load_workflow() -> None:
+    global workflow
     from src.workflow import create_workflow
 
-    logger.info("Loading index and building workflow...")
     workflow = create_workflow()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global starter_questions
+
+    created = store.seed_preset_accounts()
+    if created:
+        logger.info("Created preset accounts: %s", ", ".join(created))
+
+    logger.info("Loading index and building workflow...")
+    _load_workflow()
+    # After the admin rebuilds the index, the chatbot switches to it.
+    documents.on_index_rebuilt = _load_workflow
 
     starter_raw = os.getenv("NEXT_PUBLIC_STARTER_QUESTIONS", "[]")
     try:
@@ -49,8 +64,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="GP2 RAG Chatbot", lifespan=lifespan)
 
-# The GP2 pages are normally served by this server (/app), but can still be
-# opened straight from disk (file://) or another port, which needs CORS.
+# The GP2 pages are served by this server (/app). Signing in needs that: the
+# session cookie is only sent to the server the page came from, so a page
+# opened straight from disk (file://) reaches the public routes only.
 # Override with a comma-separated CORS_ORIGINS list to lock this down.
 cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
 app.add_middleware(
@@ -60,8 +76,13 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
-# Study-schedule generator (CSP) used by frontend/schedule-page.
-app.include_router(schedule_router)
+# Sign-in, the user's own data, advisors, user management, source files.
+app.include_router(accounts_router)
+app.include_router(documents.router)
+
+# Study-schedule generator (CSP) used by frontend/schedule-page; signed-in
+# users only.
+app.include_router(schedule_router, dependencies=[Depends(current_user)])
 
 # The source documents. The chat links to the study-plan files here, so the
 # mount is needed for those links to open.
@@ -71,7 +92,19 @@ app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
 # same server, so one run and one link (local or public) is all a user needs.
 # The folder layout is kept, so the pages' relative links keep working.
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend")
-app.mount("/app", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+
+
+class _FreshStaticFiles(StaticFiles):
+    """Pages and scripts are checked with the server on every load, so a
+    browser never keeps running an old script after the pages change."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/app", _FreshStaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 
 class ChatTurn(BaseModel):
@@ -143,7 +176,7 @@ def _check_chat_rate(request: Request) -> None:
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest, request: Request):
+async def chat(req: ChatRequest, request: Request, _: dict = Depends(current_user)):
     _check_chat_rate(request)
     message = req.message.strip()
     if not message:
@@ -182,7 +215,7 @@ async def tickets(req: TicketRequest):
 @app.get("/", include_in_schema=False)
 async def index():
     # The welcome page sends visitors without a session to sign-in first.
-    return RedirectResponse("/app/welcome-page/index.html")
+    return RedirectResponse("/app/welcome-page/index.html?v=2")
 
 
 def _start_public_tunnel(port: int) -> str | None:

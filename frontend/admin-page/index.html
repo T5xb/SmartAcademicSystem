@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Academic AI - Admin Console</title>
+
+  <!-- Google Fonts: Inter + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css?v=2">
+</head>
+
+<body>
+
+  <!-- ======================= Header ======================= -->
+  <header class="header">
+    <a class="brand" href="index.html" aria-label="Academic AI admin console">
+      <div class="brand__logo">
+        <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+          <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+        </svg>
+      </div>
+      <span class="brand__name">Academic AI</span>
+    </a>
+
+    <div class="header__right">
+      <a class="nav-link" href="../chatbot-page/index.html?v=2">Open chatbot</a>
+
+      <div class="user">
+        <div class="user__avatar">AD</div>
+        <div class="user__info">
+          <div class="user__name">Administrator</div>
+          <div class="user__id">admin</div>
+        </div>
+        <button type="button" id="sign-out-btn" class="sign-out" title="Sign Out" aria-label="Sign Out">
+          <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================= Main ======================= -->
+  <main class="main">
+    <h1 class="page-title">Admin console</h1>
+
+    <div class="tabs" role="tablist" aria-label="Admin sections">
+      <button type="button" class="tab is-active" role="tab" id="tab-docs" aria-selected="true" aria-controls="panel-docs">Documents</button>
+      <button type="button" class="tab" role="tab" id="tab-accounts" aria-selected="false" aria-controls="panel-accounts" tabindex="-1">Accounts</button>
+    </div>
+
+    <!-- ---------- Documents ---------- -->
+    <section class="panel" id="panel-docs" role="tabpanel" aria-labelledby="tab-docs">
+
+      <div id="index-bar" class="index-bar" role="status" aria-live="polite"></div>
+      <div id="job-result" class="job-result" hidden></div>
+
+      <div class="toolbar">
+        <div class="field field--grow">
+          <label class="sr-only" for="file-search">Search documents</label>
+          <input type="search" id="file-search" class="input" placeholder="Search by file name or folder" autocomplete="off" dir="auto">
+        </div>
+        <div class="field">
+          <label class="sr-only" for="folder-filter">Folder</label>
+          <select id="folder-filter" class="input"></select>
+        </div>
+        <button type="button" id="add-doc-btn" class="btn btn--primary">Add document</button>
+      </div>
+
+      <p id="file-count" class="meta"></p>
+      <div id="file-list" class="file-list"></div>
+    </section>
+
+    <!-- ---------- Accounts ---------- -->
+    <section class="panel" id="panel-accounts" role="tabpanel" aria-labelledby="tab-accounts" hidden>
+      <div class="toolbar">
+        <div class="field field--grow">
+          <label class="sr-only" for="user-search">Search accounts</label>
+          <input type="search" id="user-search" class="input" placeholder="Search by name or ID" autocomplete="off" dir="auto">
+        </div>
+        <div class="field">
+          <label class="sr-only" for="role-filter">Role</label>
+          <select id="role-filter" class="input">
+            <option value="">All roles</option>
+            <option value="student">Students</option>
+            <option value="advisor">Advisors</option>
+            <option value="admin">Admins</option>
+          </select>
+        </div>
+        <button type="button" id="add-account-btn" class="btn btn--primary">Add account</button>
+      </div>
+
+      <p id="user-count" class="meta"></p>
+      <div id="user-list"></div>
+    </section>
+  </main>
+
+  <!-- ======================= Footer ======================= -->
+  <footer class="footer">
+    <div class="footer__trust">
+      <span class="dot"></span>
+      <span>Admin console</span>
+      <span class="footer__separator">&bull;</span>
+      <span>Changes to documents take effect after the index is rebuilt</span>
+    </div>
+  </footer>
+
+  <!-- ======================= Dialogs ======================= -->
+
+  <!-- Replace a document -->
+  <dialog id="replace-dialog" class="dialog" aria-labelledby="replace-title">
+    <form id="replace-form" class="dialog__form" novalidate>
+      <h2 class="dialog__title" id="replace-title">Replace file</h2>
+      <p class="dialog__sub" id="replace-sub"></p>
+
+      <label class="drop" id="replace-drop" for="replace-file">
+        <span class="drop__main" id="replace-drop-text">Choose the new file, or drop it here</span>
+        <span class="drop__hint">PDF, DOCX, TXT or MD, up to 50 MB</span>
+        <input type="file" id="replace-file" class="sr-only" accept=".pdf,.docx,.txt,.md">
+      </label>
+
+      <fieldset class="choice" id="replace-choice" disabled>
+        <legend>File name after replacing</legend>
+        <label class="radio"><input type="radio" name="keep_name" value="true" checked>
+          <span>Keep the current name (<code id="replace-keep" dir="auto">-</code>)</span></label>
+        <label class="radio"><input type="radio" name="keep_name" value="false">
+          <span>Use the new file's name (<code id="replace-new" dir="auto">-</code>)</span></label>
+      </fieldset>
+
+      <p class="dialog__note">The new file takes this file's place in the same folder. The old version is kept in a backup.</p>
+      <p class="form-error" id="replace-error" role="alert" hidden></p>
+
+      <div class="dialog__actions">
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn--primary" id="replace-submit" disabled>Replace file</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Add a document -->
+  <dialog id="add-dialog" class="dialog" aria-labelledby="add-title">
+    <form id="add-form" class="dialog__form" novalidate>
+      <h2 class="dialog__title" id="add-title">Add document</h2>
+      <p class="dialog__sub">To update a file that already exists, close this and use Replace on its row instead.</p>
+
+      <div class="form-row">
+        <label for="add-folder">Folder</label>
+        <select id="add-folder" class="input"></select>
+      </div>
+
+      <label class="drop" id="add-drop" for="add-file">
+        <span class="drop__main" id="add-drop-text">Choose a file, or drop it here</span>
+        <span class="drop__hint">PDF, DOCX, TXT or MD, up to 50 MB</span>
+        <input type="file" id="add-file" class="sr-only" accept=".pdf,.docx,.txt,.md">
+      </label>
+
+      <p class="form-error" id="add-error" role="alert" hidden></p>
+
+      <div class="dialog__actions">
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn--primary" id="add-submit" disabled>Add document</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Generic confirmation -->
+  <dialog id="confirm-dialog" class="dialog" aria-labelledby="confirm-title">
+    <form id="confirm-form" class="dialog__form" method="dialog">
+      <h2 class="dialog__title" id="confirm-title"></h2>
+      <div class="dialog__body" id="confirm-body"></div>
+      <p class="form-error" id="confirm-error" role="alert" hidden></p>
+      <div class="dialog__actions">
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn--primary" id="confirm-submit">Confirm</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Add account -->
+  <dialog id="account-dialog" class="dialog" aria-labelledby="account-title">
+    <form id="account-form" class="dialog__form" novalidate>
+      <h2 class="dialog__title" id="account-title">Add account</h2>
+
+      <div class="form-row">
+        <label for="account-name">Name</label>
+        <input type="text" id="account-name" class="input" dir="auto" autocomplete="off" required>
+      </div>
+      <div class="form-row">
+        <label for="account-username">ID</label>
+        <input type="text" id="account-username" class="input input--mono" autocomplete="off" spellcheck="false" aria-describedby="account-username-hint" required>
+        <span class="hint" id="account-username-hint">3 to 60 characters: letters, digits, dot, dash, underscore or @.</span>
+      </div>
+      <div class="form-row">
+        <label for="account-role">Role</label>
+        <select id="account-role" class="input">
+          <option value="student">Student</option>
+          <option value="advisor">Advisor</option>
+        </select>
+      </div>
+
+      <p class="form-error" id="account-error" role="alert" hidden></p>
+
+      <div class="dialog__actions">
+        <button type="button" class="btn btn--ghost" data-close>Cancel</button>
+        <button type="submit" class="btn btn--primary" id="account-submit">Create account</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- One-time temporary password -->
+  <dialog id="secret-dialog" class="dialog" aria-labelledby="secret-title">
+    <div class="dialog__form">
+      <h2 class="dialog__title" id="secret-title">Temporary password</h2>
+      <p class="dialog__sub" id="secret-sub"></p>
+      <div class="secret">
+        <code id="secret-value" class="secret__value"></code>
+        <button type="button" class="btn btn--outline" id="secret-copy">Copy</button>
+      </div>
+      <p class="dialog__note">The person must change this password the first time they sign in. It won't be shown again, so copy it now.</p>
+      <div class="dialog__actions">
+        <button type="button" class="btn btn--primary" data-close>Done</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Toasts -->
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <!-- Scripts -->
+  <script src="../shared/auth.js?v=2"></script>
+  <script src="script.js?v=2"></script>
+</body>
+</html>

@@ -3,8 +3,11 @@ import io
 import logging
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
+
+from src.accounts import store
+from src.accounts.deps import current_user
 
 from . import service
 
@@ -52,17 +55,22 @@ def generate(req: GenerateRequest):
 
 
 @router.post("/transcript")
-def transcript(file: UploadFile = File(...)):
+def transcript(file: UploadFile = File(...), user: dict = Depends(current_user)):
     if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(status_code=415, detail="Please upload the transcript as a PDF file.")
     data = file.file.read(MAX_UPLOAD_BYTES + 1)
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File is too large. The maximum size is 15MB.")
     try:
-        return service.import_transcript(io.BytesIO(data))
+        result = service.import_transcript(io.BytesIO(data))
     except Exception:
         logger.exception("Transcript parsing failed")
         raise HTTPException(
             status_code=422,
             detail="Could not read this PDF. Upload the text-based transcript exported from the university system.",
         )
+    # Kept in the student's profile: the schedule page reloads it on the next
+    # sign-in, and the advisor sees it.
+    if user["role"] == "student" and result["parsed_courses"]:
+        store.update_profile(user["id"], {"transcript": result})
+    return result

@@ -3,31 +3,9 @@
    ========================================================== */
 
 /* ----------------------------------------------------------
-   Session
+   Session (frontend/shared/auth.js): the planner is the student's
    ---------------------------------------------------------- */
-const SESSION_KEY = 'academic-ai-session';
-const SIGN_IN_PAGE = '../sign-in-page/index.html';
-
-function hasSession() {
-  try {
-    return Boolean(localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY));
-  } catch {
-    return true; // Storage unavailable — don't lock the user out
-  }
-}
-
-function signOut() {
-  try {
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
-  } catch {
-    /* Nothing to clear */
-  }
-  window.location.replace(SIGN_IN_PAGE);
-}
-
-// Not signed in → back to the Sign In page
-if (!hasSession()) window.location.replace(SIGN_IN_PAGE);
+const signOut = Auth.signOut;
 
 /* ----------------------------------------------------------
    Constants
@@ -40,9 +18,7 @@ let MAX_CREDITS = 18;                 // replaced by the server's default on loa
 const ROW_HEIGHT = 96;               // px per hour (matches --row-height)
 
 // The CSP scheduler runs in fastapi_app.py (src/scheduling) — same server as the chatbot.
-// Same server that serves this page; opened from disk (file://) → the local server.
-const API_URL = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
-const SERVER_DOWN = `Couldn't reach the Academic AI server at ${API_URL}. Make sure the server is running (Start-API.bat).`;
+const apiFetch = Auth.api;
 
 const DEFAULT_SELECTED = ['ريض 1112', 'عال 1140', 'عال 1220'];
 const MAX_UPLOAD_SIZE = 15 * 1024 * 1024;
@@ -89,21 +65,6 @@ function setCourses(list) {
     sections: course.sections.map((s) => ({ ...s, exam: course.exam })),
   }));
   COURSE_BY_CODE = Object.fromEntries(COURSES.map((c) => [c.code, c]));
-}
-
-async function apiFetch(path, options = {}) {
-  let res;
-  try {
-    res = await fetch(`${API_URL}${path}`, options);
-  } catch {
-    throw new Error(SERVER_DOWN);
-  }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const detail = typeof data.detail === 'string' ? data.detail : `Server error (${res.status})`;
-    throw new Error(detail);
-  }
-  return data;
 }
 
 /* Icons used in rendered markup */
@@ -572,6 +533,7 @@ function renderResults() {
 let updateTimer;
 let pendingUpdate = null;
 function update() {
+  savePlanner();
   renderSidebar();
   state.loading = state.selected.size > 0;
   state.schedules = [];
@@ -816,16 +778,6 @@ function handleFile(file) {
   renderImport();
 }
 
-function setUser(student) {
-  if (!student) return;
-  if (student.name) {
-    $('.user__name').textContent = student.name;
-    const initials = student.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('');
-    $('.user__avatar').textContent = initials.toUpperCase();
-  }
-  if (student.id) $('.user__id').textContent = student.id;
-}
-
 async function processImport() {
   if (!importSource || processing) return;
   processing = true;
@@ -865,7 +817,6 @@ async function processImport() {
   state.selected = new Set(data.suggested);
   state.locks = {};
   state.listFilter = 'selected';
-  setUser(data.student);
 
   closeImportModal();
   update();
@@ -1101,8 +1052,79 @@ async function loadCourses() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+/* ----------------------------------------------------------
+   Saved in the student's profile (PUT /api/me/planner), so the
+   planner opens as it was left, on any device.
+   ---------------------------------------------------------- */
+const PLANNER_SAVE_DELAY = 800;
+let plannerTimer;
+let plannerSaved = '';
+
+function plannerSnapshot() {
+  return {
+    selected: [...state.selected],
+    locks: state.locks,
+    daysOff: state.daysOff,
+    timeFrom: state.timeFrom,
+    timeTo: state.timeTo,
+    includeClosed: state.includeClosed,
+  };
+}
+
+function savePlanner() {
+  clearTimeout(plannerTimer);
+  plannerTimer = setTimeout(async () => {
+    const snapshot = plannerSnapshot();
+    const json = JSON.stringify(snapshot);
+    if (json === plannerSaved) return;
+    try {
+      await apiFetch('/api/me/planner', {
+        method: 'PUT',
+        body: { planner: { ...snapshot, savedAt: new Date().toISOString() } },
+      });
+      plannerSaved = json;
+    } catch {
+      /* Not saved this time; the next change tries again */
+    }
+  }, PLANNER_SAVE_DELAY);
+}
+
+/* Puts back the imported transcript and the last planner choices. Courses
+   or sections no longer offered this term are dropped. */
+function restoreProfile(profile) {
+  const known = (code) => Boolean(COURSE_BY_CODE[code]);
+  const transcript = profile.transcript;
+  if (transcript && Array.isArray(transcript.completed)) {
+    state.completed = new Set(transcript.completed);
+  }
+  const planner = profile.planner;
+  if (planner && Array.isArray(planner.selected)) {
+    state.selected = new Set(planner.selected.filter(known));
+    state.locks = Object.fromEntries(
+      Object.entries(planner.locks || {}).filter(([code, sectionId]) =>
+        state.selected.has(code) && COURSE_BY_CODE[code].sections.some((s) => s.id === sectionId)),
+    );
+    state.daysOff = Number(planner.daysOff) || 0;
+    if (Number.isFinite(planner.timeFrom) && Number.isFinite(planner.timeTo) && planner.timeTo > planner.timeFrom) {
+      state.timeFrom = Math.max(SCALE_START, planner.timeFrom);
+      state.timeTo = Math.min(SCALE_END, planner.timeTo);
+    }
+    state.includeClosed = Boolean(planner.includeClosed);
+  } else if (transcript && Array.isArray(transcript.suggested)) {
+    state.selected = new Set(transcript.suggested.filter(known));
+  }
+  plannerSaved = JSON.stringify(plannerSnapshot());
+}
+
+Auth.requireRole('student').then(async (user) => {
+  Auth.fillUser(user);
   fillTimeSelects();
   bindEvents();
-  if (await loadCourses()) update();
+  if (!(await loadCourses())) return;
+  try {
+    restoreProfile((await apiFetch('/api/me/profile')).profile || {});
+  } catch {
+    /* The planner still works; it just starts from the defaults */
+  }
+  update();
 });

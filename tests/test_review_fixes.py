@@ -110,9 +110,7 @@ def test_embedding_check_stops_before_the_table_is_dropped(monkeypatch):
 # ------------------------------------------------------------ rate limit
 
 
-def test_chat_rate_limit(monkeypatch):
-    from fastapi.testclient import TestClient
-
+def test_chat_rate_limit(monkeypatch, sign_in):
     import fastapi_app
     from src.workflow import DirectQueryWorkflow
     from tests.test_clarify import FakeTool
@@ -120,7 +118,7 @@ def test_chat_rate_limit(monkeypatch):
     monkeypatch.setattr(fastapi_app, "workflow", DirectQueryWorkflow(FakeTool()))
     monkeypatch.setattr(fastapi_app, "CHAT_RATE_LIMIT", 2)
     fastapi_app._chat_hits.clear()
-    client = TestClient(fastapi_app.app)  # no lifespan: the real index isn't loaded
+    client = sign_in("441000001")
 
     ask = lambda headers=None: client.post(  # noqa: E731
         "/api/chat", json={"message": "السلام عليكم"}, headers=headers or {}

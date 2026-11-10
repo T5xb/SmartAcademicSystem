@@ -625,3 +625,61 @@ body {
     flex-direction: row;
   }
 }
+
+/* ==========================================================
+   Form messages & the temporary-password step
+   ========================================================== */
+.form-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  background-color: rgba(248, 113, 113, 0.08);
+  font-size: 13px;
+  line-height: 1.45;
+  color: #fca5a5;
+}
+
+.form-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--emerald-30);
+  background-color: var(--emerald-10);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-light);
+}
+
+.form-error[hidden],
+.auth-form[hidden] {
+  display: none;
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.btn-text {
+  align-self: center;
+  padding: 6px 10px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.btn-text:hover {
+  color: var(--text);
+}
+
+.btn-text:focus-visible,
+.btn-primary:focus-visible,
+.password-toggle:focus-visible {
+  outline: 2px solid var(--emerald);
+  outline-offset: 2px;
+}

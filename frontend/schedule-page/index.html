@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 
 <body>
@@ -21,7 +21,7 @@
     <div class="header__left">
 
       <!-- Brand (same logo as Sign In page) -->
-      <a href="../welcome-page/index.html" class="brand">
+      <a href="../welcome-page/index.html?v=2" class="brand">
         <div class="brand__logo">
           <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24">
             <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
@@ -33,7 +33,7 @@
 
       <!-- Navigation Tabs -->
       <nav class="nav-tabs" aria-label="Main tabs">
-        <a href="../chatbot-page/index.html" class="nav-tab">
+        <a href="../chatbot-page/index.html?v=2" class="nav-tab">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
@@ -77,10 +77,10 @@
 
       <!-- User -->
       <div class="user">
-        <div class="user__avatar">AR</div>
+        <a href="../profile-page/index.html?v=2" class="user__avatar" title="My profile" aria-label="My profile"></a>
         <div class="user__info">
-          <div class="user__name">Ahmed Al-Rashid</div>
-          <div class="user__id">s202100000</div>
+          <div class="user__name"></div>
+          <div class="user__id"></div>
         </div>
         <button type="button" id="sign-out-btn" class="sign-out" title="Sign Out" aria-label="Sign Out">
           <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
@@ -434,6 +434,7 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <!-- Scripts -->
-  <script src="script.js"></script>
+  <script src="../shared/auth.js?v=2"></script>
+  <script src="script.js?v=2"></script>
 </body>
 </html>

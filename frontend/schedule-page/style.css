@@ -2366,3 +2366,13 @@ body.modal-open {
     padding-right: 16px;
   }
 }
+
+/* The avatar in the header opens the student's profile */
+a.user__avatar {
+  text-decoration: none;
+}
+
+a.user__avatar:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}

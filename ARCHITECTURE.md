@@ -18,8 +18,8 @@ assistant actually needs.
 
 Implements GP1 Use Case 2 (*Ask Academic Question via Chatbot*) and
 Use Case 3 (*Receive Source-Based Answer*). CSP study-schedule generation
-and transcript import are in `src/scheduling/` (section 7); sign-in remains
-unbuilt.
+and transcript import are in `src/scheduling/` (section 7); accounts and
+role-based access (student, advisor, admin) are in `src/accounts/`.
 
 ## 2. Request flow
 
@@ -232,7 +232,8 @@ recorded figures for the current index; see the first known gap below.
 
 ## 6. Known gaps
 
-- Sign-in: not built (the pages accept any email/password for the demo).
+- Advising tickets are not connected to accounts yet: the advisor page shows
+  students and their profiles, not tickets.
 - No conversational memory — each question is answered independently.
 - **No quantitative accuracy metric.** GP1 §2.5 promises
   "Performance Evaluation & Metrics"; we have only manual spot

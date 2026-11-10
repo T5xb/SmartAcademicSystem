@@ -153,13 +153,11 @@ def test_create_ticket_is_off_by_default_and_writes_jsonl_when_on(tmp_path, monk
 # ------------------------------------------------------------ API
 
 
-def test_chat_api_passes_history_and_returns_ticket(monkeypatch):
-    from fastapi.testclient import TestClient
-
+def test_chat_api_passes_history_and_returns_ticket(monkeypatch, sign_in):
     import fastapi_app
 
     monkeypatch.setattr(fastapi_app, "workflow", DirectQueryWorkflow(FakeTool()))
-    client = TestClient(fastapi_app.app)  # no lifespan: the real index isn't loaded
+    client = sign_in("441000001")
     history = history_with(MAX_CLARIFY_ATTEMPTS)
     r = client.post("/api/chat", json={"message": "ما زالت المشكلة", "history": history})
     assert r.status_code == 200

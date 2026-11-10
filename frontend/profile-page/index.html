@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Academic AI - My Profile</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
+  <link rel="stylesheet" href="style.css?v=2">
+</head>
+
+<body>
+
+  <!-- ======================= Header ======================= -->
+  <header class="header">
+    <div class="header__left">
+      <a href="../welcome-page/index.html?v=2" class="brand" aria-label="Academic AI home">
+        <div class="brand__logo">
+          <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24">
+            <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+            <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
+          </svg>
+        </div>
+        <span class="brand__name">Academic AI</span>
+      </a>
+      <nav class="nav-tabs" aria-label="Main tabs">
+        <a href="../chatbot-page/index.html?v=2" class="nav-tab">AI Chatbot</a>
+        <a href="../schedule-page/index.html?v=2" class="nav-tab">Study Schedule</a>
+        <a href="index.html" class="nav-tab is-active" aria-current="page">My profile</a>
+      </nav>
+    </div>
+
+    <div class="header__right">
+      <div class="user">
+        <div class="user__avatar">?</div>
+        <div class="user__info">
+          <div class="user__name">Loading</div>
+          <div class="user__id"></div>
+        </div>
+        <button type="button" id="sign-out-btn" class="sign-out" title="Sign out" aria-label="Sign out">
+          <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ======================= Main ======================= -->
+  <main class="main">
+    <div class="page">
+      <h1 class="page__title">My profile</h1>
+      <div id="load-status" class="status" role="status">Loading your profile...</div>
+
+      <div id="content" hidden>
+
+        <!-- 1. Identity -->
+        <section class="section" aria-labelledby="h-identity">
+          <h2 class="section__title" id="h-identity">Identity</h2>
+          <div class="identity">
+            <div class="avatar avatar--lg" id="id-avatar" aria-hidden="true">?</div>
+            <div>
+              <div class="identity__name" id="id-name" dir="auto"></div>
+              <div class="identity__id mono" id="id-username"></div>
+              <p class="hint">Managed by the administrator</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- 2. Contact and study details -->
+        <section class="section" aria-labelledby="h-details">
+          <h2 class="section__title" id="h-details">Contact and study details</h2>
+          <form id="details-form" class="form" novalidate>
+            <div class="form__row">
+              <label class="field">
+                <span class="field__label">Email</span>
+                <input class="input" type="email" id="f-email" maxlength="200" autocomplete="email">
+              </label>
+              <label class="field">
+                <span class="field__label">Phone</span>
+                <input class="input" type="tel" id="f-phone" maxlength="40" autocomplete="tel" dir="auto">
+              </label>
+            </div>
+            <div class="form__row">
+              <label class="field">
+                <span class="field__label">Major</span>
+                <select class="input" id="f-major" dir="auto">
+                  <option value="">Not set</option>
+                  <option value="علوم الحاسب">علوم الحاسب</option>
+                  <option value="نظم المعلومات">نظم المعلومات</option>
+                  <option value="تقنية المعلومات">تقنية المعلومات</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="field__label">Level</span>
+                <select class="input" id="f-level">
+                  <option value="">Not set</option>
+                  <option>Level 1</option><option>Level 2</option><option>Level 3</option><option>Level 4</option>
+                  <option>Level 5</option><option>Level 6</option><option>Level 7</option><option>Level 8</option>
+                </select>
+              </label>
+            </div>
+            <div class="form__actions">
+              <button type="submit" class="btn btn--primary" id="save-btn" disabled>Save changes</button>
+              <span class="status status--inline" id="details-status" role="status"></span>
+            </div>
+          </form>
+        </section>
+
+        <!-- 3. Academic record -->
+        <section class="section" aria-labelledby="h-record">
+          <h2 class="section__title" id="h-record">Academic record</h2>
+          <div id="record"></div>
+        </section>
+
+        <!-- 4. Saved schedule choices -->
+        <section class="section" aria-labelledby="h-planner">
+          <h2 class="section__title" id="h-planner">Saved schedule choices</h2>
+          <div id="planner"></div>
+        </section>
+
+        <!-- 5. Password -->
+        <section class="section" aria-labelledby="h-password">
+          <h2 class="section__title" id="h-password">Change password</h2>
+          <form id="password-form" class="form form--narrow" novalidate>
+            <label class="field">
+              <span class="field__label">Current password</span>
+              <input class="input" type="password" id="p-current" autocomplete="current-password">
+            </label>
+            <label class="field">
+              <span class="field__label">New password</span>
+              <input class="input" type="password" id="p-new" autocomplete="new-password" maxlength="200" aria-describedby="p-new-err">
+              <span class="field__error" id="p-new-err" role="alert"></span>
+            </label>
+            <label class="field">
+              <span class="field__label">Confirm new password</span>
+              <input class="input" type="password" id="p-confirm" autocomplete="new-password" maxlength="200" aria-describedby="p-confirm-err">
+              <span class="field__error" id="p-confirm-err" role="alert"></span>
+            </label>
+            <label class="check">
+              <input type="checkbox" id="p-show"> Show passwords
+            </label>
+            <div class="form__actions">
+              <button type="submit" class="btn btn--primary" id="password-btn" disabled>Change password</button>
+              <span class="status status--inline" id="password-status" role="status"></span>
+            </div>
+          </form>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <footer class="footer">
+    <span>Your profile is visible to you and to your academic advisor.</span>
+  </footer>
+
+  <script src="../shared/auth.js?v=2"></script>
+  <script src="script.js?v=2"></script>
+</body>
+</html>

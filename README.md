@@ -10,7 +10,8 @@ resolved from the actual retrieved text.
 | --- | --- |
 | `fastapi_app.py`, `src/` | RAG chatbot server (API on port 8000) |
 | `src/scheduling/` | CSP study-schedule generator + transcript import (same server, `/api/schedule/*`) |
-| `frontend/` | GP2 web pages: `sign-in-page` → `welcome-page` → `chatbot-page` / `schedule-page` |
+| `src/accounts/` | accounts, sign-in sessions and roles; the admin's document management |
+| `frontend/` | GP2 web pages: `sign-in-page`, then by role: `welcome-page` → `chatbot-page` / `schedule-page` / `profile-page` (student), `advisor-page`, `admin-page` |
 | `docs/` | official regulation documents that answers are drawn from |
 | `scripts/` | OCR for scanned PDFs (`ocr_pdf.py`) |
 | `tests/` | pytest suite (`uv run pytest`) |
@@ -32,8 +33,8 @@ Get the real `src/.env` values (Groq key, Supabase URL) from the team
 privately — **never commit `src/.env`** (it is git-ignored).
 
 Then double-click `Start-API.bat`: it starts the server and opens
-http://localhost:8000 in the browser (any email/password signs in for the
-demo). To share it, double-click `Start-Public.bat` instead: it also prints
+http://localhost:8000 in the browser (sign in with a preset account, see
+"Accounts and roles" below). To share it, double-click `Start-Public.bat` instead: it also prints
 a public ngrok link (needs `NGROK_AUTHTOKEN` in `src/.env`; set
 `NGROK_DOMAIN` to a free ngrok static domain to keep the same link every
 run). The link only works while that window and this laptop stay on.
@@ -117,10 +118,33 @@ When the reply suggests a ticket, the `/api/chat` response also carries a
 `ticket` draft for the future ticket page / advisors' dashboard. Shape and
 details: [ARCHITECTURE.md §4.6](ARCHITECTURE.md).
 
-The pages call the server they were loaded from; opened straight from
-disk (`file://`) they fall back to `http://localhost:8000`. CORS is open by
-default so that still works — set
-`CORS_ORIGINS` in `src/.env` (comma-separated) to restrict it.
+### Accounts and roles
+
+Everything except the sign-in page needs an account. The first start
+creates five preset accounts with the password in `PRESET_PASSWORD`
+(`src/.env`, default `test12345`):
+
+| ID | role | opens |
+| --- | --- | --- |
+| `admin` | admin | `admin-page`: source documents (view, upload, replace, remove, OCR), index rebuild, accounts (add, disable, reset password) |
+| `advisor` | academic advisor | `advisor-page`: the students and each one's academic profile |
+| `441000001` – `441000003` | student | chatbot (chats saved to the account), schedule planner, profile |
+
+Accounts, sessions, saved chats and profiles are stored in the same
+Supabase database as the index, in tables named `sas_*`. Passwords are
+stored as scrypt hashes; the session is an HttpOnly cookie. An account the
+admin adds gets a one-time password that must be changed at first sign-in.
+
+Replacing a document: in the admin page, find the old file (search or
+folder filter) and use **Replace** on its row. The new file takes its place
+in the same folder, the old one moves to `output/replaced_docs/`, and the
+page asks for an index rebuild. The chatbot can't answer during the few
+minutes a rebuild takes.
+
+The pages must be opened from the server (`http://localhost:8000` or the
+public link), not from disk: the session cookie only goes to the server
+the page came from. Set `CORS_ORIGINS` in `src/.env` (comma-separated) to
+restrict which other sites may call the public routes.
 
 ## Which LLM answers
 

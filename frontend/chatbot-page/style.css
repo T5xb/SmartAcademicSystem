@@ -633,6 +633,10 @@ body.sidebar-collapsed .sidebar {
   transition: background-color var(--transition);
 }
 
+a.menu__item {
+  text-decoration: none;
+}
+
 .menu__item:hover {
   background-color: var(--surface-5);
 }

@@ -5,42 +5,19 @@
    ========================================================== */
 
 /* ----------------------------------------------------------
-   Session
+   Session (frontend/shared/auth.js): every signed-in role can chat
    ---------------------------------------------------------- */
-const SESSION_KEY = 'academic-ai-session';
-const SIGN_IN_PAGE = '../sign-in-page/index.html';
-
-function hasSession() {
-  try {
-    return Boolean(localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY));
-  } catch {
-    return true; // Storage unavailable — don't lock the user out
-  }
-}
-
-function signOut() {
-  try {
-    localStorage.removeItem(SESSION_KEY);
-    sessionStorage.removeItem(SESSION_KEY);
-  } catch {
-    /* Nothing to clear */
-  }
-  window.location.replace(SIGN_IN_PAGE);
-}
-
-// Not signed in → back to the Sign In page
-if (!hasSession()) window.location.replace(SIGN_IN_PAGE);
+const signOut = Auth.signOut;
 
 /* ----------------------------------------------------------
    Constants
    ---------------------------------------------------------- */
-// Same server that serves this page; opened from disk (file://) → the local server.
-const API_URL = location.protocol === 'file:' ? 'http://localhost:8000' : location.origin;
-const STORAGE_KEY = 'academic-ai-chats';
+const API_URL = Auth.API_URL;
+const CHAT_SAVE_DELAY = 600;         // ms a changed chat waits before it is sent to the server
 const REQUEST_TIMEOUT = 90000;       // ms before a question is given up on
 const MAX_MESSAGE_LENGTH = 2000;     // matches ChatRequest.max_length on the server
-const USER_NAME = 'Ahmed Al-Rashid';
-const FIRST_NAME = 'Ahmed';
+let USER_NAME = '';                  // filled from the signed-in account
+let FIRST_NAME = '';
 const MOBILE_BREAKPOINT = 900;
 
 // Must match the server's markers in src/citation.py
@@ -130,7 +107,7 @@ async function apiFetch(path, options = {}, { timeout = REQUEST_TIMEOUT, signal 
   if (signal) signal.addEventListener('abort', onAbort);
 
   try {
-    return await fetch(`${API_URL}${path}`, { ...options, signal: controller.signal });
+    return await fetch(`${API_URL}${path}`, { credentials: 'same-origin', ...options, signal: controller.signal });
   } catch (err) {
     if (controller.signal.aborted) {
       const reason = controller.signal.reason === 'stopped' ? 'stopped' : 'timeout';
@@ -219,35 +196,82 @@ async function loadSuggestions() {
    State & Storage
    ---------------------------------------------------------- */
 const state = {
-  chats: loadChats(),   // newest first
+  chats: [],            // newest first; loaded from the account in init
   activeId: null,       // null = a fresh, empty chat
 };
 
 const pending = new Map();   // botMessageId → AbortController
 
-function loadChats() {
+/* Chats are kept in the student's account (GET/PUT/DELETE /api/me/chats),
+   so they come back after signing in again, on any device. */
+const savedChats = new Map();   // chatId → the JSON last sent to the server
+let saveTimer;
+let saveWarned = false;
+
+async function loadChats() {
+  let chats = [];
   try {
-    const chats = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+    chats = (await Auth.api('/api/me/chats')).chats || [];
+  } catch (err) {
+    showToast(`Saved chats could not be loaded: ${err.message}`);
+  }
+  chats.forEach((chat) => {
+    savedChats.set(chat.id, JSON.stringify(chat));
     // Answers still loading when the page closed can't be resumed
-    chats.forEach((chat) => chat.messages.forEach((m) => {
+    chat.messages.forEach((m) => {
       if (m.status === 'typing') {
         m.status = 'error';
         m.errorText = 'This response was interrupted when the page closed. Please ask your question again.';
       }
-    }));
-    return chats;
-  } catch {
-    return [];
+    });
+  });
+  return chats;
+}
+
+/* Sends what changed since the last save: new or edited chats, deleted ones. */
+async function syncChats() {
+  const current = new Map(state.chats.map((chat) => [chat.id, JSON.stringify(chat)]));
+  const jobs = [];
+  current.forEach((json, id) => {
+    if (savedChats.get(id) === json) return;
+    jobs.push(
+      Auth.api(`/api/me/chats/${encodeURIComponent(id)}`, { method: 'PUT', body: `{"chat":${json}}`, headers: { 'Content-Type': 'application/json' } })
+        .then(() => savedChats.set(id, json)),
+    );
+  });
+  [...savedChats.keys()].filter((id) => !current.has(id)).forEach((id) => {
+    jobs.push(
+      Auth.api(`/api/me/chats/${encodeURIComponent(id)}`, { method: 'DELETE' })
+        .then(() => savedChats.delete(id)),
+    );
+  });
+  const results = await Promise.allSettled(jobs);
+  const failed = results.find((r) => r.status === 'rejected');
+  if (failed && !saveWarned) {
+    saveWarned = true;   // once, not on every message
+    showToast(`This chat could not be saved to your account: ${failed.reason.message}`);
+  } else if (!failed) {
+    saveWarned = false;
   }
 }
 
 function saveChats() {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state.chats));
-  } catch {
-    /* Storage unavailable — chats stay in memory only */
-  }
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(syncChats, CHAT_SAVE_DELAY);
 }
+
+// A change made just before the page closes is still sent
+window.addEventListener('pagehide', () => {
+  clearTimeout(saveTimer);
+  state.chats.forEach((chat) => {
+    const json = JSON.stringify(chat);
+    if (savedChats.get(chat.id) === json) return;
+    fetch(`${API_URL}/api/me/chats/${encodeURIComponent(chat.id)}`, {
+      method: 'PUT', credentials: 'same-origin', keepalive: true,
+      headers: { 'Content-Type': 'application/json' }, body: `{"chat":${json}}`,
+    }).catch(() => {});
+  });
+});
 
 const activeChat = () => state.chats.find((c) => c.id === state.activeId) || null;
 const isBusy = (chat) => Boolean(chat && chat.messages.some((m) => m.status === 'typing'));
@@ -773,10 +797,32 @@ function bindEvents() {
 /* ----------------------------------------------------------
    Init
    ---------------------------------------------------------- */
-document.addEventListener('DOMContentLoaded', () => {
+const ROLE_LABELS = { student: 'Student', advisor: 'Academic advisor', admin: 'Administrator' };
+
+Auth.requireRole().then(async (user) => {
+  // Both are written into rendered markup, so they are escaped here
+  USER_NAME = escapeHtml(user.name);
+  FIRST_NAME = escapeHtml(Auth.firstName(user.name));
+  Auth.fillUser(user);
+  $('#profile-avatar').textContent = Auth.initials(user.name);
+  $('#profile-name').textContent = user.name;
+  $('#profile-meta').textContent = `${ROLE_LABELS[user.role] || ''} ${user.username}`.trim();
+  // Advisors and admins have no student profile or schedule; the brand
+  // link already takes them to their own home page.
+  if (user.role !== 'student') {
+    $('#profile-link').hidden = true;
+    document.querySelectorAll('.nav-tab[href*="schedule-page"]').forEach((tab) => { tab.hidden = true; });
+  }
+
   if (isMobile()) setSidebar(false);
   bindEvents();
   render();
   loadSuggestions();
   $('#prompt').focus();
+
+  // A chat started while the saved ones were loading stays on top
+  const saved = await loadChats();
+  const started = new Set(state.chats.map((chat) => chat.id));
+  state.chats = [...state.chats, ...saved.filter((chat) => !started.has(chat.id))];
+  render();
 });

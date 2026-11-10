@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=2">
 </head>
 
 <body>
@@ -38,11 +38,11 @@
       </div>
 
       <div class="user">
-        <div class="user__avatar">AR</div>
-        <div class="user__info">
-          <div class="user__name">Ahmed Al-Rashid</div>
-          <div class="user__id">s202100000</div>
-        </div>
+        <a href="../profile-page/index.html?v=2" class="user__avatar" title="My profile" aria-label="My profile"></a>
+        <a href="../profile-page/index.html?v=2" class="user__info user__info--link" title="My profile">
+          <div class="user__name"></div>
+          <div class="user__id"></div>
+        </a>
         <button type="button" id="sign-out-btn" class="sign-out" title="Sign Out" aria-label="Sign Out">
           <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
@@ -67,7 +67,7 @@
       <!-- Heading -->
       <h1 class="hub__title">Academic AI</h1>
       <p class="hub__subtitle">
-        Welcome back, Ahmed. Choose your specialized tool below to begin your academic session.
+        <span id="welcome-name">Welcome back.</span> Choose your specialized tool below to begin your academic session.
       </p>
 
       <!-- Option Cards -->
@@ -115,7 +115,7 @@
             </ul>
           </div>
 
-          <a href="../chatbot-page/index.html" class="btn btn--outline">
+          <a href="../chatbot-page/index.html?v=2" class="btn btn--outline">
             Launch AI Chatbot
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
@@ -167,7 +167,7 @@
             </ul>
           </div>
 
-          <a href="../schedule-page/index.html" class="btn btn--outline">
+          <a href="../schedule-page/index.html?v=2" class="btn btn--outline">
             Configure Study Schedule
             <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
@@ -202,6 +202,7 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="script.js"></script>
+  <script src="../shared/auth.js?v=2"></script>
+  <script src="script.js?v=2"></script>
 </body>
 </html>

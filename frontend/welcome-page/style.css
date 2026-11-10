@@ -626,3 +626,23 @@ body {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* The name in the header opens the student's profile */
+.user__info--link {
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+.user__info--link:hover .user__name {
+  color: var(--primary);
+}
+
+a.user__avatar {
+  text-decoration: none;
+}
+
+a.user__avatar:focus-visible,
+.user__info--link:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
