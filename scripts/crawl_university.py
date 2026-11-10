@@ -593,7 +593,6 @@ class Crawler:
                 if row is not None:
                     text = re.sub(r"\s+", " ", row.get_text(" ", strip=True)).replace(fname, "").strip()[:120] or text
             links.append((urljoin(url, href), text))
-        host = urlsplit(url).hostname or ""
         body = ""
         if "__next_f" in html:  # Next.js main site
             payload = next_payload(html)

@@ -30,7 +30,7 @@
   أنه رمز قديم استُبدل بـ MATH 113 "Applied Calculus 1" (المُعيَّن فعلياً أدناه)، لكن بما
   أنه غير مُجتاز أصلاً فلا يؤثر على قائمة المتطلبات السابقة المكتملة.
 """
-from typing import Dict, List, Set, Tuple
+from typing import Dict, Set, Tuple
 
 # "رمز كما يظهر في السجل الأكاديمي": "رمز المقرر المقابل في course_db"
 TRANSCRIPT_TO_PLAN_CODE: Dict[str, str] = {

@@ -37,7 +37,6 @@ STIFF_OPENERS = re.compile(r"بناءً على|بناء على|وفقًا للس
 
 
 def behaviour(answer: str) -> str:
-    from src.citation import NO_ANSWER_MESSAGE
     from src.clarify import CLARIFY_MARK, TICKET_MARK
 
     if answer.startswith("ERROR:"):
@@ -46,8 +45,6 @@ def behaviour(answer: str) -> str:
         return "clarify"
     if TICKET_MARK in answer:
         return "ticket"
-    if NO_ANSWER_MESSAGE.splitlines()[0] in answer:
-        return "no_answer"
     if "[📄" in answer:
         return "file"
     if "المصدر: التقويم الدراسي" in answer:

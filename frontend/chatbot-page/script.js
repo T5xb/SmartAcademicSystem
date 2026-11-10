@@ -516,7 +516,6 @@ function sendMessage(text) {
     chat = {
       id: makeId(),
       title: content.length > 48 ? `${content.slice(0, 48)}…` : content,
-      createdAt: Date.now(),
       updatedAt: Date.now(),
       messages: [],
     };

@@ -12,7 +12,7 @@ resolved from the actual retrieved text.
 | `src/scheduling/` | CSP study-schedule generator + transcript import (same server, `/api/schedule/*`) |
 | `frontend/` | GP2 web pages: `sign-in-page` → `welcome-page` → `chatbot-page` / `schedule-page` |
 | `docs/` | official regulation documents that answers are drawn from |
-| `scripts/` | one-off data tools (crawl, OCR) and evaluation (`bench.py`, `eval_student_style.py`) |
+| `scripts/` | one-off data tools (crawl, OCR; their packages: `uv sync --extra tools`) and evaluation (`bench.py`, `eval_student_style.py`) |
 | `tests/` | pytest suite (`uv run pytest`) |
 | `Start-API.bat`, `Start-Public.bat` | double-click launchers (local / with a public ngrok link) |
 

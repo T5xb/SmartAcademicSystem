@@ -39,7 +39,8 @@ DEPTS = [
 ]
 _COLLEGE_RE = re.compile(r"عميد|عماد[هة]|وكيل|وكال[هة]|الكلي[هة]")
 # University deanships (admission, student affairs...), not the college's own.
-_OTHER_DEANSHIP_RE = re.compile(r"عماد[هة]\s*(ال)?(قبول|تسجيل|شؤون|شئون|دراسات|تقني|تعلم|بحث|خدم|مكتب|جود|تطوير)\w*")
+_DEANSHIP_WORDS = "قبول|تسجيل|شؤون|شئون|دراسات|تقني|تعلم|بحث|خدم|مكتب|جود|تطوير"
+_OTHER_DEANSHIP_RE = re.compile(rf"عماد[هة]\s*(ال)?({_DEANSHIP_WORDS})\w*")
 
 # Student wording -> words of the unit labels it refers to (normalized, see _norm).
 TOPICS: list[tuple[re.Pattern, list[str]]] = [
@@ -49,7 +50,7 @@ TOPICS: list[tuple[re.Pattern, list[str]]] = [
     (re.compile(r"سكرتير|سكرتاري|سكرتار"), ["سكرتير", "سكرتاريه"]),
     (re.compile(r"امين|أمين"), ["امين"]),
     (re.compile(r"رئيس[هة]?\s*(ال)?قسم"), ["رئيس قسم"]),
-    (re.compile(r"عميد|عماد[هة](?!\s*(ال)?(قبول|تسجيل|شؤون|شئون|دراسات|تقني|تعلم|بحث|خدم|مكتب|جود|تطوير))"),
+    (re.compile(rf"عميد|عماد[هة](?!\s*(ال)?({_DEANSHIP_WORDS}))"),
      ["عماده كليه"]),
     (re.compile(r"قبول|تسجيل"), ["قبول تسجيل"]),
     (re.compile(r"شؤون\s*(ال)?طلاب|شئون\s*(ال)?طلاب"), ["شؤون طلاب"]),

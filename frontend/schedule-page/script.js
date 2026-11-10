@@ -52,11 +52,6 @@ const MAX_UPLOAD_SIZE = 15 * 1024 * 1024;
    ---------------------------------------------------------- */
 const $ = (selector) => document.querySelector(selector);
 
-const toMinutes = (time) => {
-  const [h, m] = time.split(':').map(Number);
-  return h * 60 + m;
-};
-
 const formatTime = (minutes) =>
   `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`;
 

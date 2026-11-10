@@ -21,10 +21,9 @@ from datetime import date
 from functools import lru_cache
 from urllib.parse import quote
 
-from src.contacts import email_reply
+from src.contacts import DOCS_DIR, email_reply
 from src.student_style import formal_terms
 
-DOCS_DIR = os.environ.get("DATA_DIR", "docs")
 CALENDAR_TXT = os.path.join(DOCS_DIR, "imamu_web", "academic_calendar", "التقويم_الدراسي_1448_1449.txt")
 CALENDAR_PDF_URL = "https://units.imamu.edu.sa/deanships/admission/Documents/Calendar_1448.pdf"
 CALENDAR_NAME = "التقويم الدراسي للعام الجامعي 1448/1449هـ"

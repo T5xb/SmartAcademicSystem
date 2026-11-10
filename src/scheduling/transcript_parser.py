@@ -27,9 +27,6 @@ EQUIVALENT_GRADE = "EQ"
 # تقديرات لا تُحتسب كنجاح في المقرر (رسوب / انسحاب / لم يحضر / قيد التنفيذ)
 NON_PASSING_GRADES = {"F", "W", "DN", "IP", "IC"}
 
-# صفوف تُستبعد من كونها "مقرراً" لأنها ترويسات متكررة أو إحصاءات فصلية
-_HEADER_FIRST_CELLS = {"Course Code", "Hours", "Term", "Accumulative"}
-
 
 @dataclass
 class TranscriptCourseRecord:
@@ -53,8 +50,6 @@ class TranscriptData:
     courses: List[TranscriptCourseRecord] = field(default_factory=list)
 
     cumulative_gpa: Optional[float] = None
-    cumulative_registered_hours: Optional[int] = None
-    cumulative_passed_hours: Optional[int] = None
     cumulative_earned_hours: Optional[int] = None
 
     parse_warnings: List[str] = field(default_factory=list)
@@ -107,7 +102,6 @@ def _parse_course_row(row: List[Optional[str]]) -> Optional[TranscriptCourseReco
 
     code = cells[0].strip()
     grade = cells[-1].strip()
-    q_points = cells[-2].strip()
     credit_hours_str = cells[-3].strip()
     title = " ".join(cells[1:-3]).strip()
 
@@ -121,7 +115,7 @@ def _parse_course_row(row: List[Optional[str]]) -> Optional[TranscriptCourseReco
 def parse_transcript(pdf_source: Union[str, BinaryIO]) -> TranscriptData:
     """
     يحلل ملف PDF لسجل أكاديمي (نصي وليس ممسوحاً ضوئياً) ويرجع TranscriptData.
-    pdf_source: مسار ملف، أو كائن ملف (مثل ما يرجعه st.file_uploader في Streamlit).
+    pdf_source: مسار ملف، أو كائن ملف (مثل الملف المرفوع عبر /api/schedule/transcript).
     """
     data = TranscriptData()
 
@@ -168,8 +162,6 @@ def parse_transcript(pdf_source: Union[str, BinaryIO]) -> TranscriptData:
                         # آخر صف "تراكمي" في المستند بأكمله = الوضع الحالي؛ نستمر بالكتابة فوق القيم
                         cells = [c for c in row if c is not None]
                         if len(cells) >= 6:
-                            data.cumulative_registered_hours = _to_int(cells[1])
-                            data.cumulative_passed_hours = _to_int(cells[2])
                             data.cumulative_earned_hours = _to_int(cells[3])
                             data.cumulative_gpa = _to_float(cells[5])
                         continue

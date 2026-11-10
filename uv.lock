@@ -116,18 +116,6 @@ wheels = [
 ]
 
 [[package]]
-name = "aiostream"
-version = "0.5.2"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/e4/60/0b46dfd568d1e22ff587ff0b00829a11411bc34be1b6497c8783cbd9ec82/aiostream-0.5.2.tar.gz", hash = "sha256:b71b519a2d66c38f0872403ab86417955b77352f08d9ad02ad46fc3926b389f4", size = 35339, upload-time = "2023-10-24T10:11:30.891Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b3/2a/4140da24a81adce23b79e4fdc3fc722c9ff698460c1b9f8f7bd3742eb02e/aiostream-0.5.2-py3-none-any.whl", hash = "sha256:054660370be9d37f6fe3ece3851009240416bd082e469fd90cc8673d3818cf71", size = 39486, upload-time = "2023-10-24T10:11:28.221Z" },
-]
-
-[[package]]
 name = "annotated-doc"
 version = "0.0.5"
 source = { registry = "https://pypi.org/simple" }
@@ -1043,23 +1031,6 @@ wheels = [
 ]
 
 [[package]]
-name = "llama-cloud"
-version = "1.6.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "anyio" },
-    { name = "distro" },
-    { name = "httpx" },
-    { name = "pydantic" },
-    { name = "sniffio" },
-    { name = "typing-extensions" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/15/bc/72256200ae875bfb352a1043a6008472829517e1bff4e3b1311639def2f8/llama_cloud-1.6.0.tar.gz", hash = "sha256:b00c75df76b59becca72f262c755a59529f0c09f0cda79e086eedefc62d59ac8", size = 2274742, upload-time = "2026-03-05T23:55:34.405Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/e2/e1/c40aff3fe70c6b457ee89f6cdaee8678fb63986b12734e7d6e4fc481d6dc/llama_cloud-1.6.0-py3-none-any.whl", hash = "sha256:3b880587ef82f23dc9f1998395b31f8a4afd77eb88f99689358a67375d16d413", size = 394869, upload-time = "2026-03-05T23:55:33.172Z" },
-]
-
-[[package]]
 name = "llama-index-core"
 version = "0.14.24"
 source = { registry = "https://pypi.org/simple" }
@@ -1111,19 +1082,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/37/be/aa06215b51538a9e95da63bb3855591a547eae16c15f45f3905f98e03dbe/llama_index_embeddings_ollama-0.10.0.tar.gz", hash = "sha256:fc26cfe8d9d015f76b61558d4c9a1c854535ea0140dd87f169de760b40af3cea", size = 6565, upload-time = "2026-08-31T15:53:04.207Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/6a/ea/96700781ef48998629f3161bf15cbbe8f8a671c52101c9109b0ddc83a764/llama_index_embeddings_ollama-0.10.0-py3-none-any.whl", hash = "sha256:164f35dc6b1966380533316567c58df7afaeaf598aa2c9a510c061c896d8ebbc", size = 6254, upload-time = "2026-08-31T15:53:03.439Z" },
-]
-
-[[package]]
-name = "llama-index-indices-managed-llama-cloud"
-version = "0.12.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "llama-cloud" },
-    { name = "llama-index-core" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/36/15/f3c4443dfaaf84235beefcde3df49cc505f32f2d340a64e22ae564d62f03/llama_index_indices_managed_llama_cloud-0.12.0.tar.gz", hash = "sha256:d4bca39ee803209c9f6d5697c23d1e06027cb74bbe2df9a91d3854135a23c720", size = 4384, upload-time = "2026-08-31T15:54:27.017Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/7d/da/4b1492a8db2d2bd34fe9f490322cc289d1c4dd7731bd91e26a3f5fe2830b/llama_index_indices_managed_llama_cloud-0.12.0-py3-none-any.whl", hash = "sha256:d2e83a143e7f140f68893517ada12a34ce4be95584c5434dccf6e7bcce289a5a", size = 3822, upload-time = "2026-08-31T15:54:26.277Z" },
 ]
 
 [[package]]
@@ -2709,14 +2667,11 @@ name = "smartacademicsystem"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "aiostream" },
     { name = "asyncpg" },
     { name = "docx2txt" },
-    { name = "easyocr" },
     { name = "fastapi" },
     { name = "llama-index-core" },
     { name = "llama-index-embeddings-ollama" },
-    { name = "llama-index-indices-managed-llama-cloud" },
     { name = "llama-index-llms-ollama" },
     { name = "llama-index-llms-openai-like" },
     { name = "llama-index-readers-file" },
@@ -2734,10 +2689,10 @@ dependencies = [
 dev = [
     { name = "mypy" },
     { name = "pytest" },
-    { name = "pytest-asyncio" },
 ]
 tools = [
     { name = "beautifulsoup4" },
+    { name = "easyocr" },
     { name = "playwright" },
     { name = "pypdf" },
     { name = "requests" },
@@ -2745,15 +2700,13 @@ tools = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aiostream", specifier = ">=0.5.2,<0.6.0" },
     { name = "asyncpg", specifier = ">=0.29.0,<1.0.0" },
     { name = "beautifulsoup4", marker = "extra == 'tools'", specifier = ">=4.12.0,<5.0.0" },
     { name = "docx2txt", specifier = ">=0.8,<0.9" },
-    { name = "easyocr", specifier = ">=1.7.0,<2.0.0" },
+    { name = "easyocr", marker = "extra == 'tools'", specifier = ">=1.7.0,<2.0.0" },
     { name = "fastapi", specifier = ">=0.115.0,<1.0.0" },
     { name = "llama-index-core", specifier = ">=0.14.0,<0.15.0" },
     { name = "llama-index-embeddings-ollama", specifier = ">=0.9.0,<1.0.0" },
-    { name = "llama-index-indices-managed-llama-cloud", specifier = ">=0.6.3,<1.0.0" },
     { name = "llama-index-llms-ollama", specifier = ">=0.9.0,<1.0.0" },
     { name = "llama-index-llms-openai-like", specifier = ">=0.8.0,<1.0.0" },
     { name = "llama-index-readers-file", specifier = ">=0.4.6,<1.0.0" },
@@ -2767,7 +2720,6 @@ requires-dist = [
     { name = "pyngrok", specifier = ">=7.0.0,<8.0.0" },
     { name = "pypdf", marker = "extra == 'tools'", specifier = ">=4.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.3.5,<9.0.0" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.25.3,<0.26.0" },
     { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },
     { name = "requests", marker = "extra == 'tools'", specifier = ">=2.31.0,<3.0.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30.0,<1.0.0" },

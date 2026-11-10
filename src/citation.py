@@ -24,15 +24,9 @@ ARTICLE_RE = re.compile(rf"المادة\s+(?:{_ORDINAL}{_TENS}|\d+)")
 
 
 
+# Written by the model when the context has no answer; src/workflow.py
+# turns it into a clarifying question (see src/clarify.py).
 NO_ANSWER_SENTINEL = "لا_توجد_إجابة_في_الوثائق"
-
-ADVISING_EMAIL = os.getenv("ADVISING_EMAIL", "cs.acadv@imamu.edu.sa")
-
-NO_ANSWER_MESSAGE = (
-    "لم أجد إجابة لسؤالك في الوثائق الرسمية المتاحة لي.\n\n"
-    "الرجاء التواصل مع الإرشاد الأكاديمي لخدمتك على البريد الإلكتروني:\n"
-    f"{ADVISING_EMAIL}"
-)
 
 
 
@@ -162,9 +156,6 @@ CITATION_TAG_RE = re.compile(r"[\[(]citation:\s*([^\])]*?)\s*[\])]")
 
 def format_citations(answer: str, source_nodes: List[NodeWithScore]) -> str:
    
-    if NO_ANSWER_SENTINEL in answer:
-        return NO_ANSWER_MESSAGE
-
     nodes_by_id = {n.node.node_id: n.node for n in source_nodes}
     order: List[str] = []
     numbers: dict[str, int] = {}
