@@ -355,3 +355,43 @@ def test_a_failed_rebuild_is_reported_and_only_one_job_runs(sign_in, docs, monke
             break
         time.sleep(0.05)
     assert job["status"] == "error" and "embedding model" in job["message"]
+
+
+def test_admin_previews_and_downloads_a_file(sign_in, docs):
+    admin = sign_in(ADMIN)
+    path = "calendar/التقويم_1448.txt"
+    r = admin.get("/api/admin/files/preview", params={"path": path})
+    assert r.json() == {"kind": "text", "text": "old calendar", "truncated": False}
+
+    inline = admin.get("/api/admin/files/content", params={"path": path})
+    assert inline.text == "old calendar"
+    assert inline.headers["content-type"].startswith("text/plain")
+    assert inline.headers["content-disposition"].startswith("inline")
+    saved = admin.get("/api/admin/files/content", params={"path": path, "download": "true"})
+    assert saved.headers["content-disposition"].startswith("attachment")
+    assert "filename*=utf-8''" in saved.headers["content-disposition"]
+
+    (docs / "plan.pdf").write_bytes(b"%PDF-1.4 test")
+    assert admin.get("/api/admin/files/preview", params={"path": "plan.pdf"}).json() == {"kind": "pdf"}
+    assert admin.get("/api/admin/files/content", params={"path": "plan.pdf"}).headers[
+        "content-type"] == "application/pdf"
+
+    # Only the admin, and only files inside the documents folder.
+    assert admin.get("/api/admin/files/content", params={"path": "../secret.txt"}).status_code == 400
+    assert admin.get("/api/admin/files/preview", params={"path": "missing.txt"}).status_code == 404
+    student = sign_in(STUDENT)
+    assert student.get("/api/admin/files/content", params={"path": path}).status_code == 403
+    assert student.get("/api/admin/files/preview", params={"path": path}).status_code == 403
+
+
+def test_preview_reads_the_text_of_a_word_file(sign_in, docs):
+    import zipfile
+
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?><w:document xmlns:w="http://schemas.openxmlformats.org/'
+        'wordprocessingml/2006/main"><w:body><w:p><w:r><w:t>شروط القبول</w:t></w:r></w:p></w:body></w:document>'
+    )
+    with zipfile.ZipFile(docs / "rules.docx", "w") as z:
+        z.writestr("word/document.xml", body)
+    r = sign_in(ADMIN).get("/api/admin/files/preview", params={"path": "rules.docx"})
+    assert r.json()["kind"] == "text" and "شروط القبول" in r.json()["text"]

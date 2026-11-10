@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 
 <body>
@@ -213,6 +213,49 @@
     </form>
   </dialog>
 
+  <!-- File viewer: read a document here, then download, replace or remove it -->
+  <dialog id="preview-dialog" class="dialog dialog--viewer" aria-labelledby="preview-title">
+    <div class="viewer">
+      <header class="viewer__head">
+        <div class="viewer__info">
+          <h2 class="viewer__title" id="preview-title" dir="auto"></h2>
+          <p class="viewer__meta">
+            <span class="badge" id="preview-badge"></span>
+            <span id="preview-folder" dir="auto"></span>
+            <span id="preview-size"></span>
+            <span id="preview-date"></span>
+          </p>
+        </div>
+        <div class="viewer__actions">
+          <a class="btn btn--outline" id="preview-download" href="#" download>
+            <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Download
+          </a>
+          <button type="button" class="btn btn--outline" id="preview-replace">Replace</button>
+          <button type="button" class="btn btn--ghost viewer__remove" id="preview-remove">Remove</button>
+          <button type="button" class="viewer__close" data-close aria-label="Close viewer">
+            <svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <div class="viewer__body" id="preview-body"></div>
+
+      <footer class="viewer__foot">
+        <button type="button" class="btn btn--ghost" id="preview-prev">Previous file</button>
+        <span class="viewer__pos" id="preview-pos"></span>
+        <button type="button" class="btn btn--ghost" id="preview-next">Next file</button>
+      </footer>
+    </div>
+  </dialog>
+
   <!-- One-time temporary password -->
   <dialog id="secret-dialog" class="dialog" aria-labelledby="secret-title">
     <div class="dialog__form">
@@ -234,6 +277,6 @@
 
   <!-- Scripts -->
   <script src="../shared/auth.js?v=2"></script>
-  <script src="script.js?v=2"></script>
+  <script src="script.js?v=3"></script>
 </body>
 </html>

@@ -22,6 +22,7 @@ from datetime import datetime
 from typing import Callable
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from . import store
@@ -32,6 +33,14 @@ logger = logging.getLogger("gp2-documents")
 router = APIRouter(prefix="/api/admin", dependencies=[Depends(require_admin)])
 
 ALLOWED_EXTENSIONS = (".pdf", ".docx", ".txt", ".md")
+MAX_PREVIEW_CHARS = 300_000
+# Text files are sent as plain text, so a browser never renders them as a page.
+_MEDIA_TYPES = {
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".txt": "text/plain; charset=utf-8",
+    ".md": "text/plain; charset=utf-8",
+}
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 PROJECT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 OCR_SCRIPT = os.path.join(PROJECT_DIR, "scripts", "ocr_pdf.py")
@@ -330,6 +339,53 @@ def ocr(req: PathRequest):
         )
     job.start("ocr", req.path, lambda: _ocr(pdf_path, text_path), _ocr_progress(text_path))
     return {"index": index_status()}
+
+
+@router.get("/files/content")
+def content(path: str, download: bool = False):
+    """The file itself: shown in the browser (PDF, text), or saved with `download`."""
+    file_path = _existing_file(path)
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext not in _MEDIA_TYPES:
+        raise HTTPException(status_code=415, detail="This file type can't be opened here.")
+    return FileResponse(
+        file_path,
+        media_type=_MEDIA_TYPES[ext],
+        filename=os.path.basename(file_path),
+        content_disposition_type="attachment" if download else "inline",
+        headers={"X-Content-Type-Options": "nosniff", "Cache-Control": "no-store"},
+    )
+
+
+@router.get("/files/preview")
+def preview(path: str):
+    """
+    What the admin page shows when a file is opened. A PDF is shown by the
+    browser itself (from /files/content); DOCX, TXT and MD come back as text,
+    since a browser can't display a Word file.
+    """
+    file_path = _existing_file(path)
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext == ".pdf":
+        return {"kind": "pdf"}
+    if ext == ".docx":
+        import docx2txt
+
+        try:
+            text = docx2txt.process(file_path) or ""
+        except Exception:
+            raise HTTPException(status_code=422, detail="This Word file could not be read.")
+    elif ext in (".txt", ".md"):
+        with open(file_path, encoding="utf-8", errors="replace") as f:
+            text = f.read(MAX_PREVIEW_CHARS + 1)
+    else:
+        raise HTTPException(status_code=415, detail="This file type can't be previewed.")
+    text = text.strip()
+    return {
+        "kind": "text",
+        "text": text[:MAX_PREVIEW_CHARS],
+        "truncated": len(text) > MAX_PREVIEW_CHARS,
+    }
 
 
 @router.get("/index")

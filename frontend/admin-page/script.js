@@ -79,7 +79,8 @@ function formatElapsed(startedAt) {
 
 const folderLabel = (folder) => (folder ? folder.split('/').join(' / ') : 'Top level');
 
-const viewUrl = (path) => '/data/' + path.split('/').map(encodeURIComponent).join('/');
+const contentUrl = (path, download = false) =>
+  `/api/admin/files/content?path=${encodeURIComponent(path)}${download ? '&download=true' : ''}`;
 
 function fileError(file) {
   if (!ALLOWED_EXT.includes(extOf(file.name))) return 'Only PDF, DOCX, TXT and MD files are allowed.';
@@ -460,7 +461,7 @@ function fileRow(f, busy) {
         <span class="row__cell">${esc(formatDate(f.modified))}</span>
       </div>
       <div class="row__actions">
-        <a class="act" href="${esc(viewUrl(f.path))}" target="_blank" rel="noopener" aria-label="View ${esc(f.name)}">View</a>
+        <button type="button" class="act" data-act="view" aria-label="View ${esc(f.name)}">View</button>
         <button type="button" class="act" data-act="replace" aria-label="Replace ${esc(f.name)}">Replace</button>
         ${isPdf ? `<button type="button" class="act" data-act="ocr" aria-label="Run OCR on ${esc(f.name)}"${busy ? ' disabled' : ''}>OCR</button>` : ''}
         <button type="button" class="act act--danger" data-act="remove" aria-label="Remove ${esc(f.name)}">Remove</button>
@@ -485,9 +486,150 @@ function onFileListClick(e) {
   const path = btn.closest('.row').dataset.path;
   const file = state.files.find((f) => f.path === path);
   if (!file) return;
+  if (btn.dataset.act === 'view') openPreview(file);
   if (btn.dataset.act === 'replace') openReplace(file, btn);
   if (btn.dataset.act === 'remove') confirmRemove(file);
   if (btn.dataset.act === 'ocr') confirmOcr(file);
+}
+
+/* ==========================================================
+   Documents: viewer
+   Shows the file in the page (PDF in the browser's own viewer, Word and
+   text files as text). Previous / Next step through the files the list
+   shows now, so a folder can be reviewed one file after another.
+   ========================================================== */
+let previewFile = null;
+let previewSeq = 0;
+
+function viewerState(title, detail, withDownload) {
+  const box = document.createElement('div');
+  box.className = 'viewer__state';
+  const strong = document.createElement('strong');
+  strong.textContent = title;
+  box.append(strong);
+  if (detail) {
+    const p = document.createElement('p');
+    p.textContent = detail;
+    box.append(p);
+  }
+  if (withDownload) {
+    const a = document.createElement('a');
+    a.className = 'btn btn--outline';
+    a.href = contentUrl(previewFile.path, true);
+    a.textContent = 'Download the file instead';
+    box.append(a);
+  }
+  return box;
+}
+
+function viewerNotice(text) {
+  const p = document.createElement('p');
+  p.className = 'viewer__notice';
+  p.textContent = text;
+  return p;
+}
+
+function updatePreviewNav() {
+  const list = visibleFiles();
+  const i = list.findIndex((f) => f.path === previewFile.path);
+  $('#preview-prev').disabled = i <= 0;
+  $('#preview-next').disabled = i < 0 || i >= list.length - 1;
+  $('#preview-pos').textContent = i >= 0 ? `${i + 1} of ${list.length}` : '';
+}
+
+async function showPreview(file) {
+  previewFile = file;
+  const seq = ++previewSeq;
+  const ext = extOf(file.name);
+
+  $('#preview-title').textContent = file.name;
+  const badge = $('#preview-badge');
+  badge.className = `badge badge--${ext}`;
+  badge.textContent = ext.toUpperCase();
+  $('#preview-folder').textContent = folderLabel(file.folder);
+  $('#preview-size').textContent = formatSize(file.size);
+  $('#preview-date').textContent = `Modified ${formatDate(file.modified)}`;
+  const download = $('#preview-download');
+  download.href = contentUrl(file.path, true);
+  download.setAttribute('download', file.name);
+  download.setAttribute('aria-label', `Download ${file.name}`);
+  updatePreviewNav();
+
+  const body = $('#preview-body');
+  body.classList.remove('has-notice');
+  if (ext === 'pdf') {
+    const frame = document.createElement('iframe');
+    frame.className = 'viewer__frame';
+    frame.title = file.name;
+    frame.src = contentUrl(file.path);
+    body.replaceChildren(frame);
+    return;
+  }
+
+  body.replaceChildren(viewerState('Opening the file…'));
+  let data;
+  try {
+    data = await Auth.api(`/api/admin/files/preview?path=${encodeURIComponent(file.path)}`);
+  } catch (err) {
+    if (seq === previewSeq) body.replaceChildren(viewerState("This file can't be shown here", err.message, true));
+    return;
+  }
+  if (seq !== previewSeq) return;   // another file was opened meanwhile
+
+  if (!data.text) {
+    body.replaceChildren(viewerState('This file has no text', 'It may hold only images. Download it to see it.', true));
+    return;
+  }
+  const nodes = [];
+  if (ext === 'docx') nodes.push(viewerNotice('Showing the text of this Word file. Download it to see its layout and tables.'));
+  if (data.truncated) nodes.push(viewerNotice('This file is long, so only its beginning is shown. Download it to read all of it.'));
+  const pre = document.createElement('pre');
+  pre.className = 'viewer__text';
+  pre.dir = 'auto';
+  pre.tabIndex = 0;
+  pre.textContent = data.text;
+  nodes.push(pre);
+  body.classList.toggle('has-notice', nodes.length > 1);
+  body.replaceChildren(...nodes);
+}
+
+function openPreview(file) {
+  const dialog = $('#preview-dialog');
+  if (!dialog.open) openDialog(dialog);
+  showPreview(file);
+}
+
+function stepPreview(delta) {
+  const list = visibleFiles();
+  const next = list[list.findIndex((f) => f.path === previewFile.path) + delta];
+  if (next) showPreview(next);
+}
+
+function initPreview() {
+  const dialog = $('#preview-dialog');
+  $('#preview-prev').addEventListener('click', () => stepPreview(-1));
+  $('#preview-next').addEventListener('click', () => stepPreview(1));
+  $('#preview-replace').addEventListener('click', () => {
+    const file = previewFile;
+    dialog.close();
+    openReplace(file);
+  });
+  $('#preview-remove').addEventListener('click', () => {
+    const file = previewFile;
+    dialog.close();
+    confirmRemove(file);
+  });
+  // Alt + Down / Up move between files; plain arrows keep scrolling the text
+  dialog.addEventListener('keydown', (e) => {
+    if (!e.altKey) return;
+    if (e.key === 'ArrowDown') { e.preventDefault(); stepPreview(1); }
+    if (e.key === 'ArrowUp') { e.preventDefault(); stepPreview(-1); }
+  });
+  // Unload the file when the viewer closes, so a big PDF stops using memory
+  dialog.addEventListener('close', () => {
+    previewSeq += 1;
+    $('#preview-body').replaceChildren();
+  });
 }
 
 /* ==========================================================
@@ -813,6 +955,7 @@ function init() {
   $('#file-search').addEventListener('input', renderFiles);
   $('#folder-filter').addEventListener('change', renderFiles);
   $('#file-list').addEventListener('click', onFileListClick);
+  initPreview();
   $('#add-doc-btn').addEventListener('click', openAdd);
   wireDropZone({ drop: '#replace-drop', input: '#replace-file', onPick: onReplacePick });
   wireDropZone({ drop: '#add-drop', input: '#add-file', onPick: onAddPick });
