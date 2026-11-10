@@ -13,6 +13,7 @@ from urllib.parse import urlsplit, urlunsplit
 from llama_index.core import VectorStoreIndex
 from llama_index.vector_stores.postgres import PGVectorStore
 from sqlalchemy import create_engine, text
+from sqlalchemy.exc import ProgrammingError
 
 logger = logging.getLogger("uvicorn")
 
@@ -73,8 +74,10 @@ def count_indexed_chunks() -> int:
                 text(f'SELECT count(*) FROM "{PGVECTOR_REAL_TABLE}"')
             )
             return int(result.scalar() or 0)
-    except Exception:
-        
+    except ProgrammingError:
+        # The table does not exist yet. A wrong password or an unreachable
+        # database is a different error and is raised as it is, so it is not
+        # reported as "index not found".
         logger.info(
             f"Vector table '{PGVECTOR_REAL_TABLE}' not readable yet -- "
             "treating as empty."

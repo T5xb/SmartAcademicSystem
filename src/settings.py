@@ -110,7 +110,14 @@ def _build_embed_model():
         )
 
     if provider == "openai":
-        from llama_index.embeddings.openai import OpenAIEmbedding
+        try:
+            from llama_index.embeddings.openai import OpenAIEmbedding
+        except ImportError as e:
+            raise RuntimeError(
+                "EMBEDDING_PROVIDER=openai needs the llama-index-embeddings-openai "
+                "package, which is not installed. Install it, or set "
+                "EMBEDDING_PROVIDER=ollama."
+            ) from e
 
         return OpenAIEmbedding(
             model=os.getenv("EMBEDDING_MODEL") or "text-embedding-3-small",

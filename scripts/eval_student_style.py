@@ -52,7 +52,9 @@ def behaviour(answer: str) -> str:
         return "file"
     if "المصدر: التقويم الدراسي" in answer:
         return "date"
-    if "المصادر:" in answer:
+    # "المصادر:" closes a RAG answer; "المصدر:" closes an exact lookup
+    # (an email from the contact directory, a prerequisite from the plan).
+    if "المصادر:" in answer or "المصدر:" in answer:
         return "answer"
     return "small_talk" if len(answer) < 300 else "answer"
 

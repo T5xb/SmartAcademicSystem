@@ -292,7 +292,7 @@ function renderCourseList() {
       ? `Prerequisites: ${c.prerequisites.map((p) => `${p.name} (${p.code})`).join(', ')}`
       : 'No prerequisites';
     return `
-      <label class="course-item${selected ? ' is-selected' : ''}" style="--c: ${c.color}${done ? '; opacity: .5' : ''}" title="${escapeHtml(prereqTitle)}">
+      <label class="course-item${selected ? ' is-selected' : ''}" style="--c: ${escapeHtml(c.color)}${done ? '; opacity: .5' : ''}" title="${escapeHtml(prereqTitle)}">
         <input type="checkbox" class="course-item__check" data-code="${escapeHtml(c.code)}" ${selected ? 'checked' : ''} ${done ? 'disabled' : ''}>
         <span class="course-item__text">
           <span class="course-item__name" dir="auto">${escapeHtml(c.name)}</span>
@@ -326,16 +326,16 @@ function renderLocks() {
       const disabled = closed && !state.includeClosed;
       const isLocked = locked === s.id;
       return `
-        <button type="button" class="chip${isLocked ? ' is-locked' : ''}" data-lock="${c.code}" data-section="${s.id}"
+        <button type="button" class="chip${isLocked ? ' is-locked' : ''}" data-lock="${escapeHtml(c.code)}" data-section="${escapeHtml(s.id)}"
           ${disabled ? 'disabled title="Section is full — enable “Include Closed Sections”"' : ''}>
-          ${isLocked ? ICONS.lock : ''}${s.id}${closed ? ' <small>Full</small>' : ''}
+          ${isLocked ? ICONS.lock : ''}${escapeHtml(s.id)}${closed ? ' <small>Full</small>' : ''}
         </button>`;
     }).join('');
 
     return `
-      <div class="lock-row" style="--c: ${c.color}">
+      <div class="lock-row" style="--c: ${escapeHtml(c.color)}">
         <div class="lock-row__head">
-          <span>${escapeHtml(c.short)} (${c.code})</span>
+          <span>${escapeHtml(c.short)} (${escapeHtml(c.code)})</span>
           <span class="lock-row__status${locked ? ' is-locked' : ''}">${locked ? `Locked: ${locked}` : 'Any section'}</span>
         </div>
         <div class="lock-row__chips">${chips}</div>
@@ -398,7 +398,7 @@ function renderConflictBanner(schedule) {
   const label = (entry) => `${escapeHtml(entry.course.short)} (${entry.course.code})`;
   $('#conflict-text').innerHTML = `
     <strong>Two Final Exams on the Same Day:</strong>
-    <span class="conflict-banner__date">${formatExamDate(first.date)}</span>
+    <span class="conflict-banner__date">${escapeHtml(formatExamDate(first.date))}</span>
     <span class="conflict-banner__muted">between</span>
     <span class="conflict-chip">${label(first.a)}</span>
     <span class="conflict-banner__muted">and</span>
@@ -446,15 +446,15 @@ function renderTimetable(schedule) {
           const isLab = m.type !== 'Lecture';
           const title = isLab ? `${course.short} ${m.type}` : `${course.short} (${course.code})`;
           return `
-            <div class="tt-block${isLab ? ' tt-block--lab' : ''}" style="--c: ${course.color}; top: ${top}px; height: ${blockHeight}px"
-              title="${escapeHtml(course.name)} — ${section.id} • ${formatTime(m.start)}-${formatTime(m.end)}${m.room ? ` • Rm ${m.room}` : ''}">
+            <div class="tt-block${isLab ? ' tt-block--lab' : ''}" style="--c: ${escapeHtml(course.color)}; top: ${top}px; height: ${blockHeight}px"
+              title="${escapeHtml(course.name)} — ${escapeHtml(section.id)} • ${formatTime(m.start)}-${formatTime(m.end)}${m.room ? ` • Rm ${escapeHtml(m.room)}` : ''}">
               <div class="tt-block__top">
                 <span class="tt-block__title" dir="auto">${escapeHtml(title)}</span>
-                <span class="tt-block__badge">${section.id}</span>
+                <span class="tt-block__badge">${escapeHtml(section.id)}</span>
               </div>
               <div class="tt-block__bottom">
                 <span>${ICONS.clock}${formatTime(m.start)} - ${formatTime(m.end)}</span>
-                ${m.room ? `<span class="tt-block__room">Rm ${m.room}</span>` : ''}
+                ${m.room ? `<span class="tt-block__room">Rm ${escapeHtml(m.room)}</span>` : ''}
               </div>
             </div>`;
         })
@@ -481,9 +481,9 @@ function renderLegend(schedule) {
 
   const credits = schedule.entries.reduce((sum, e) => sum + e.course.credits, 0);
   $('#legend').innerHTML = schedule.entries.map(({ course }) => `
-    <span class="legend-item" style="--c: ${course.color}">
+    <span class="legend-item" style="--c: ${escapeHtml(course.color)}">
       <span class="legend-item__swatch"></span>
-      <strong>${course.code}</strong> (${escapeHtml(course.short)})
+      <strong>${escapeHtml(course.code)}</strong> (${escapeHtml(course.short)})
     </span>`).join('') +
     `<span>•</span><span class="summary__total">Total Credit Hours: <strong>${credits} Hrs</strong></span>`;
 }
@@ -511,20 +511,20 @@ function renderDetails(schedule) {
       <div class="info-row">
         <span class="info-row__main">${ICONS.clock}
           <span>${g.days.map((d) => DAY_NAMES[d]).join(', ')}: ${formatTime(g.start)} - ${formatTime(g.end)}</span>
-          ${g.type !== 'Lecture' ? `<span class="type-tag">${g.type}</span>` : ''}
+          ${g.type !== 'Lecture' ? `<span class="type-tag">${escapeHtml(g.type)}</span>` : ''}
         </span>
-        <span class="info-row__aside">${g.room}</span>
+        <span class="info-row__aside">${escapeHtml(g.room)}</span>
       </div>`).join('');
 
     return `
-      <article class="section-card" style="--c: ${course.color}">
+      <article class="section-card" style="--c: ${escapeHtml(course.color)}">
         <div class="section-card__main">
           <div class="section-card__top">
             <div>
               <h4 class="section-card__name" dir="auto">${escapeHtml(course.name)}</h4>
-              <div class="section-card__code">${course.code} • ${course.credits} Credit Hrs</div>
+              <div class="section-card__code">${escapeHtml(course.code)} • ${course.credits} Credit Hrs</div>
             </div>
-            <span class="section-card__badge">Section ${section.id}</span>
+            <span class="section-card__badge">Section ${escapeHtml(section.id)}</span>
           </div>
 
           <div class="section-card__stats">
@@ -534,15 +534,15 @@ function renderDetails(schedule) {
             </div>
             <div class="crn">
               <span class="section-card__label">CRN:</span>
-              <span class="crn__value">${section.crn}</span>
-              <button type="button" class="crn__copy" data-copy="${section.crn}" title="Copy CRN" aria-label="Copy CRN ${section.crn}">${ICONS.copy}</button>
+              <span class="crn__value">${escapeHtml(section.crn)}</span>
+              <button type="button" class="crn__copy" data-copy="${escapeHtml(section.crn)}" title="Copy CRN" aria-label="Copy CRN ${escapeHtml(section.crn)}">${ICONS.copy}</button>
             </div>
           </div>
 
           <div class="info-list">
             ${times}
             ${rooms ? `<div class="info-row">
-              <span class="info-row__main">${ICONS.room}<span>Room: <strong>${rooms}</strong></span></span>
+              <span class="info-row__main">${ICONS.room}<span>Room: <strong>${escapeHtml(rooms)}</strong></span></span>
             </div>` : ''}
             <div class="info-row">
               <span class="info-row__main">${ICONS.user}

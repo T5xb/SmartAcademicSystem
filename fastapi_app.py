@@ -2,11 +2,13 @@
 import json
 import logging
 import os
+import time
+from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from typing import Literal
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -61,7 +63,8 @@ app.add_middleware(
 # Study-schedule generator (CSP) used by frontend/schedule-page.
 app.include_router(schedule_router)
 
-# Serve any files the user drops in DATA_DIR (optional, handy for debugging)
+# The source documents. The chat links to the study-plan files here, so the
+# mount is needed for those links to open.
 app.mount("/data", StaticFiles(directory=DATA_DIR), name="data")
 
 # The GP2 web pages (sign-in, welcome, chatbot, schedule) are served from the
@@ -106,8 +109,42 @@ async def starters():
     return {"questions": starter_questions}
 
 
+# Chat questions allowed per minute from one address (0 = no limit). Each
+# question can cost a call to the hosted LLM, and the public link is open.
+CHAT_RATE_LIMIT = int(os.getenv("CHAT_RATE_LIMIT", "60"))
+_chat_hits: dict[str, deque] = defaultdict(deque)
+
+
+def _client_address(request: Request) -> str:
+    # Through the ngrok tunnel every visitor arrives from 127.0.0.1; the
+    # tunnel adds the visitor's own address at the end of X-Forwarded-For.
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        return forwarded.split(",")[-1].strip()
+    return request.client.host if request.client else "unknown"
+
+
+def _check_chat_rate(request: Request) -> None:
+    if CHAT_RATE_LIMIT <= 0:
+        return
+    now = time.monotonic()
+    if len(_chat_hits) > 5000:  # forget addresses that went quiet
+        for address in [a for a, h in _chat_hits.items() if not h or now - h[-1] > 60]:
+            del _chat_hits[address]
+    hits = _chat_hits[_client_address(request)]
+    while hits and now - hits[0] > 60:
+        hits.popleft()
+    if len(hits) >= CHAT_RATE_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many questions in a short time. Please wait a minute and try again.",
+        )
+    hits.append(now)
+
+
 @app.post("/api/chat", response_model=ChatResponse)
-async def chat(req: ChatRequest):
+async def chat(req: ChatRequest, request: Request):
+    _check_chat_rate(request)
     message = req.message.strip()
     if not message:
         raise HTTPException(status_code=422, detail="Message is empty.")

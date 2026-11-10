@@ -130,6 +130,12 @@ def load_calendar(path: str = CALENDAR_TXT) -> list[CalendarEvent]:
     return events
 
 
+@lru_cache(maxsize=1)
+def _calendar() -> tuple[CalendarEvent, ...]:
+    """The official calendar, read once instead of on every date question."""
+    return tuple(load_calendar())
+
+
 # Student wording -> calendar entry titles it refers to (substring match).
 TOPICS: list[tuple[str, list[str]]] = [
     # "الحذف والإضافة" together is the add/drop (registration) window, not withdrawal.
@@ -163,10 +169,16 @@ def _days_word(n: int) -> str:
     return f"{n} يوم"
 
 
+# Which semester is asked about: "الترم الثاني", "ثاني ترم", "الثاني". Not a
+# bare "ثاني"/"اول" inside another word or phrase ("جامعة ثانية", "جدول").
+_SECOND_TERM_RE = re.compile(r"(فصل|ترم)\w*\s+(ال)?ثاني\b|\bثاني\s+(فصل|ترم)|\bالثاني\b")
+_FIRST_TERM_RE = re.compile(r"(فصل|ترم)\w*\s+(ال)?[أا]ول\b|\b[أا]ول\s+(فصل|ترم)|\bال[أا]ول\b")
+
+
 def _pick(candidates: list[CalendarEvent], message: str, today: date) -> CalendarEvent | None:
-    if re.search(r"الثاني|ثاني", message):
+    if _SECOND_TERM_RE.search(message):
         candidates = [e for e in candidates if e.semester.endswith("الثاني")] or candidates
-    elif re.search(r"الأول|الاول|اول", message):
+    elif _FIRST_TERM_RE.search(message):
         candidates = [e for e in candidates if e.semester.endswith("الأول")] or candidates
     if not re.search(r"عليا|ماجستير|دكتوراه", message):
         candidates = [e for e in candidates if "الدراسات العليا" not in e.title
@@ -181,7 +193,11 @@ def date_reply(message: str, today: date | None = None,
     if not _DATE_Q_RE.search(message):
         return None
     today = today or date.today()
-    events = events if events is not None else load_calendar()
+    if events is None:
+        try:
+            events = _calendar()
+        except OSError:
+            return None  # no calendar file: the question goes to the normal RAG path
 
     for pattern, titles in TOPICS:
         if not re.search(pattern, message):

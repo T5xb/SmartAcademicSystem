@@ -46,6 +46,24 @@ def _load_documents(data_dir: str) -> list:
     return documents
 
 
+def _check_embedding(expected_dim: int) -> None:
+    """Embed one short text, so a model that is down or the wrong width fails here."""
+    from llama_index.core import Settings
+
+    try:
+        vector = Settings.embed_model.get_text_embedding("اختبار")
+    except Exception as e:
+        raise RuntimeError(
+            "The embedding model did not answer (is Ollama running?); "
+            "the index was left unchanged."
+        ) from e
+    if len(vector) != expected_dim:
+        raise RuntimeError(
+            f"The embedding model returns {len(vector)} dimensions but EMBED_DIM is "
+            f"{expected_dim}; the index was left unchanged."
+        )
+
+
 def generate_index():
     # Before importing src.index: it reads PGVECTOR_TABLE at import time, and
     # without the .env value it builds a table the server never reads.
@@ -55,6 +73,7 @@ def generate_index():
 
     from src.index import (
         DATA_DIR,
+        EMBED_DIM,
         PGVECTOR_REAL_TABLE,
         count_indexed_chunks,
         get_vector_store,
@@ -68,7 +87,12 @@ def generate_index():
     documents = _load_documents(DATA_DIR)
     logger.info(f"Loaded {len(documents)} document(s)")
 
-   
+    # Checked before the old table is dropped: if there is nothing to index,
+    # or the embedding model is down, the index the server uses stays as it is.
+    if not documents:
+        raise RuntimeError(f"No documents found in {DATA_DIR}; the index was left unchanged.")
+    _check_embedding(EMBED_DIM)
+
     reset_vector_table()
     storage_context = StorageContext.from_defaults(
         vector_store=get_vector_store(perform_setup=True)
