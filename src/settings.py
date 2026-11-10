@@ -30,8 +30,7 @@ def _build_llm() -> LLM:
 
     "hosted" (default when LLM_API_KEY is set): any OpenAI-compatible
         endpoint, via OpenAILike so the provider is swappable by env var.
-    "ollama": fully-local fallback, and the baseline scripts/bench.py
-        compares against.
+    "ollama": fully-local fallback, and the baseline.
     """
     provider = (os.getenv("LLM_PROVIDER") or "").strip().lower()
     if not provider:

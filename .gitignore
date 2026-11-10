@@ -28,19 +28,16 @@ chroma_db
 # or reproduce the project, and too large to be worth versioning.
 raw_sources/
 
-# Browser profile used to log in to the Nizam regulations platform (holds session cookies).
-# Never commit it.
+# Browser profile once used to log in to the Nizam regulations platform (holds session
+# cookies). Never commit it.
 .crawl_browser_profile/
 
-# Raw crawl output of the IMSIU website (scripts/crawl_university.py): large and
-# reproducible, so only its index and summaries are versioned. Curated files live in docs/imamu_web/.
-raw_university_docs/*
-!raw_university_docs/INDEX.csv
-!raw_university_docs/SUMMARY.md
-!raw_university_docs/FILES_LIST.md
+# Raw crawl output of the IMSIU website (removed; the curated files live in
+# docs/imamu_web/). Kept ignored so an old local copy is never committed.
+raw_university_docs/
 
-# Over GitHub's 50 MB recommendation (62 MB); download it again from the URL in
-# raw_university_docs/FILES_LIST.md when rebuilding the index.
+# Over GitHub's 50 MB recommendation (62 MB); download it again when rebuilding the index:
+# https://units.imamu.edu.sa/colleges/ComputerAndInformation/academic_department/Documents/الدليل%20التعريفي%20لبرنامج%20بكالوريوس%20نظم%20المعلومات%20.pdf
 docs/imamu_web/ccis/study_plans/الدليل_التعريفي_بكالوريوس_نظم_المعلومات.pdf
 
 # Raw Telegram group export (students' messages). Private: never commit or serve it.

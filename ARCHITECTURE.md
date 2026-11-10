@@ -29,7 +29,7 @@ Arabic question
       ▼  bge-m3 via local Ollama
 question → 1024-dim vector
       │
-      ▼  cosine distance, exact scan over 118 chunks
+      ▼  cosine distance, exact scan over all chunks
 Supabase Postgres + pgvector → top 8 chunks
       │
       ▼  Arabic prompt: chunks + question + strict rules
@@ -79,10 +79,10 @@ present. Overlap prevents an article being cut mid-sentence.
 
 Originally `nomic-embed-text`, which is English-trained. Arabic questions
 matched the right Arabic chunk only weakly — the correct article often
-ranked ~10th, which is why `TOP_K` had been pushed to 12 just to catch
-it. `bge-m3` is explicitly multilingual: the correct article now ranks
-**#1** for all three starter questions, so `TOP_K` came down to 8 (less
-noise, faster, more accurate).
+ranked low, which is why `TOP_K` had been pushed to 12 just to catch
+it. `bge-m3` is explicitly multilingual and ranks the correct article
+near the top in spot checks, so `TOP_K` came down to 8 (less noise in
+the context).
 
 Kept local rather than hosted: no extra key or spend, reproducible
 offline, and query embedding is fast enough on CPU. **Cost of this
@@ -94,18 +94,19 @@ pgvector fixes column width at creation).
 
 ### 4.2 LLM: Qwen3.8 27B, hosted, provider-agnostic
 
-Measured on real questions from `docs/` rather than chosen by reputation:
+Tried on real questions from `docs/` rather than chosen by reputation
+(spot checks, not a scored benchmark):
 
-| Model | Latency | Outcome |
-| --- | --- | --- |
-| `qwen/qwen3.8-27b` | 2.7 s | full answer, **a citation per fact** — chosen |
-| `openai/gpt-oss-120b` | 3.2 s | correct, but lumps all citations at the end |
-| `allam-2-7b` (SDAIA) | 1.6 s | repeated itself, no usable citations |
-| `llama3.2:3b` (local baseline) | 37–52 s | mixes languages mid-sentence, drops citations |
+| Model | Outcome |
+| --- | --- |
+| `qwen/qwen3.8-27b` | full answer, **a citation per fact** — chosen |
+| `openai/gpt-oss-120b` | correct, but lumps all citations at the end |
+| `allam-2-7b` (SDAIA) | repeated itself, no usable citations |
+| `llama3.2:3b` (local baseline) | mixes languages mid-sentence, drops citations |
 
-ALLaM was tested specifically because a Saudi Arabic-first model suits an
+ALLaM was tried specifically because a Saudi Arabic-first model suits an
 IMSIU project — it failed on merit (7B, 4096-token context), so the
-decision rests on measurement, not preference.
+decision rests on what it produced, not preference.
 
 Built on `OpenAILike`, **not** a vendor-specific client, so moving to
 OpenRouter / Together / self-hosted vLLM is three env vars and no code
@@ -113,12 +114,12 @@ change. Qwen stays the model family; only the provider is swappable.
 
 Why hosted at all — GP1 §3.3.2 requires *"respond within an acceptable
 time"* and *"support multiple users simultaneously"*. A CPU-only local
-model takes ~40 s and serves one user. "Fully local" appears nowhere in
+model is slow and serves one user. "Fully local" appears nowhere in
 GP1; the hosted path violates no stated requirement, and only public
 regulation text is ever sent (no student data).
 
-The local Ollama path is kept as the offline fallback and as the measured
-baseline for the report — `scripts/bench.py --provider ollama`.
+The local Ollama path is kept as the offline fallback and as the
+baseline for the report.
 
 ### 4.3 Vector store: Supabase Postgres + pgvector
 
@@ -139,7 +140,7 @@ equivalently to cosine because bge-m3 vectors are unit-normalised. This
 is now literally cosine similarity.
 
 **No ANN index on purpose.** No `hnsw_kwargs`, so pgvector does an exact
-scan. At 118 chunks that is faster than an index probe *and* more
+scan. At this corpus size that is cheap, and it is more
 accurate — HNSW is approximate and can miss the true nearest chunk, which
 for a cited answer is a wrong-source risk. Revisit at thousands of chunks
 (parameters are in [src/index.py](src/index.py)).
@@ -226,21 +227,16 @@ that fallback would have split our retrieved chunks across several needless
 
 ## 5. Measured results
 
-- **Retrieval:** correct article ranks #1 on all three starter questions.
-- **Latency:** ~1–3 s hosted vs 37–52 s local.
-- **Concurrency:** 8 simultaneous async retrievals, 4.54 s wall, zero
-  failures (sequential would be ~35 s).
-- **Index:** 38 documents → 118 chunks, 1024-dim, metadata intact.
-
-Reproduce with `scripts/bench.py` (see README).
+Not measured yet. Latency, retrieval accuracy and concurrency have no
+recorded figures for the current index; see the first known gap below.
 
 ## 6. Known gaps
 
 - Sign-in: not built (the pages accept any email/password for the demo).
 - No conversational memory — each question is answered independently.
 - **No quantitative accuracy metric.** GP1 §2.5 promises
-  "Performance Evaluation & Metrics"; we have latency and manual spot
-  checks but no scored benchmark set. Building ~20 questions with
+  "Performance Evaluation & Metrics"; we have only manual spot
+  checks: no latency figures and no scored benchmark set. Building ~20 questions with
   reference answers is the highest-value next step before the defense.
 - Public access currently depends on an ngrok tunnel from a laptop: the
   URL changes every restart and dies when the machine sleeps. Real student

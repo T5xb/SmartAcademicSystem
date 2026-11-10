@@ -17,10 +17,6 @@ class DirectQueryWorkflow:
     def __init__(self, query_engine_tool: QueryEngineTool):
         self._query_engine_tool = query_engine_tool
 
-    async def run(self, user_msg: str, history: list | None = None) -> str:
-        reply, _ = await self.respond(user_msg, history)
-        return reply
-
     async def respond(
         self, user_msg: str, history: list | None = None
     ) -> tuple[str, dict | None]:

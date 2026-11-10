@@ -12,7 +12,7 @@ resolved from the actual retrieved text.
 | `src/scheduling/` | CSP study-schedule generator + transcript import (same server, `/api/schedule/*`) |
 | `frontend/` | GP2 web pages: `sign-in-page` → `welcome-page` → `chatbot-page` / `schedule-page` |
 | `docs/` | official regulation documents that answers are drawn from |
-| `scripts/` | one-off data tools (crawl, OCR; their packages: `uv sync --extra tools`) and evaluation (`bench.py`, `eval_student_style.py`) |
+| `scripts/` | OCR for scanned PDFs (`ocr_pdf.py`) |
 | `tests/` | pytest suite (`uv run pytest`) |
 | `Start-API.bat`, `Start-Public.bat` | double-click launchers (local / with a public ngrok link) |
 
@@ -126,10 +126,10 @@ default so that still works — set
 
 Set `LLM_PROVIDER` in `src/.env`:
 
-| value | what runs | speed | Arabic quality |
-| --- | --- | --- | --- |
-| `hosted` | `LLM_MODEL` via `LLM_API_BASE` (default `qwen/qwen3.8-27b` on Groq) | ~3 s | good, cites per fact |
-| `ollama` | `llama3.2:3b` on this CPU | ~37 s | weak (mixes languages, drops citations) |
+| value | what runs | Arabic quality |
+| --- | --- | --- |
+| `hosted` | `LLM_MODEL` via `LLM_API_BASE` (default `qwen/qwen3.8-27b` on Groq) | good, cites per fact |
+| `ollama` | `llama3.2:3b` on this CPU (much slower) | weak (mixes languages, drops citations) |
 
 Only answer generation differs between the two; retrieval and embeddings
 are the same either way. Only public regulation text is ever sent to the
@@ -143,13 +143,6 @@ the model family — its Arabic quality is what GP2 validated.
 Leaving `LLM_PROVIDER` blank auto-selects `hosted` when `LLM_API_KEY` is
 present and falls back to `ollama` otherwise, so the demo still answers if
 the key expires or the network drops.
-
-Compare the two on identical questions:
-
-```bash
-.venv/Scripts/python.exe scripts/bench.py --provider ollama
-.venv/Scripts/python.exe scripts/bench.py --provider hosted
-```
 
 ## Letting your team reach it remotely
 
