@@ -58,7 +58,7 @@ GLOSSARY: list[tuple[str, str]] = [
     (r"اعاد[هة]\s*ماد|أعيد|اعيد", "إعادة دراسة المقرر"),
     (r"متطلب\s*(ل|لـ)?\s*(ايش|إيش|وش|ماذا)|يفتح\s*(لي)?\s*(ايش|وش)|يقفل", "المتطلب السابق للمقررات التالية"),
     # Course nicknames -> official Arabic name, code and English name, so the
-    # question lands on the plan / syllabus page of that course.
+    # question lands on the study-plan page of that course.
     (r"برمج[هة]\s*(1|١|وحد[هة])\b|مقدم[هة]\s*برمج", "مقدمة في برمجة الحاسب عال 1140 Introduction to Computer Programming"),
     (r"برمج[هة]\s*(2|٢)\b|شيئي[هة]|اوبجكت|object", "البرمجة الشيئية عال 1241 Object-Oriented Programming"),
     (r"تراكيب\s*(ال)?بيانات|داتا\s*ستركتشر|data\s*structure", "تراكيب البيانات عال 1242 Data Structures"),
