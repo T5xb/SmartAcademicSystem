@@ -105,8 +105,24 @@ const Auth = (() => {
     document.querySelectorAll('.user__avatar, .user .avatar').forEach((el) => { el.textContent = initials(me.name); });
   }
 
+  /* Current term from today's date (Fall: Aug-Dec, Spring: Jan-May, Summer: Jun-Jul),
+     so the header pill never shows a past semester. */
+  function termLabel(date = new Date()) {
+    const m = date.getMonth();
+    const term = m >= 7 ? 'Fall' : m <= 4 ? 'Spring' : 'Summer';
+    return `${term} ${date.getFullYear()}`;
+  }
+
+  function fillTerm() {
+    document.querySelectorAll('[data-term]').forEach((el) => {
+      el.textContent = `${el.dataset.term}${termLabel()} Online`;
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fillTerm);
+  else fillTerm();
+
   return {
-    API_URL, SERVER_DOWN, api, whoAmI, requireRole, signOut, fillUser, home, initials, firstName,
+    API_URL, SERVER_DOWN, api, whoAmI, requireRole, signOut, fillUser, home, initials, firstName, termLabel,
     get user() { return user; },
   };
 })();
