@@ -15,6 +15,7 @@ resolved from the actual retrieved text.
 | `docs/` | official regulation documents that answers are drawn from |
 | `scripts/` | OCR for scanned PDFs (`ocr_pdf.py`) |
 | `tests/` | pytest suite (`uv run pytest`) |
+| `evaluation/` | RAGAS test suite for every task (see "Testing with RAGAS") |
 | `Start-API.bat`, `Start-Public.bat` | double-click launchers (local / with a public ngrok link) |
 
 ## Quick start for teammates
@@ -86,6 +87,24 @@ curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{"message":"ما هي إجراءات الانسحاب من مقرر؟"}'
 ```
+
+### Testing with RAGAS
+
+`evaluation/ragas_suite.py` runs 50 test cases against the real system
+(it starts the server itself, uses the live index, Ollama and the hosted
+model, and a throwaway accounts database). RAG answers are scored by an
+LLM judge; every other task by RAGAS ExactMatch / StringPresence.
+
+```bash
+uv sync --extra eval
+.venv/Scripts/python.exe -m evaluation.ragas_suite                  # all 50 cases
+.venv/Scripts/python.exe -m evaluation.ragas_suite --only TC-11     # chosen cases
+```
+
+Results, answers, retrieved chunks and the log go to `output/ragas/`. The
+judge is `openai/gpt-oss-20b` (override with `RAGAS_JUDGE_MODEL`); a full
+run uses about 160K of its 200K free tokens per day, so re-run only the
+cases you changed. Judge answers are cached in `output/ragas/judge_cache`.
 
 ### GP2 web front end (`frontend/chatbot-page`)
 

@@ -30,7 +30,10 @@ Arabic question
 question → 1024-dim vector
       │
       ▼  cosine distance, exact scan over all chunks
-Supabase Postgres + pgvector → top 8 chunks
+Supabase Postgres + pgvector → top 14 chunks
+      │
+      ▼  ScopeFilter: drop graduate-studies files unless asked (§4.8)
+top 8 chunks
       │
       ▼  Arabic prompt: chunks + question + strict rules
 Qwen3.8 27B via Groq (OpenAI-compatible API)
@@ -72,6 +75,13 @@ already-completed pages on restart).
 unrelated content into one chunk (a cover page + a decree + several
 definitions), which confused the model even when the right fact was
 present. Overlap prevents an article being cut mid-sentence.
+
+**FAQ files** are first split into one document per question and its
+answer (`_split_faq` in generate.py). Split by size, a one-line answer
+ended up at the tail of an unrelated chunk and ranked ninth — outside the
+top 8 (found by the RAGAS tests, §5). Built into table
+`data_academic_advising_v3`; `src/.env` switches to it after the final
+RAGAS run.
 
 ## 4. Key decisions
 
@@ -225,20 +235,48 @@ model list), not LlamaIndex's 3900-token fallback for unknown model ids —
 that fallback would have split our retrieved chunks across several needless
 "refine" calls.
 
+### 4.8 Answer scope: undergraduate rules, only what was asked
+
+Graduate-studies regulations use nearly the same wording as the
+undergraduate ones but different numbers (an academic warning below 3.75,
+not 2.00), so they ranked high and leaked into answers. `ScopeFilter`
+([src/query.py](src/query.py)) retrieves `TOP_K + 6` chunks, drops chunks
+from graduate-studies files unless the question mentions graduate studies,
+and keeps the best `TOP_K`. The prompt ([src/citation.py](src/citation.py))
+also says the student is an undergraduate, to answer only what was asked,
+and to write a closing action line only when the context states it (the
+model had been inventing general advice). Rule questions that start with
+"متى" (يحرم، شروط، نسبة…) skip the calendar shortcut, and "متى" alone no
+longer adds the calendar term to the query.
+
 ## 5. Measured results
 
-Not measured yet. Latency, retrieval accuracy and concurrency have no
-recorded figures for the current index; see the first known gap below.
+Measured with a RAGAS-only suite ([evaluation/ragas_suite.py](evaluation/ragas_suite.py)):
+50 test cases over every task, run against the real server, index and
+model. RAG answers are scored on nine golden questions whose reference
+answers are copied from the official FAQ; the judge is gpt-oss-20b, a
+different model from Qwen.
+
+| Run | Result |
+| --- | --- |
+| Run 3 (first complete, before fixes) | 42/50 passed. RAG means: faithfulness 0.76, answer relevancy 0.80, context precision 0.56, context recall 0.78, answer correctness 0.65 |
+| Run 4 (failed cases, after fixes) | TC-08 answer correctness 0.45 → 0.99; TC-06/TC-41 0.46 → 0.78; TC-50 fixed |
+| Run 5 (no-judge cases, index v3) | 40/40 passed |
+
+The defects found and their fixes are listed in the report's Chapter 6.
+Latency and concurrency are still unmeasured.
 
 ## 6. Known gaps
 
 - Advising tickets are not connected to accounts yet: the advisor page shows
   students and their profiles, not tickets.
 - No conversational memory — each question is answered independently.
-- **No quantitative accuracy metric.** GP1 §2.5 promises
-  "Performance Evaluation & Metrics"; we have only manual spot
-  checks: no latency figures and no scored benchmark set. Building ~20 questions with
-  reference answers is the highest-value next step before the defense.
+- **RAGAS evaluation is expensive on the free tier.** A full run needs
+  about 160K judge tokens (about 15 judge calls per golden question),
+  close to Groq's free 200K tokens/day per model. Re-run only the changed
+  cases (`--only`), or use a paid tier. Five RAG cases (TC-06, TC-10,
+  TC-11, TC-13, TC-14) still await their re-score after the fixes. Latency
+  and concurrency have no figures yet.
 - Public access currently depends on an ngrok tunnel from a laptop: the
   URL changes every restart and dies when the machine sleeps. Real student
   access needs proper hosting (and then an answer for the local-Ollama
