@@ -48,6 +48,9 @@ _DETAIL_RE = re.compile(
 _PLAN_RE = re.compile(r"خط[هة]|خطط")
 _CALENDAR_RE = re.compile(r"تقويم")
 _DATE_Q_RE = re.compile(r"متى|تاريخ|موعد|كم\s*باقي|كم\s*يوم|ايش\s*يوم|أي\s*يوم|اي\s*يوم|وش\s*يوم")
+# "متى يحرم الطالب من الاختبار النهائي؟" asks for a rule (the attendance
+# limit), not for the exam date, so it goes to the regulations (RAG).
+_RULE_Q_RE = re.compile(r"يحرم|يُحرم|حرمان|محروم|انحرم|ينحرم|شروط|شرط|ضوابط|نسب[ةه]|عقوب")
 
 
 def _file_link(label: str, rel_path: str) -> str:
@@ -189,7 +192,7 @@ def _pick(candidates: list[CalendarEvent], message: str, today: date) -> Calenda
 def date_reply(message: str, today: date | None = None,
                events: list[CalendarEvent] | None = None) -> str | None:
     """Just the date of a calendar event the student asks about, else None."""
-    if not _DATE_Q_RE.search(message):
+    if not _DATE_Q_RE.search(message) or _RULE_Q_RE.search(message):
         return None
     today = today or date.today()
     if events is None:

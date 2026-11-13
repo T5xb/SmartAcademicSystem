@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import unicodedata
 
 from dotenv import load_dotenv
@@ -43,7 +44,42 @@ def _load_documents(data_dir: str) -> list:
         normalized = unicodedata.normalize("NFKC", text)
         if normalized != text:
             doc.set_content(normalized)
-    return documents
+    return _split_faq(documents)
+
+
+_FAQ_FILE_RE = re.compile(r"الأسئلة_الشائعة|[\\/]faqs[\\/]")
+_QUESTION_LINE_RE = re.compile(r"^[^|#\n]{4,300}[؟?]$")
+
+
+def _split_faq(documents: list) -> list:
+    """
+    One document per question and its answer in the FAQ files.
+
+    Chunking them by size cut a question off from its answer and glued the
+    answer to the end of an unrelated chunk ("متى يحصل الطالب على الإنذار
+    الأكاديمي؟" ended a chunk about transfers), so it ranked too low to be
+    retrieved (RAGAS context recall 0 in test TC-06).
+    """
+    from llama_index.core import Document
+
+    out = []
+    for doc in documents:
+        if not _FAQ_FILE_RE.search(doc.metadata.get("file_name", "") or doc.metadata.get("file_path", "")):
+            out.append(doc)
+            continue
+        blocks, current = [], []
+        for line in doc.get_content().splitlines():
+            if _QUESTION_LINE_RE.match(line.strip()) and current:
+                blocks.append(current)
+                current = []
+            current.append(line)
+        if current:
+            blocks.append(current)
+        for block in blocks:
+            text = "\n".join(block).strip()
+            if text:
+                out.append(Document(text=text, metadata=dict(doc.metadata)))
+    return out
 
 
 def _check_embedding(expected_dim: int) -> None:

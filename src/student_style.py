@@ -46,7 +46,7 @@ GLOSSARY: list[tuple[str, str]] = [
     (r"فصل\s*من\s*الجامع[هة]|طي\s*قيد|انطوى\s*قيدي|مطوي", "طي القيد والفصل من الجامعة"),
     (r"معادل[هة]|اعادل|أعادل|تتعادل", "معادلة المقررات"),
     (r"مكاف[أائ][ةه]", "المكافأة الشهرية للطلاب"),
-    (r"تقويم|متى|اجاز[هة]|إجاز[هة]", "مواعيد التقويم الدراسي"),
+    (r"تقويم|متى|اجاز[هة]|إجاز[هة]", "مواعيد التقويم الدراسي"),  # CALENDAR_TERM
     (r"الارقام\s*المرجعي[هة]|الأرقام\s*المرجعي[هة]", "الأرقام المرجعية للمقررات"),
     (r"تدريب|كوب|coop", "التدريب التعاوني الميداني"),
     # The word itself, not inside "مشرف" or "اشراف".
@@ -87,6 +87,10 @@ GLOSSARY: list[tuple[str, str]] = [
 
 _COMPILED = [(re.compile(p, re.IGNORECASE), terms) for p, terms in GLOSSARY]
 
+CALENDAR_TERM = "مواعيد التقويم الدراسي"
+# Words that really ask about the calendar (not just the question word "متى").
+_CALENDAR_WORD_RE = re.compile(r"تقويم|اجاز[هة]|إجاز[هة]|موعد|مواعيد|تاريخ")
+
 _GREETING_RE = re.compile(r"^\s*(ال)?سلام\s*(عليكم|عليكم\s*ورحم[هة]\s*الله(\s*وبركاته)?)?")
 _THANKS_RE = re.compile(
     r"^\s*(شكرا|شكراً|مشكور[ةه]?|يعطيك\s*العافي[هة]|الله\s*يعطيك\s*العافي[هة]|"
@@ -124,6 +128,11 @@ def expand_query(message: str) -> str:
     """
     message = message.strip()
     terms = formal_terms(message)
+    if CALENDAR_TERM in terms and not _CALENDAR_WORD_RE.search(message):
+        # Only "متى" asked for it: "متى يحصل الطالب على الإنذار؟" asks for a
+        # rule, and the calendar term pulled calendar chunks over the rule.
+        # Real date questions are answered from the calendar before RAG.
+        terms.remove(CALENDAR_TERM)
     words = re.findall(r"\w+", message)
     is_bare_keyword = len(words) <= 3 and not re.search(r"[؟?]", message)
     if is_bare_keyword:
