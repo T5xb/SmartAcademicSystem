@@ -26,6 +26,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [ "mypy>=1.8.0,<2.0.0", "pytest>=8.3.5,<9.0.0" ]
+# RAGAS test suite (evaluation/ragas_suite.py). langchain-community 0.4
+# removed a module that ragas 0.4.3 still imports.
+eval = [ "ragas==0.4.3", "langchain-community>=0.3.31,<0.4" ]
 
 [project.scripts]
 generate = "src.generate:generate_index"
