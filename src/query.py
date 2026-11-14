@@ -11,7 +11,10 @@ from llama_index.core.tools.query_engine import QueryEngineTool
 # Graduate-studies documents (master's, PhD, theses). Their rules differ from
 # the bachelor's ones (e.g. an academic warning below 3.75, not 2.00), and the
 # chatbot's users are undergraduates, so they are used only when asked about.
-_GRAD_DOC_RE = re.compile(r"الدراسات_العليا|ماجستير|دكتوراه|الرسائل_العلمية")
+# CCIS_Academic_Advising_Guide is the Information Management master's program
+# guide (its first line says so), although its file name does not; its 25 %
+# absence rule leaked into an undergraduate answer (RAGAS TC-11).
+_GRAD_DOC_RE = re.compile(r"الدراسات_العليا|ماجستير|دكتوراه|الرسائل_العلمية|CCIS_Academic_Advising_Guide")
 _GRAD_QUESTION_RE = re.compile(
     r"عليا|ماجستير|ماستر|دكتوراه|دكتوراة|رسال[ةه]\s*علمي|الرسائل\s*العلمي|master|phd", re.IGNORECASE
 )

@@ -80,8 +80,8 @@ present. Overlap prevents an article being cut mid-sentence.
 answer (`_split_faq` in generate.py). Split by size, a one-line answer
 ended up at the tail of an unrelated chunk and ranked ninth — outside the
 top 8 (found by the RAGAS tests, §5). Built into table
-`data_academic_advising_v3`; `src/.env` switches to it after the final
-RAGAS run.
+`data_academic_advising_v3`, which `src/.env` uses since the final RAGAS
+run (the old v2 table is kept as a fallback).
 
 ## 4. Key decisions
 
@@ -247,7 +247,12 @@ also says the student is an undergraduate, to answer only what was asked,
 and to write a closing action line only when the context states it (the
 model had been inventing general advice). Rule questions that start with
 "متى" (يحرم، شروط، نسبة…) skip the calendar shortcut, and "متى" alone no
-longer adds the calendar term to the query.
+longer adds the calendar term to the query. `CCIS_Academic_Advising_Guide`
+counts as graduate: it is the Information Management master's guide,
+although its name does not say so. The answer's first line must be a full
+sentence about the question's own subject (not a fragment such as «مقرر
+أو مقررين فقط»), and تأجيل / اعتذار / «بدون عذر» no longer share glossary
+terms.
 
 ## 5. Measured results
 
@@ -262,8 +267,11 @@ different model from Qwen.
 | Run 3 (first complete, before fixes) | 42/50 passed. RAG means: faithfulness 0.76, answer relevancy 0.80, context precision 0.56, context recall 0.78, answer correctness 0.65 |
 | Run 4 (failed cases, after fixes) | TC-08 answer correctness 0.45 → 0.99; TC-06/TC-41 0.46 → 0.78; TC-50 fixed |
 | Run 5 (no-judge cases, index v3) | 40/40 passed |
+| Run 6 (all cases, index v3) | 46/50 passed; fragment and second-person answers, too broad glossary terms, and a master's-program guide not caught by ScopeFilter |
+| Runs 7–9 (after those fixes) | 4/4, 7/7 and 40/40: **all 50 pass**. RAG means: faithfulness 1.00, answer relevancy 0.84, context precision 0.81, context recall 1.00, answer correctness 0.95 |
 
-The defects found and their fixes are listed in the report's Chapter 6.
+The team's 90 pytest unit tests also pass after the fixes. The defects
+found and their fixes are listed in the report's Chapter 6.
 Latency and concurrency are still unmeasured.
 
 ## 6. Known gaps
@@ -274,9 +282,8 @@ Latency and concurrency are still unmeasured.
 - **RAGAS evaluation is expensive on the free tier.** A full run needs
   about 160K judge tokens (about 15 judge calls per golden question),
   close to Groq's free 200K tokens/day per model. Re-run only the changed
-  cases (`--only`), or use a paid tier. Five RAG cases (TC-06, TC-10,
-  TC-11, TC-13, TC-14) still await their re-score after the fixes. Latency
-  and concurrency have no figures yet.
+  cases (`--only`), or use a paid tier. Latency and concurrency have no
+  figures yet.
 - Public access currently depends on an ngrok tunnel from a laptop: the
   URL changes every restart and dies when the machine sleeps. Real student
   access needs proper hosting (and then an answer for the local-Ollama
