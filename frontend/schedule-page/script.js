@@ -1118,6 +1118,7 @@ function restoreProfile(profile) {
 
 Auth.requireRole('student').then(async (user) => {
   Auth.fillUser(user);
+  Tickets.mount(user);
   fillTimeSelects();
   bindEvents();
   if (!(await loadCourses())) return;

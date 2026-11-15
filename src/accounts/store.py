@@ -136,8 +136,20 @@ def list_users(role: str | None = None) -> list[dict]:
 
 
 @_retry
-def update_user(user_id: str, *, name: str | None = None, active: bool | None = None) -> None:
+def update_user(
+    user_id: str, *, name: str | None = None, active: bool | None = None, role: str | None = None
+) -> None:
+    if role is not None and role not in ROLES:
+        raise ValueError(f"Unknown role: {role}")
     with get_engine().begin() as conn:
+        if role is not None:
+            conn.execute(
+                text("UPDATE sas_users SET role = :role WHERE id = :id"),
+                {"role": role, "id": user_id},
+            )
+            # Each role opens different pages; signing out sends the user
+            # through Sign In to the home page of the new role.
+            conn.execute(text("DELETE FROM sas_sessions WHERE user_id = :id"), {"id": user_id})
         if name is not None:
             conn.execute(
                 text("UPDATE sas_users SET name = :name WHERE id = :id"),

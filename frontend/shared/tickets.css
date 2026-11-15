@@ -1,0 +1,273 @@
+/* ==========================================================
+   Academic AI - Advising tickets dialog (student pages)
+   Self-contained: works on any page that loads it.
+   ========================================================== */
+
+.tk-root {
+  --tk-primary: #16d076;
+  --tk-primary-light: #22e584;
+  --tk-primary-10: rgba(22, 208, 118, 0.1);
+  --tk-primary-20: rgba(22, 208, 118, 0.2);
+  --tk-primary-30: rgba(22, 208, 118, 0.3);
+  --tk-primary-40: rgba(22, 208, 118, 0.4);
+  --tk-bg: #0c0f10;
+  --tk-card: #15191a;
+  --tk-card-2: #1b1f20;
+  --tk-card-3: #23282a;
+  --tk-border: #2a2e30;
+  --tk-white: #ffffff;
+  --tk-text: #e2e2e4;
+  --tk-muted: #94a3b8;
+  --tk-faint: #5b6470;
+  --tk-warn: #fbbf24;
+  --tk-warn-10: rgba(251, 191, 36, 0.1);
+  --tk-warn-30: rgba(251, 191, 36, 0.3);
+  --tk-danger: #f87171;
+  --tk-danger-10: rgba(248, 113, 113, 0.1);
+  --tk-font: 'Inter', system-ui, sans-serif;
+  --tk-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* ---------- Header button ---------- */
+.tk-trigger { position: relative; }
+.tk-trigger__badge {
+  position: absolute;
+  top: 2px; right: 2px;
+  min-width: 16px; height: 16px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background-color: #16d076;
+  color: #0c0f10;
+  font-size: 10px; font-weight: 700; line-height: 16px;
+  text-align: center;
+}
+
+/* ---------- Overlay ---------- */
+.tk-root {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  font-family: var(--tk-font);
+  color: var(--tk-text);
+}
+
+.tk-backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(5, 7, 8, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: tk-fade 0.18s ease;
+}
+
+.tk-dialog {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  max-height: calc(100vh - 32px);
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  background-color: var(--tk-card);
+  border: 1px solid var(--tk-primary-40);
+  box-shadow: 0 0 40px rgba(22, 208, 118, 0.15), 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  animation: tk-pop 0.2s ease;
+}
+
+/* The list and the conversation get a fixed height so they scroll inside. */
+.tk-dialog.is-tall { height: min(640px, calc(100vh - 32px)); }
+
+.tk-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--tk-border);
+}
+
+.tk-head__text { flex: 1; min-width: 0; }
+.tk-title {
+  margin: 0;
+  font-size: 16px; font-weight: 700; color: var(--tk-white);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tk-sub { margin: 2px 0 0; font-size: 12px; color: var(--tk-muted); }
+
+.tk-icon-btn {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px;
+  border: none; border-radius: 8px;
+  background: none;
+  color: var(--tk-muted);
+  cursor: pointer;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+.tk-icon-btn:hover { color: var(--tk-white); background-color: var(--tk-card-3); }
+.tk-icon-btn svg { width: 18px; height: 18px; }
+
+.tk-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 18px;
+}
+
+/* ---------- Home: two choices ---------- */
+.tk-choices { display: grid; gap: 12px; }
+.tk-choice {
+  display: flex; align-items: center; gap: 14px;
+  width: 100%;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid var(--tk-border);
+  background-color: var(--tk-card-2);
+  color: inherit; font: inherit; text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+.tk-choice:hover { border-color: var(--tk-primary-40); background-color: var(--tk-primary-10); }
+.tk-choice__icon {
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background-color: var(--tk-primary-10);
+  border: 1px solid var(--tk-primary-30);
+  color: var(--tk-primary);
+}
+.tk-choice__icon svg { width: 20px; height: 20px; }
+.tk-choice__text { flex: 1; }
+.tk-choice__title { display: block; font-size: 15px; font-weight: 600; color: var(--tk-white); }
+.tk-choice__desc { display: block; margin-top: 2px; font-size: 12px; color: var(--tk-muted); }
+.tk-choice__count {
+  padding: 2px 8px; border-radius: 9999px;
+  background-color: var(--tk-card-3);
+  font-family: var(--tk-mono); font-size: 12px; color: var(--tk-muted);
+}
+.tk-choice__count.is-unread { background-color: var(--tk-primary); color: var(--tk-bg); font-weight: 700; }
+
+.tk-note { margin-top: 16px; font-size: 12px; color: var(--tk-muted); text-align: center; }
+
+/* ---------- Form ---------- */
+.tk-form { display: grid; gap: 14px; }
+.tk-field { display: grid; gap: 6px; }
+.tk-label { font-size: 12px; font-weight: 600; color: var(--tk-text); }
+.tk-hint { font-size: 11px; color: var(--tk-faint); }
+.tk-input, .tk-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--tk-border);
+  background-color: var(--tk-bg);
+  color: var(--tk-white);
+  font: inherit; font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.tk-input:focus, .tk-textarea:focus { outline: none; border-color: var(--tk-primary); box-shadow: 0 0 0 1px var(--tk-primary); }
+.tk-input[aria-invalid="true"] { border-color: var(--tk-danger); }
+.tk-error { min-height: 18px; margin: 0; font-size: 12px; color: var(--tk-danger); }
+
+.tk-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.tk-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px 18px;
+  border: 1px solid transparent; border-radius: 10px;
+  font: inherit; font-size: 13px; font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+.tk-btn--primary { background-color: var(--tk-primary); color: var(--tk-bg); box-shadow: 0 0 18px rgba(22, 208, 118, 0.25); }
+.tk-btn--primary:hover:not(:disabled) { background-color: var(--tk-primary-light); }
+.tk-btn--ghost { background-color: var(--tk-card-2); border-color: var(--tk-border); color: var(--tk-text); }
+.tk-btn--ghost:hover:not(:disabled) { background-color: var(--tk-card-3); }
+.tk-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ---------- Ticket list ---------- */
+.tk-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.tk-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid var(--tk-border);
+  background-color: var(--tk-card-2);
+  color: inherit; font: inherit; text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+.tk-item:hover { border-color: var(--tk-primary-40); }
+.tk-item__code { font-family: var(--tk-mono); font-size: 12px; font-weight: 600; color: var(--tk-primary-light); }
+.tk-item__title { grid-column: 1 / -1; font-size: 14px; font-weight: 600; color: var(--tk-white); overflow-wrap: anywhere; }
+.tk-item__meta { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--tk-muted); }
+.tk-dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--tk-primary); box-shadow: 0 0 8px rgba(22, 208, 118, 0.6); }
+
+.tk-status {
+  justify-self: end;
+  align-self: start;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid;
+  font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.tk-status--new { color: var(--tk-primary); border-color: var(--tk-primary-30); background-color: var(--tk-primary-10); }
+.tk-status--in_progress { color: var(--tk-warn); border-color: var(--tk-warn-30); background-color: var(--tk-warn-10); }
+.tk-status--closed { color: var(--tk-muted); border-color: var(--tk-border); background-color: var(--tk-card-3); }
+
+.tk-empty { padding: 32px 16px; text-align: center; font-size: 13px; color: var(--tk-muted); }
+.tk-empty strong { display: block; margin-bottom: 4px; font-size: 15px; color: var(--tk-text); }
+
+/* ---------- Conversation ---------- */
+.tk-body--chat { display: flex; flex-direction: column; gap: 12px; }
+.tk-msg { display: flex; flex-direction: column; gap: 4px; max-width: 85%; }
+.tk-msg--mine { align-self: flex-end; align-items: flex-end; }
+.tk-msg__meta { display: flex; gap: 8px; font-size: 11px; color: var(--tk-muted); }
+.tk-msg__who { font-weight: 600; color: var(--tk-text); }
+.tk-msg--staff .tk-msg__who { color: var(--tk-primary-light); }
+.tk-msg__bubble {
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px; line-height: 1.6;
+  white-space: pre-wrap; overflow-wrap: anywhere;
+}
+.tk-msg--mine .tk-msg__bubble { background-color: var(--tk-card-3); border-top-right-radius: 4px; }
+.tk-msg--staff .tk-msg__bubble { background-color: var(--tk-primary-10); border: 1px solid var(--tk-primary-20); border-top-left-radius: 4px; }
+
+.tk-system {
+  align-self: center;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  background-color: var(--tk-card-2);
+  font-size: 12px; color: var(--tk-muted);
+  text-align: center;
+}
+
+.tk-composer {
+  display: flex; align-items: flex-end; gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--tk-border);
+  background-color: var(--tk-card);
+}
+.tk-composer .tk-textarea { flex: 1; min-height: 42px; max-height: 140px; resize: none; }
+.tk-closed-note {
+  padding: 12px 18px;
+  border-top: 1px solid var(--tk-border);
+  font-size: 13px; color: var(--tk-muted); text-align: center;
+}
+
+.tk-loading { padding: 32px; text-align: center; font-size: 13px; color: var(--tk-muted); }
+
+@keyframes tk-fade { from { opacity: 0; } }
+@keyframes tk-pop { from { opacity: 0; transform: scale(0.97) translateY(8px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tk-backdrop, .tk-dialog { animation: none; }
+}

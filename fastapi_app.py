@@ -20,6 +20,7 @@ load_dotenv("src/.env")
 from src.accounts import documents, store  # noqa: E402
 from src.accounts.api import router as accounts_router  # noqa: E402
 from src.accounts.deps import current_user  # noqa: E402
+from src.accounts.tickets import router as tickets_router  # noqa: E402
 from src.clarify import MAX_HISTORY  # noqa: E402
 from src.index import DATA_DIR  # noqa: E402
 from src.scheduling.api import router as schedule_router  # noqa: E402
@@ -79,6 +80,8 @@ app.add_middleware(
 # Sign-in, the user's own data, advisors, user management, source files.
 app.include_router(accounts_router)
 app.include_router(documents.router)
+# Advising tickets: students open them, advisors answer and close them.
+app.include_router(tickets_router)
 
 # Study-schedule generator (CSP) used by frontend/schedule-page; signed-in
 # users only.
@@ -124,12 +127,6 @@ class ChatResponse(BaseModel):
     # A ticket draft when the reply suggests opening a ticket (see
     # src/tickets.py); the future ticket page posts it to /api/tickets.
     ticket: dict | None = None
-
-
-class TicketRequest(BaseModel):
-    summary: str = Field(min_length=1, max_length=2000)
-    transcript: list[ChatTurn] = Field(default_factory=list, max_length=40)
-    contact: str = Field(default="", max_length=200)
 
 
 @app.get("/api/health")
@@ -193,23 +190,6 @@ async def chat(req: ChatRequest, request: Request, _: dict = Depends(current_use
             detail="The advising service could not generate an answer right now. Please try again.",
         )
     return ChatResponse(response=response, ticket=ticket)
-
-
-@app.post("/api/tickets")
-async def tickets(req: TicketRequest):
-    """
-    Hook for the advisors' dashboard: saves a student's ticket. Off until
-    TICKETS_FILE is set in src/.env; see src/tickets.py for the shape.
-    """
-    from src.tickets import build_ticket, create_ticket, tickets_enabled
-
-    if not tickets_enabled():
-        raise HTTPException(status_code=503, detail="Tickets are not enabled yet.")
-    ticket = build_ticket(req.summary, [t.model_dump() for t in req.transcript])
-    # Given by the student on the ticket page on purpose, so not masked.
-    ticket["contact"] = req.contact.strip()
-    create_ticket(ticket)
-    return {"id": ticket["id"], "status": ticket["status"]}
 
 
 @app.get("/", include_in_schema=False)

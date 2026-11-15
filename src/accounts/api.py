@@ -258,6 +258,7 @@ class NewUser(BaseModel):
 class UserUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=120)
     active: bool | None = None
+    role: Literal["student", "advisor", "admin"] | None = None
 
 
 @router.get("/admin/users")
@@ -290,7 +291,11 @@ def edit_user(user_id: str, req: UserUpdate, admin: dict = Depends(require_admin
     user = _managed_user(user_id)
     if req.active is False and user["id"] == admin["id"]:
         raise HTTPException(status_code=400, detail="You can't disable your own account.")
-    store.update_user(user_id, name=req.name, active=req.active)
+    # Also keeps at least one admin: the one making the change stays admin.
+    if req.role is not None and req.role != user["role"] and user["id"] == admin["id"]:
+        raise HTTPException(status_code=400, detail="You can't change your own role.")
+    new_role = req.role if req.role != user["role"] else None
+    store.update_user(user_id, name=req.name, active=req.active, role=new_role)
     forget_sessions()
     return {"user": store.public_user(store.get_user(user_id))}
 

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=3">
 </head>
 
 <body>
@@ -32,6 +32,7 @@
     </div>
 
     <div class="header__right">
+      <span class="term-pill" data-term=""></span>
       <div class="user">
         <div class="user__avatar">?</div>
         <div class="user__info">
@@ -47,37 +48,154 @@
     </div>
   </header>
 
-  <!-- ======================= Layout ======================= -->
-  <main class="layout" id="layout">
+  <!-- ======================= Shell ======================= -->
+  <div class="shell">
 
-    <!-- Student list -->
-    <aside class="list-pane" id="list-pane" aria-label="Students">
-      <div class="list-pane__head">
-        <h1 class="list-pane__title">Students</h1>
-        <span class="muted" id="student-count"></span>
-      </div>
-      <label class="visually-hidden" for="search">Search students by name or ID</label>
-      <input type="search" id="search" class="input" placeholder="Search by name or ID" autocomplete="off">
-      <div id="list-status" class="status" role="status"></div>
-      <ul class="student-list" id="student-list"></ul>
-    </aside>
+    <!-- Main area: one view at a time -->
+    <main class="main" id="main">
 
-    <!-- Detail -->
-    <section class="detail-pane" id="detail-pane" aria-live="polite">
-      <button type="button" class="back-btn" id="back-btn">
-        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
-        Back to students
-      </button>
-      <div id="detail"></div>
-    </section>
-  </main>
+      <!-- ===== Dashboard ===== -->
+      <section class="view" id="view-overview" hidden aria-labelledby="overview-title">
+        <div class="view__head">
+          <div>
+            <h1 class="view__title" id="overview-title">Tickets dashboard</h1>
+            <p class="muted view__sub" id="overview-updated">Loading...</p>
+          </div>
+          <button type="button" class="btn btn--ghost" id="refresh-btn">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14" height="14"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"></path><path d="M21 3v5h-5"></path></svg>
+            Refresh
+          </button>
+        </div>
 
-  <!-- ======================= Footer ======================= -->
-  <footer class="footer">
-    <span>Student messages in the chatbot are private to the student.</span>
-  </footer>
+        <div class="stats" id="stats"></div>
+
+        <div class="board" id="board"></div>
+      </section>
+
+      <!-- ===== Ticket inbox: list + conversation ===== -->
+      <section class="view view--split" id="view-tickets" hidden>
+        <div class="pane pane--list">
+          <div class="pane__head">
+            <h1 class="pane__title" id="inbox-title">All tickets</h1>
+            <span class="count-pill" id="inbox-count"></span>
+          </div>
+          <label class="visually-hidden" for="ticket-search">Search tickets</label>
+          <input type="search" id="ticket-search" class="input" placeholder="Search by number, title, name or ID" autocomplete="off">
+          <div class="pane__scroll">
+            <ul class="ticket-list" id="ticket-list"></ul>
+            <div class="status" id="ticket-list-status" role="status"></div>
+          </div>
+        </div>
+
+        <div class="pane pane--chat" id="chat-pane" aria-live="polite">
+          <div class="empty empty--fill" id="chat-empty">
+            <strong>Select a ticket</strong>
+            Choose a ticket from the list to read the conversation and reply.
+          </div>
+          <div class="chat" id="chat" hidden>
+            <div class="chat__head">
+              <button type="button" class="icon-btn chat__back" id="chat-back" aria-label="Back to the list">
+                <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+              </button>
+              <div class="chat__head-text">
+                <div class="chat__title-row">
+                  <span class="ticket-code" id="chat-code"></span>
+                  <span id="chat-status"></span>
+                </div>
+                <h2 class="chat__title" id="chat-title" dir="auto"></h2>
+                <p class="chat__meta" id="chat-meta"></p>
+              </div>
+              <div class="chat__actions">
+                <button type="button" class="btn btn--primary" id="close-ticket-btn">
+                  <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="14" height="14"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                  Close ticket
+                </button>
+                <button type="button" class="btn btn--ghost" id="reopen-ticket-btn" hidden>Reopen</button>
+              </div>
+            </div>
+
+            <div class="chat__messages" id="chat-messages"></div>
+
+            <form class="composer" id="composer">
+              <div class="composer__row">
+                <label class="visually-hidden" for="reply">Reply to the student</label>
+                <textarea id="reply" class="input composer__input" rows="2" maxlength="2000" dir="auto"
+                          placeholder="Reply to the student..." title="Enter sends, Shift+Enter adds a new line"></textarea>
+                <button type="submit" class="btn btn--primary composer__send" id="send-btn">Send</button>
+              </div>
+              <div class="composer__tools">
+                <label class="visually-hidden" for="quick-reply">Quick replies</label>
+                <select id="quick-reply" class="input input--small">
+                  <option value="">Quick replies...</option>
+                </select>
+                <span class="muted composer__hint">The first reply moves a new ticket to In progress.</span>
+              </div>
+            </form>
+            <div class="closed-note" id="closed-note" hidden></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Students (academic profiles) ===== -->
+      <section class="view" id="view-students" hidden>
+        <div class="layout" id="layout">
+          <aside class="list-pane" id="list-pane" aria-label="Students">
+            <div class="list-pane__head">
+              <h1 class="list-pane__title">Students</h1>
+              <span class="muted" id="student-count"></span>
+            </div>
+            <label class="visually-hidden" for="search">Search students by name or ID</label>
+            <input type="search" id="search" class="input" placeholder="Search by name or ID" autocomplete="off">
+            <div id="list-status" class="status" role="status"></div>
+            <ul class="student-list" id="student-list"></ul>
+          </aside>
+
+          <section class="detail-pane" id="detail-pane" aria-live="polite">
+            <button type="button" class="back-btn" id="back-btn">
+              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path></svg>
+              Back to students
+            </button>
+            <div id="detail"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <!-- Sidebar (left): ticket types and students -->
+    <nav class="sidebar" aria-label="Advising sections">
+      <p class="sidebar__label">Tickets</p>
+      <a class="side-link" href="#overview" data-nav="overview">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>
+        <span>Dashboard</span>
+      </a>
+      <a class="side-link" href="#tickets/all" data-nav="all">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z"></path></svg>
+        <span>All tickets</span><span class="side-count" data-count="all"></span>
+      </a>
+      <a class="side-link" href="#tickets/new" data-nav="new">
+        <span class="side-dot side-dot--new"></span>
+        <span>New</span><span class="side-count side-count--new" data-count="new"></span>
+      </a>
+      <a class="side-link" href="#tickets/in_progress" data-nav="in_progress">
+        <span class="side-dot side-dot--progress"></span>
+        <span>In progress</span><span class="side-count side-count--progress" data-count="in_progress"></span>
+      </a>
+      <a class="side-link" href="#tickets/closed" data-nav="closed">
+        <span class="side-dot side-dot--closed"></span>
+        <span>Closed</span><span class="side-count" data-count="closed"></span>
+      </a>
+
+      <p class="sidebar__label">Students</p>
+      <a class="side-link" href="#students" data-nav="students">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <span>Academic profiles</span>
+      </a>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="../shared/auth.js?v=2"></script>
-  <script src="script.js?v=2"></script>
+  <script src="script.js?v=3"></script>
 </body>
 </html>

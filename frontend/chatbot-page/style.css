@@ -1077,6 +1077,17 @@ body.sidebar-collapsed .strip__open {
   height: 15px;
 }
 
+/* Shown when the bot suggests contacting advising */
+.action-btn--ticket {
+  color: var(--primary-light);
+  border: 1px solid var(--primary-30);
+}
+
+.action-btn--ticket:hover {
+  color: var(--on-primary);
+  background-color: var(--primary);
+}
+
 /* ---------- Composer ---------- */
 .composer-dock {
   position: relative;

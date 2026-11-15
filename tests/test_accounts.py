@@ -207,6 +207,23 @@ def test_disabling_an_account_signs_it_out_and_blocks_sign_in(sign_in):
     assert admin.patch(f"/api/admin/users/{admin_id}", json={"active": False}).status_code == 400
 
 
+def test_admin_changes_a_role_and_the_user_signs_in_with_the_new_one(sign_in):
+    admin, student = sign_in(ADMIN), sign_in(STUDENT)
+    student_id = store.get_user_by_username(STUDENT)["id"]
+    r = admin.patch(f"/api/admin/users/{student_id}", json={"role": "advisor"})
+    assert r.status_code == 200 and r.json()["user"]["role"] == "advisor"
+    assert store.get_user(student_id)["role"] == "advisor"
+    # Signed out, and the next sign-in opens the advisor's pages.
+    assert student.get("/api/auth/me").status_code == 401
+    assert sign_in(STUDENT).get("/api/advisor/students").status_code == 200
+
+    assert admin.patch(f"/api/admin/users/{student_id}", json={"role": "teacher"}).status_code == 422
+    # An admin can't change their own role (so one admin always remains).
+    admin_id = store.get_user_by_username(ADMIN)["id"]
+    assert admin.patch(f"/api/admin/users/{admin_id}", json={"role": "student"}).status_code == 400
+    admin.patch(f"/api/admin/users/{student_id}", json={"role": "student"})
+
+
 def test_reset_password_signs_the_user_out_and_gives_a_temporary_one(sign_in):
     admin, student = sign_in(ADMIN), sign_in(STUDENT)
     student_id = store.get_user_by_username(STUDENT)["id"]

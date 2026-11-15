@@ -163,8 +163,3 @@ def test_chat_api_passes_history_and_returns_ticket(monkeypatch, sign_in):
     assert r.status_code == 200
     body = r.json()
     assert TICKET_MARK in body["response"] and body["ticket"]["status"] == "open"
-
-    # The dashboard hook is off until TICKETS_FILE is set.
-    monkeypatch.setattr(tickets, "TICKETS_FILE", "")
-    r = client.post("/api/tickets", json={"summary": "سؤال", "transcript": history})
-    assert r.status_code == 503

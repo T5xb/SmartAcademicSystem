@@ -18,7 +18,10 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.pool import StaticPool
 
-TABLES = ("sas_users", "sas_sessions", "sas_chats", "sas_profiles", "sas_meta")
+TABLES = (
+    "sas_users", "sas_sessions", "sas_chats", "sas_profiles", "sas_meta",
+    "sas_tickets", "sas_ticket_messages",
+)
 
 _SCHEMA = [
     """
@@ -62,6 +65,38 @@ _SCHEMA = [
         value TEXT NOT NULL
     )
     """,
+    # Advising tickets (src/accounts/tickets.py). `number` is the short
+    # number people quote (TK-4001); status is new, in_progress or closed.
+    """
+    CREATE TABLE IF NOT EXISTS sas_tickets (
+        id TEXT PRIMARY KEY,
+        number INTEGER NOT NULL UNIQUE,
+        student_id TEXT NOT NULL,
+        full_name TEXT NOT NULL,
+        university_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        status TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        closed_at TEXT,
+        closed_by TEXT,
+        last_staff_reply_at TEXT,
+        student_seen_at TEXT
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS sas_ticket_messages (
+        id TEXT PRIMARY KEY,
+        ticket_id TEXT NOT NULL,
+        sender_id TEXT NOT NULL,
+        sender_role TEXT NOT NULL,
+        sender_name TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS sas_tickets_student ON sas_tickets (student_id)",
+    "CREATE INDEX IF NOT EXISTS sas_ticket_messages_ticket ON sas_ticket_messages (ticket_id, created_at)",
 ]
 
 logger = logging.getLogger("gp2-accounts")

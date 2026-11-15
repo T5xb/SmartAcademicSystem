@@ -17,7 +17,8 @@ const state = {
   folders: [''],
   index: null,
   filesLoaded: false,
-  collapsed: new Set(),
+  // Folders start collapsed; this holds the ones the admin has opened.
+  expanded: new Set(),
   highlight: '',
   users: [],
   usersLoaded: false,
@@ -425,7 +426,7 @@ function renderFiles() {
   const busy = isRunning();
   const html = [...groups.keys()].sort((a, b) => a.localeCompare(b)).map((folder) => {
     const items = groups.get(folder).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-    const open = searching || !state.collapsed.has(folder);
+    const open = searching || state.expanded.has(folder);
     return `
       <div class="group${open ? ' is-open' : ''}" data-folder="${esc(folder)}">
         <button type="button" class="group__head" aria-expanded="${open}" data-toggle>
@@ -478,7 +479,7 @@ function onFileListClick(e) {
     group.classList.toggle('is-open', open);
     group.querySelector('.rows').hidden = !open;
     toggle.setAttribute('aria-expanded', String(open));
-    if (open) state.collapsed.delete(folder); else state.collapsed.add(folder);
+    if (open) state.expanded.add(folder); else state.expanded.delete(folder);
     return;
   }
   const btn = e.target.closest('[data-act]');
@@ -695,6 +696,7 @@ async function submitReplace(e) {
     $('#replace-dialog').close();
     const newName = res.file?.name || replaceFile.name;
     state.highlight = res.file?.path || '';
+    if (res.file) state.expanded.add(res.file.folder);  // so the highlighted row is visible
     toast(`Replaced ${newName}`);
     await loadFiles({ quiet: true });
     setIndex(res.index);
@@ -758,6 +760,7 @@ async function submitAdd(e) {
     const res = await Auth.api('/api/admin/files', { method: 'POST', body });
     $('#add-dialog').close();
     state.highlight = res.file?.path || '';
+    if (res.file) state.expanded.add(res.file.folder);  // so the highlighted row is visible
     toast(`Added ${res.file?.name || addFile.name}`);
     await loadFiles({ quiet: true });
     setIndex(res.index);
@@ -810,6 +813,16 @@ function confirmOcr(file) {
    Accounts
    ========================================================== */
 const ROLE_LABEL = { student: 'Student', advisor: 'Advisor', admin: 'Admin' };
+const ROLES = ['student', 'advisor', 'admin'];
+
+/* Your own role is shown, not editable (the server refuses it too). */
+function roleCell(u, me) {
+  if (u.id === me) return `<span class="badge">${esc(ROLE_LABEL[u.role] || u.role)}</span>`;
+  return `
+    <select class="input input--role" data-urole aria-label="Role for ${esc(u.name)}">
+      ${ROLES.map((r) => `<option value="${r}"${r === u.role ? ' selected' : ''}>${ROLE_LABEL[r]}</option>`).join('')}
+    </select>`;
+}
 
 async function loadUsers() {
   if (!state.usersLoaded) $('#user-list').innerHTML = '<div class="state">Loading accounts...</div>';
@@ -862,7 +875,7 @@ function renderUsers() {
             <tr data-id="${esc(u.id)}">
               <td class="cell-name" data-label="Name"><span dir="auto">${esc(u.name)}</span>${u.id === me ? '<span class="you">(you)</span>' : ''}</td>
               <td class="cell-mono" data-label="ID" dir="auto">${esc(u.username)}</td>
-              <td data-label="Role"><span class="badge">${esc(ROLE_LABEL[u.role] || u.role)}</span></td>
+              <td data-label="Role">${roleCell(u, me)}</td>
               <td data-label="Status">${statusBadge(u)}</td>
               <td class="cell-muted" data-label="Created">${esc(formatDate(u.created_at))}</td>
               <td class="cell-actions">${u.id === me ? '' : `
@@ -882,6 +895,34 @@ function onUserListClick(e) {
   if (!user) return;
   if (btn.dataset.uact === 'toggle') toggleUser(user, btn);
   if (btn.dataset.uact === 'reset') confirmReset(user);
+}
+
+function onUserListChange(e) {
+  const select = e.target.closest('[data-urole]');
+  if (!select) return;
+  const user = state.users.find((u) => u.id === select.closest('tr').dataset.id);
+  if (!user || select.value === user.role) return;
+  confirmRoleChange(user, select.value);
+}
+
+function confirmRoleChange(user, role) {
+  // Cancel puts the dropdown back; after a change it shows the saved role.
+  $('#confirm-dialog').addEventListener('close', renderUsers, { once: true });
+  confirmDialog({
+    title: `Make ${user.name} ${role === 'admin' ? 'an' : 'a'} ${ROLE_LABEL[role]}?`,
+    body: [
+      { text: `${ROLE_LABEL[user.role]} → ${ROLE_LABEL[role]}. They are signed out now and open the ${ROLE_LABEL[role]} pages at their next sign-in.` },
+      ...(role === 'admin'
+        ? [{ text: 'Admins can manage every account and the chatbot\'s documents.', warn: true }]
+        : []),
+    ],
+    label: 'Change role',
+    action: async () => {
+      await Auth.api(`/api/admin/users/${encodeURIComponent(user.id)}`, { method: 'PATCH', body: { role } });
+      toast(`${user.name} is now ${role === 'admin' ? 'an' : 'a'} ${ROLE_LABEL[role]}`);
+      await loadUsers();
+    },
+  });
 }
 
 async function toggleUser(user, btn) {
@@ -966,6 +1007,7 @@ function init() {
   $('#user-search').addEventListener('input', renderUsers);
   $('#role-filter').addEventListener('change', renderUsers);
   $('#user-list').addEventListener('click', onUserListClick);
+  $('#user-list').addEventListener('change', onUserListChange);
   $('#add-account-btn').addEventListener('click', openAddAccount);
   $('#account-form').addEventListener('submit', submitAccount);
   $('#secret-copy').addEventListener('click', copySecret);

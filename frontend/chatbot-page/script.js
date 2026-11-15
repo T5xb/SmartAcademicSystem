@@ -432,6 +432,9 @@ function renderBotActions(msg) {
     <div class="msg-actions">
       <div class="msg-actions__group">
         <button type="button" class="action-btn" data-action="copy" data-id="${msg.id}" title="Copy response">${ICONS.copy}Copy</button>
+        ${msg.ticket && typeof Tickets !== 'undefined'
+          ? `<button type="button" class="action-btn action-btn--ticket" data-action="ticket" data-id="${msg.id}" title="Ask academic advising">Open an advising ticket</button>`
+          : ''}
       </div>
     </div>`;
 }
@@ -619,6 +622,11 @@ function handleMessageAction(action, id) {
   if (!msg) return;
 
   if (action === 'copy') copyText(msg.text, 'Response copied');
+  if (action === 'ticket' && msg.ticket) {
+    // The question the bot couldn't answer becomes the title and first message.
+    const question = (msg.ticket.summary || '').trim();
+    Tickets.openNew({ title: question.slice(0, 150), message: question });
+  }
 }
 
 /* Clicking a [n] marker highlights that source */
@@ -804,6 +812,7 @@ Auth.requireRole().then(async (user) => {
   USER_NAME = escapeHtml(user.name);
   FIRST_NAME = escapeHtml(Auth.firstName(user.name));
   Auth.fillUser(user);
+  Tickets.mount(user);
   $('#profile-avatar').textContent = Auth.initials(user.name);
   $('#profile-name').textContent = user.name;
   $('#profile-meta').textContent = `${ROLE_LABELS[user.role] || ''} ${user.username}`.trim();

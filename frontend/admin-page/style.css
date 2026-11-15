@@ -318,6 +318,14 @@ body {
 .input--mono { font-family: var(--font-mono); }
 select.input { cursor: pointer; }
 
+/* Role dropdown inside the accounts table */
+.input--role {
+  width: auto;
+  min-width: 108px;
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
 /* ---------- Toolbar ---------- */
 .toolbar {
   display: flex;
