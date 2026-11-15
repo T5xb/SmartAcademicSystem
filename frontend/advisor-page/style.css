@@ -640,3 +640,22 @@ select.input { cursor: pointer; }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
 }
+
+/* Reply & resolve buttons and the student profile under a conversation */
+.composer__btns { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.composer__btns .composer__send { min-height: 38px; }
+.chat__profile { flex-shrink: 0; border-top: 1px solid var(--border); max-height: 45vh; overflow-y: auto; min-width: 0; }
+.chat__profile > summary {
+  position: sticky; top: 0; z-index: 1;
+  padding: 12px 16px; cursor: pointer;
+  background-color: var(--card);
+  font-size: 14px; font-weight: 600; color: var(--white);
+}
+.chat__profile-body { padding: 0 16px 16px; min-width: 0; overflow-wrap: anywhere; }
+.chat__messages { min-height: 160px; }
+@media (max-width: 480px) {
+  .composer__row { flex-wrap: wrap; }
+  .composer__input { flex-basis: 100%; }
+  .composer__btns { flex-direction: row; width: 100%; }
+  .composer__btns .btn { flex: 1; }
+}

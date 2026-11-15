@@ -205,22 +205,26 @@ sending them straight to advising ([src/clarify.py](src/clarify.py)):
    their first message, so "عندي مشكلة بالغياب" + "كم النسبة اللي تحرمني؟"
    is one question.
 3. Still nothing: the reply suggests opening a ticket with academic
-   advising. Text only until the ticket page exists; `TICKET_URL` adds a
-   link to it.
+   advising, and the chat page offers an "Open an advising ticket" button.
 
 The attempt count comes from the last messages the chat page sends with
 each question (`history` in `POST /api/chat`), so nothing is stored on the
 server. Clarifying replies carry a fixed marker (`🤔|`) that code, not the
 model, writes and later counts.
 
-**Hook for the advisors' dashboard** ([src/tickets.py](src/tickets.py)):
-when the reply suggests a ticket, `/api/chat` also returns `ticket`, a draft
-(`id`, `created_at`, `status`, `summary`, `transcript`, `contact`) with
-long numbers and e-mails masked. A ticket page can post it to
-`POST /api/tickets` (`{summary, transcript, contact}`), which calls
-`create_ticket()`. That is off (503) until `TICKETS_FILE` is set, and then
-only appends JSON lines to that file; swap its body for the dashboard's
-database when it exists.
+**Advising tickets** ([src/accounts/tickets.py](src/accounts/tickets.py)):
+when the reply suggests a ticket, `/api/chat` also returns `ticket:
+{summary}`, which pre-fills the student's ticket form
+([frontend/shared/tickets.js](frontend/shared/tickets.js), a floating button
+on every student page). Tickets (`sas_tickets`) and their messages
+(`sas_ticket_messages`) live in the accounts database; the student's name and
+university ID are taken from the account. Statuses: `new` → `in_progress`
+(first advisor reply) → `closed` (shown as "Resolved"; set by "Mark
+resolved" or by a reply sent with `close: true`), and an advisor can reopen
+it. Students use `GET/POST /api/tickets`, `GET /api/tickets/{id}` and
+`POST /api/tickets/{id}/messages`; advisors and admins use
+`/api/advisor/tickets` (list, `overview`, `{id}` with the student's academic
+profile, `{id}/messages`, `{id}/close`, `{id}/reopen`).
 
 ### 4.7 Free-tier limits shaped two settings
 

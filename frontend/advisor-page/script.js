@@ -11,8 +11,8 @@ const $ = (s) => document.querySelector(s);
 
 /* ---------- Constants ---------- */
 const FILTERS = ['all', 'new', 'in_progress', 'closed'];
-const STATUS_LABEL = { new: 'New', in_progress: 'In progress', closed: 'Closed' };
-const FILTER_TITLE = { all: 'All tickets', new: 'New tickets', in_progress: 'In progress', closed: 'Closed tickets' };
+const STATUS_LABEL = { new: 'New', in_progress: 'In progress', closed: 'Resolved' };
+const FILTER_TITLE = { all: 'All tickets', new: 'New tickets', in_progress: 'In progress', closed: 'Resolved tickets' };
 const OVERVIEW_POLL_MS = 20000;
 const LIST_POLL_MS = 15000;
 const CHAT_POLL_MS = 5000;
@@ -121,14 +121,14 @@ const STAT_CARDS = [
   // No advisor reply yet.
   { key: 'new', label: 'New tickets', tone: 'new', icon: '<circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line>' },
   // An advisor replied, not closed yet.
-  { key: 'in_progress', label: 'Not closed yet', tone: 'progress', icon: '<circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline>' },
-  { key: 'closed', label: 'Closed', tone: 'closed', icon: '<circle cx="12" cy="12" r="9"></circle><polyline points="8 12 11 15 16 9"></polyline>' },
+  { key: 'in_progress', label: 'Not resolved yet', tone: 'progress', icon: '<circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline>' },
+  { key: 'closed', label: 'Resolved', tone: 'closed', icon: '<circle cx="12" cy="12" r="9"></circle><polyline points="8 12 11 15 16 9"></polyline>' },
 ];
 
 const COLUMNS = [
   { status: 'new', title: 'New', tone: 'new' },
   { status: 'in_progress', title: 'In progress', tone: 'progress' },
-  { status: 'closed', title: 'Recently closed', tone: 'closed' },
+  { status: 'closed', title: 'Recently resolved', tone: 'closed' },
 ];
 
 function renderStats() {
@@ -154,7 +154,7 @@ function boardCard(t) {
         </span>
         <span class="board-card__title" dir="auto">${esc(t.title)}</span>
         <span class="board-card__who"><span dir="auto">${esc(t.full_name)}</span> <span class="mono">(${esc(t.university_id)})</span></span>
-        ${closed && t.closed_by ? `<span class="board-card__foot">Closed by <span dir="auto">${esc(t.closed_by)}</span></span>` : ''}
+        ${closed && t.closed_by ? `<span class="board-card__foot">Resolved by <span dir="auto">${esc(t.closed_by)}</span></span>` : ''}
       </a>
     </li>`;
 }
@@ -280,7 +280,7 @@ function renderMessages({ ticket, messages }) {
   const opened = `<div class="system-line">Ticket opened by <span dir="auto">${esc(ticket.full_name)}</span> · ${esc(fmtDate(ticket.created_at))}</div>`;
   const none = messages.length ? '' : '<div class="system-line">No messages yet. The student will explain the problem here.</div>';
   const closed = ticket.status === 'closed'
-    ? `<div class="system-line">Closed${ticket.closed_by ? ` by <span dir="auto">${esc(ticket.closed_by)}</span>` : ''} · ${esc(fmtDate(ticket.closed_at))}</div>`
+    ? `<div class="system-line">Resolved${ticket.closed_by ? ` by <span dir="auto">${esc(ticket.closed_by)}</span>` : ''} · ${esc(fmtDate(ticket.closed_at))}</div>`
     : '';
   const box = $('#chat-messages');
   const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
@@ -306,9 +306,10 @@ function renderChat(data) {
   $('#close-ticket-btn').hidden = closed;
   $('#reopen-ticket-btn').hidden = !closed;
   $('#composer').hidden = closed;
+  renderChatProfile(data.student, ticket.id);
   $('#closed-note').hidden = !closed;
   $('#closed-note').textContent = closed
-    ? 'This ticket is closed: neither you nor the student can add messages. Reopen it to continue the conversation.'
+    ? 'This ticket is resolved: neither you nor the student can add messages. Reopen it to continue the conversation.'
     : '';
   renderMessages(data);
   // Highlight it in the list.
@@ -318,6 +319,14 @@ function renderChat(data) {
   });
 }
 
+function renderChatProfile(student, ticketId) {
+  const body = $('#chat-profile-body');
+  // Polling re-renders the chat; keep the profile (and its expanded lists) unless the ticket changed.
+  if (body.dataset.ticket === ticketId) return;
+  body.dataset.ticket = ticketId;
+  body.innerHTML = student ? detailHtml(student) : '<p class="muted">Student account not found.</p>';
+}
+
 function clearChat() {
   openTicket = null;
   chatToken++;
@@ -325,6 +334,7 @@ function clearChat() {
   $('#chat-empty').hidden = false;
   $('#view-tickets').classList.remove('has-chat');
   $('#chat-messages').dataset.ticket = '';
+  $('#chat-profile-body').dataset.ticket = '';
 }
 
 async function loadChat(id, quiet = false) {
@@ -355,21 +365,27 @@ async function loadChat(id, quiet = false) {
 async function sendReply(e) {
   e.preventDefault();
   if (!openTicket) return;
+  const resolve = !!(e.submitter && e.submitter.id === 'resolve-btn');
   const box = $('#reply');
   const body = box.value.trim();
   if (!body) return box.focus();
-  const btn = $('#send-btn');
-  btn.disabled = true;
+  const btns = [$('#send-btn'), $('#resolve-btn')];
+  btns.forEach((b) => { b.disabled = true; });
+  const { ticket } = openTicket;
   try {
-    await Auth.api(`/api/advisor/tickets/${encodeURIComponent(openTicket.ticket.id)}/messages`, { method: 'POST', body: { body } });
+    await Auth.api(`/api/advisor/tickets/${encodeURIComponent(ticket.id)}/messages`, {
+      method: 'POST',
+      body: resolve ? { body, close: true } : { body },
+    });
     box.value = '';
-    await loadChat(openTicket.ticket.id);
+    if (resolve) toast(`${ticket.code} resolved`);
+    await loadChat(ticket.id);
     loadInbox(true);
   } catch (err) {
     toast(err.message, true);
-    if (err.status === 409) loadChat(openTicket.ticket.id);
+    if (err.status === 409) loadChat(ticket.id);
   } finally {
-    btn.disabled = false;
+    btns.forEach((b) => { b.disabled = false; });
     box.focus();
   }
 }
@@ -377,12 +393,12 @@ async function sendReply(e) {
 async function setTicketState(action) {
   if (!openTicket) return;
   const { ticket } = openTicket;
-  if (action === 'close' && !confirm(`Close ${ticket.code}? The student won't be able to send more messages.`)) return;
+  if (action === 'close' && !confirm(`Mark ${ticket.code} as resolved? The student won't be able to send more messages.`)) return;
   const btn = action === 'close' ? $('#close-ticket-btn') : $('#reopen-ticket-btn');
   btn.disabled = true;
   try {
     await Auth.api(`/api/advisor/tickets/${encodeURIComponent(ticket.id)}/${action}`, { method: 'POST' });
-    toast(action === 'close' ? `${ticket.code} closed` : `${ticket.code} reopened`);
+    toast(action === 'close' ? `${ticket.code} resolved` : `${ticket.code} reopened`);
     await loadChat(ticket.id);
     loadInbox(true);
   } catch (err) {
@@ -564,11 +580,11 @@ function chatSection(n) {
     </div>`;
 }
 
-function renderDetail({ user, profile, chat_count }) {
+function detailHtml({ user, profile, chat_count }) {
   const p = profile || {};
   const t = p.transcript || null;
   const active = user.active !== false;
-  $('#detail').innerHTML = `
+  return `
     <div class="profile-head">
       <div class="avatar avatar--lg" aria-hidden="true">${esc(Auth.initials(user.name))}</div>
       <div>
@@ -587,6 +603,10 @@ function renderDetail({ user, profile, chat_count }) {
     ${t ? courseSection('Suggested next term', t.suggested) : ''}
     ${plannerSection(p.planner)}
     ${chatSection(chat_count)}`;
+}
+
+function renderDetail(data) {
+  $('#detail').innerHTML = detailHtml(data);
 }
 
 function showStudentPlaceholder() {
@@ -661,6 +681,16 @@ async function applyRoute() {
 /* ==========================================================
    Events
    ========================================================== */
+function toggleRest(e) {
+  const btn = e.target.closest('[data-toggle-rest]');
+  if (!btn) return;
+  const rest = btn.previousElementSibling;
+  const open = rest.hidden;
+  rest.hidden = !open;
+  btn.setAttribute('aria-expanded', String(open));
+  btn.textContent = open ? 'Show fewer' : `Show all ${btn.dataset.n}`;
+}
+
 function bindEvents() {
   window.addEventListener('hashchange', applyRoute);
   $('#sign-out-btn').addEventListener('click', () => Auth.signOut());
@@ -701,15 +731,9 @@ function bindEvents() {
   $('#back-btn').addEventListener('click', () => { location.hash = '#students'; });
   $('#detail').addEventListener('click', (e) => {
     if (e.target.closest('#retry-btn') && selectedStudent) selectStudent(selectedStudent);
-    const btn = e.target.closest('[data-toggle-rest]');
-    if (btn) {
-      const rest = btn.previousElementSibling;
-      const open = rest.hidden;
-      rest.hidden = !open;
-      btn.setAttribute('aria-expanded', String(open));
-      btn.textContent = open ? 'Show fewer' : `Show all ${btn.dataset.n}`;
-    }
+    toggleRest(e);
   });
+  $('#chat-profile-body').addEventListener('click', toggleRest);
 }
 
 /* ==========================================================

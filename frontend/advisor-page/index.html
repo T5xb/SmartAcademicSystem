@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
-  <link rel="stylesheet" href="style.css?v=3">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 
 <body>
@@ -108,7 +108,7 @@
               <div class="chat__actions">
                 <button type="button" class="btn btn--primary" id="close-ticket-btn">
                   <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" width="14" height="14"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                  Close ticket
+                  Mark resolved
                 </button>
                 <button type="button" class="btn btn--ghost" id="reopen-ticket-btn" hidden>Reopen</button>
               </div>
@@ -121,7 +121,10 @@
                 <label class="visually-hidden" for="reply">Reply to the student</label>
                 <textarea id="reply" class="input composer__input" rows="2" maxlength="2000" dir="auto"
                           placeholder="Reply to the student..." title="Enter sends, Shift+Enter adds a new line"></textarea>
-                <button type="submit" class="btn btn--primary composer__send" id="send-btn">Send</button>
+                <div class="composer__btns">
+                  <button type="submit" class="btn btn--primary composer__send" id="resolve-btn">Reply &amp; resolve</button>
+                  <button type="submit" class="btn btn--ghost composer__send" id="send-btn">Send</button>
+                </div>
               </div>
               <div class="composer__tools">
                 <label class="visually-hidden" for="quick-reply">Quick replies</label>
@@ -132,6 +135,11 @@
               </div>
             </form>
             <div class="closed-note" id="closed-note" hidden></div>
+
+            <details class="chat__profile" open>
+              <summary>Student profile</summary>
+              <div class="chat__profile-body" id="chat-profile-body"></div>
+            </details>
           </div>
         </div>
       </section>
@@ -182,7 +190,7 @@
       </a>
       <a class="side-link" href="#tickets/closed" data-nav="closed">
         <span class="side-dot side-dot--closed"></span>
-        <span>Closed</span><span class="side-count" data-count="closed"></span>
+        <span>Resolved</span><span class="side-count" data-count="closed"></span>
       </a>
 
       <p class="sidebar__label">Students</p>
@@ -196,6 +204,6 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="../shared/auth.js?v=2"></script>
-  <script src="script.js?v=3"></script>
+  <script src="script.js?v=4"></script>
 </body>
 </html>

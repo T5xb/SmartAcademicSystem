@@ -299,6 +299,7 @@ function init() {
 }
 
 Auth.requireRole('student').then((user) => {
+  Tickets.mount(user);
   Auth.fillUser(user);
   init(user);
 });

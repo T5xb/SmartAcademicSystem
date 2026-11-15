@@ -6,7 +6,6 @@ from src.index import get_index
 from src.query import get_query_engine_tool
 from src.citation import NO_ANSWER_SENTINEL, enable_citation, format_citations
 from src.clarify import TICKET_MARK, is_vague, pending_question, unanswered_reply
-from src.tickets import build_ticket
 from src.settings import init_settings
 from src.quick_answers import quick_reply
 from src.student_style import expand_query, small_talk_reply, with_greeting
@@ -21,8 +20,9 @@ class DirectQueryWorkflow:
         self, user_msg: str, history: list | None = None
     ) -> tuple[str, dict | None]:
         """
-        The reply, and a ticket draft when the reply suggests opening a
-        ticket with academic advising (else None). `history` is the
+        The reply, and {"summary": question} when the reply suggests opening
+        a ticket with academic advising (else None); the chat page pre-fills
+        the ticket panel with it. `history` is the
         conversation so far as [{role: "user"|"bot", text}], oldest first.
         """
         # A bare greeting or thanks has nothing to look up.
@@ -50,10 +50,7 @@ class DirectQueryWorkflow:
     @staticmethod
     def _unanswered(user_msg, question, history) -> tuple[str, dict | None]:
         reply = unanswered_reply(question, history)
-        ticket = None
-        if TICKET_MARK in reply:
-            transcript = list(history or []) + [{"role": "user", "text": user_msg}]
-            ticket = build_ticket(question, transcript)
+        ticket = {"summary": question} if TICKET_MARK in reply else None
         return with_greeting(user_msg, reply), ticket
 
 

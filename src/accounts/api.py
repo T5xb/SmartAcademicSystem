@@ -232,11 +232,11 @@ def students(_: dict = Depends(require_advisor)):
     return {"students": [_student_summary(s, p) for s, p in store.students_with_profiles()]}
 
 
-@router.get("/advisor/students/{student_id}")
-def student(student_id: str, _: dict = Depends(require_advisor)):
+def student_detail(student_id: str) -> dict | None:
+    """What an advisor sees about a student (also shown with their tickets)."""
     user = store.get_user(student_id)
     if user is None or user["role"] != "student":
-        raise HTTPException(status_code=404, detail="Student not found.")
+        return None
     # The academic profile and the saved schedule choices. Chat messages stay
     # private to the student; only their number is shown.
     return {
@@ -244,6 +244,14 @@ def student(student_id: str, _: dict = Depends(require_advisor)):
         "profile": store.get_profile(student_id),
         "chat_count": store.count_chats(student_id),
     }
+
+
+@router.get("/advisor/students/{student_id}")
+def student(student_id: str, _: dict = Depends(require_advisor)):
+    detail = student_detail(student_id)
+    if detail is None:
+        raise HTTPException(status_code=404, detail="Student not found.")
+    return detail
 
 
 # ------------------------------------------------------- admin: accounts

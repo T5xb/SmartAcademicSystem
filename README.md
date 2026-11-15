@@ -130,12 +130,22 @@ suggesting a ticket with academic advising. Settings in `src/.env`:
 | setting | effect |
 | --- | --- |
 | `MAX_CLARIFY_ATTEMPTS` | clarifying questions before the ticket suggestion |
-| `TICKET_URL` | link added to the ticket suggestion (empty = text only) |
-| `TICKETS_FILE` | turns on `POST /api/tickets` and saves tickets there as JSON lines (empty = off) |
 
-When the reply suggests a ticket, the `/api/chat` response also carries a
-`ticket` draft for the future ticket page / advisors' dashboard. Shape and
-details: [ARCHITECTURE.md §4.6](ARCHITECTURE.md).
+When the reply suggests a ticket, the `/api/chat` response also carries
+`ticket: {summary}`, and the chat page shows an "Open an advising ticket"
+button that opens the ticket form with the question filled in.
+
+### Advising tickets
+
+Every student page has a round ticket button at the bottom-right. A student
+writes a title and the problem (their name and university ID come from the
+account) and then chats with advising inside the ticket; a badge shows
+replies not read yet. All advisors and admins share the tickets on
+`advisor-page` (dashboard, inbox with search, conversation). The ticket view
+shows the student's academic profile under the conversation. The first
+advisor reply moves a ticket from New to In progress; "Reply & resolve"
+sends the reply and resolves the ticket in one step, and a resolved ticket
+can be reopened. Details: [ARCHITECTURE.md §4.6](ARCHITECTURE.md).
 
 ### Accounts and roles
 
@@ -146,7 +156,7 @@ creates five preset accounts with the password in `PRESET_PASSWORD`
 | ID | role | opens |
 | --- | --- | --- |
 | `admin` | admin | `admin-page`: source documents (view, upload, replace, remove, OCR), index rebuild, accounts (add, disable, reset password) |
-| `advisor` | academic advisor | `advisor-page`: the students and each one's academic profile |
+| `advisor` | academic advisor | `advisor-page`: advising tickets, the students and each one's academic profile |
 | `441000001` – `441000003` | student | chatbot (chats saved to the account), schedule planner, profile |
 
 Accounts, sessions, saved chats and profiles are stored in the same

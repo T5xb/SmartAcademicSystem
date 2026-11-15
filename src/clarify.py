@@ -20,10 +20,6 @@ from src.student_style import formal_terms, small_talk_reply
 # Clarifying questions before the ticket suggestion.
 MAX_CLARIFY_ATTEMPTS = int(os.getenv("MAX_CLARIFY_ATTEMPTS", "2"))
 
-# Link to the advising ticket page. Empty for now: the message stays text
-# only until the page exists, then setting TICKET_URL in src/.env adds it.
-TICKET_URL = os.getenv("TICKET_URL", "").strip()
-
 CLARIFY_MARK = "🤔|"
 TICKET_MARK = "🎫|"
 
@@ -144,11 +140,9 @@ def ticket_reply() -> str:
     """After the clarifying attempts: open a ticket with academic advising."""
     lines = [
         f"{TICKET_MARK} ما قدرت أوصل لجواب أكيد لسؤالك من الأنظمة واللوائح اللي عندي",
-        "تقدر تفتح تذكرة (تيكت) على الإرشاد الأكاديمي وتكتب فيها مشكلتك بالتفصيل، "
-        "وبيتواصلون معك بخصوصها إن شاء الله.",
+        "تقدر تفتح تذكرة (تيكت) على الإرشاد الأكاديمي وتكتب فيها مشكلتك بالتفصيل "
+        "من زر «Open an advising ticket» تحت هذي الرسالة، ويرد عليك المرشد في نفس المكان إن شاء الله.",
     ]
-    if TICKET_URL:
-        lines.append(f"[🎫 فتح تذكرة على الإرشاد الأكاديمي]({TICKET_URL})")
     return "\n".join(lines)
 
 

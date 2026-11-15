@@ -124,8 +124,8 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
-    # A ticket draft when the reply suggests opening a ticket (see
-    # src/tickets.py); the future ticket page posts it to /api/tickets.
+    # {"summary": question} when the reply suggests an advising ticket; the
+    # chat page offers to open the ticket form pre-filled with it.
     ticket: dict | None = None
 
 

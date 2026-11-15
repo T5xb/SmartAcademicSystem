@@ -567,22 +567,19 @@ async def tc23(ctx: Ctx) -> Outcome:
 
 
 @case("TC-24", "Clarify twice -> advising ticket draft", "Path testing (attempt 1 -> attempt 2 -> ticket)",
-      "src/clarify.py, src/tickets.py, workflow router")
+      "src/clarify.py, workflow router")
 async def tc24(ctx: Ctx) -> Outcome:
     history = [
-        {"role": "user", "text": "عندي مشكلة رقمي 441234567 وايميلي st@example.com"},
+        {"role": "user", "text": "عندي مشكلة بالتسجيل"},
         {"role": "bot", "text": "🤔| ودي أساعدك، بس ما وضح لي سؤالك"},
         {"role": "user", "text": "ممكن سؤال"},
         {"role": "bot", "text": "🤔| للحين ما لقيت جواب واضح"},
     ]
     r, ticket, route = await _route(ctx, "ساعدوني", history)
-    flat = json.dumps(ticket or {}, ensure_ascii=False)
     observed = {
         "reply_suggests_ticket": "🎫|" in r,
         "ticket_draft_returned": ticket is not None,
-        "ticket_status_open": (ticket or {}).get("status") == "open",
-        "student_id_masked": "441234567" not in flat,
-        "email_masked": "st@example.com" not in flat,
+        "draft_prefills_question": bool((ticket or {}).get("summary")),
     }
     return await facts_check("3rd vague message after two clarifying replies", observed,
                              {k: True for k in observed}, route)
@@ -967,27 +964,23 @@ async def tc44(ctx: Ctx) -> Outcome:
                               "completed": "عال 1100,عال 1140", "saved_in_profile": True})
 
 
-@case("TC-45", "Advising tickets endpoint", "Condition testing (TICKETS_FILE off / on)",
-      "POST /api/tickets, src/tickets.py")
+@case("TC-45", "Advising tickets: student -> advisor", "Path testing (open -> reply & resolve -> read)",
+      "/api/tickets, /api/advisor/tickets, src/accounts/tickets.py")
 async def tc45(ctx: Ctx) -> Outcome:
-    import src.tickets as tickets
-
-    anon = await ctx.client(None)
-    payload = {"summary": "سؤال عن 1234567890", "transcript": [{"role": "user", "text": "x"}], "contact": "a@b.c"}
-    saved = tickets.TICKETS_FILE
-    try:
-        tickets.TICKETS_FILE = ""
-        off = await anon.post("/api/tickets", json=payload)
-        tickets.TICKETS_FILE = os.path.join(TMP_DIR, "tickets.jsonl")
-        on = await anon.post("/api/tickets", json=payload)
-        with open(tickets.TICKETS_FILE, encoding="utf-8") as f:
-            line = json.loads(f.readline())
-    finally:
-        tickets.TICKETS_FILE = saved
-    observed = {"disabled": off.status_code, "enabled": on.status_code,
-                "saved_status": line.get("status"), "number_masked": "1234567890" not in line.get("summary", "")}
-    return await facts_check("POST /api/tickets with tickets off, then on", observed,
-                             {"disabled": 503, "enabled": 200, "saved_status": "open", "number_masked": True})
+    st, adv = await ctx.client(STUDENT), await ctx.client(ADVISOR)
+    made = await st.post("/api/tickets", json={"title": "تسجيل مقرر", "message": "ما قدرت أسجل مقرر عال 1100 في البوابة"})
+    ticket = made.json().get("ticket", {})
+    tid = ticket.get("id", "")
+    detail = (await adv.get(f"/api/advisor/tickets/{tid}")).json()
+    replied = await adv.post(f"/api/advisor/tickets/{tid}/messages",
+                             json={"body": "راجع شؤون الطلاب", "close": True})
+    unread = (await st.get("/api/tickets")).json().get("unread")
+    observed = {"created": made.status_code, "id_from_account": ticket.get("university_id"),
+                "advisor_sees_profile": bool((detail.get("student") or {}).get("user")),
+                "replied_status": replied.json().get("ticket", {}).get("status"), "student_unread": unread}
+    return await facts_check("student opens a ticket, advisor replies and resolves it", observed,
+                             {"created": 201, "id_from_account": STUDENT, "advisor_sees_profile": True,
+                              "replied_status": "closed", "student_unread": 1})
 
 
 @case("TC-46", "Saved chats, profile and planner", "Path testing (save -> list -> delete)",

@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
+from .api import student_detail
 from .db import get_engine
 from .deps import require_advisor, require_roles
 from .store import _retry, _row, _rows
@@ -35,19 +36,11 @@ require_student = require_roles("student")
 
 
 class NewTicket(BaseModel):
-    full_name: str = Field(min_length=5, max_length=120)
-    university_id: str = Field(pattern=r"^\d{6,12}$")
+    # The student's name and university ID come from their account, so the
+    # form doesn't ask for them (sent values are ignored).
     title: str = Field(min_length=3, max_length=150)
-    # Optional first message, e.g. the question the chatbot couldn't answer.
+    # The problem in the student's words, e.g. the question the chatbot couldn't answer.
     message: str = Field(default="", max_length=MAX_BODY)
-
-    @field_validator("full_name")
-    @classmethod
-    def three_part_name(cls, value: str) -> str:
-        value = " ".join(value.split())
-        if len(value.split(" ")) < 3:
-            raise ValueError("Enter your full name: first, father's and family name.")
-        return value
 
     @field_validator("title", "message")
     @classmethod
@@ -57,6 +50,8 @@ class NewTicket(BaseModel):
 
 class NewMessage(BaseModel):
     body: str = Field(min_length=1, max_length=MAX_BODY)
+    # Advisors only: send the reply and mark the ticket resolved in one step.
+    close: bool = False
 
 
 # ------------------------------------------------------------------ store
@@ -148,7 +143,7 @@ def create_ticket(student: dict, req: NewTicket) -> dict:
                     ),
                     {
                         "id": ticket_id, "number": number, "student_id": student["id"],
-                        "full_name": req.full_name, "university_id": req.university_id,
+                        "full_name": student["name"], "university_id": student["username"],
                         "title": req.title, "at": at,
                     },
                 )
@@ -358,13 +353,18 @@ def staff_overview(_: dict = Depends(require_advisor)):
 
 @router.get("/advisor/tickets/{ticket_id}")
 def staff_ticket(ticket_id: str, _: dict = Depends(require_advisor)):
-    return _with_messages(_found(ticket_id))
+    ticket = _found(ticket_id)
+    # The student's academic profile is shown under the conversation.
+    return {**_with_messages(ticket), "student": student_detail(ticket["student_id"])}
 
 
 @router.post("/advisor/tickets/{ticket_id}/messages", status_code=201)
 def staff_message(ticket_id: str, req: NewMessage, staff: dict = Depends(require_advisor)):
     ticket = _found(ticket_id)
-    return {"message": _post(ticket, staff, req.body), "ticket": get_ticket(ticket_id)}
+    message = _post(ticket, staff, req.body)
+    if req.close:
+        set_status(ticket_id, "closed", staff)
+    return {"message": message, "ticket": get_ticket(ticket_id)}
 
 
 @router.post("/advisor/tickets/{ticket_id}/close")

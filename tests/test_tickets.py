@@ -4,7 +4,7 @@ from src.accounts import tickets
 
 STUDENT, OTHER, ADVISOR, ADMIN = "441000001", "441000002", "advisor", "admin"
 
-NEW = {"full_name": "أحمد محمد الراشد", "university_id": "441000001", "title": "إضافة مقرر بعد الحذف والإضافة"}
+NEW = {"title": "إضافة مقرر بعد الحذف والإضافة"}
 
 
 def open_ticket(client, **extra):
@@ -29,11 +29,12 @@ def test_student_opens_a_ticket_and_advisors_see_it_as_new(sign_in):
     assert thread["messages"][0]["body"] == "أبي أضيف مقرر CS301"
 
 
-def test_ticket_form_needs_a_three_part_name_a_numeric_id_and_a_title(sign_in):
+def test_name_and_id_come_from_the_account_and_a_title_is_required(sign_in):
     student = sign_in(STUDENT)
-    assert student.post("/api/tickets", json={**NEW, "full_name": "أحمد الراشد"}).status_code == 422
-    assert student.post("/api/tickets", json={**NEW, "university_id": "abc"}).status_code == 422
-    assert student.post("/api/tickets", json={**NEW, "title": ""}).status_code == 422
+    # Whatever the form sends, the ticket carries the account's name and ID.
+    ticket = open_ticket(student, full_name="اسم آخر تماماً", university_id="999999")
+    assert ticket["full_name"] == "أحمد الراشد" and ticket["university_id"] == STUDENT
+    assert student.post("/api/tickets", json={"title": ""}).status_code == 422
 
 
 def test_advisor_reply_moves_it_to_in_progress_and_the_student_sees_it_unread(sign_in):
@@ -107,3 +108,32 @@ def test_open_ticket_limit_per_student(sign_in, monkeypatch):
     open_ticket(student)
     open_ticket(student)
     assert student.post("/api/tickets", json=NEW).status_code == 429
+
+
+def test_reply_and_resolve_in_one_step(sign_in):
+    student, advisor = sign_in(STUDENT), sign_in(ADVISOR)
+    ticket = open_ticket(student, message="ما قدرت أسجل المقرر")
+    r = advisor.post(f"/api/advisor/tickets/{ticket['id']}/messages",
+                     json={"body": "فتحت لك استثناء، سجّل الحين", "close": True})
+    assert r.status_code == 201 and r.json()["ticket"]["status"] == "closed"
+    assert r.json()["ticket"]["closed_by"] == "د. خالد العتيبي"
+    mine = student.get("/api/tickets").json()
+    assert mine["unread"] == 1
+    thread = student.get(f"/api/tickets/{ticket['id']}").json()
+    assert thread["messages"][-1]["body"] == "فتحت لك استثناء، سجّل الحين"
+    # Students can't use the flag to close their own ticket.
+    other = open_ticket(student)
+    student.post(f"/api/tickets/{other['id']}/messages", json={"body": "تحديث", "close": True})
+    assert tickets.get_ticket(other["id"])["status"] == "new"
+
+
+def test_advisor_sees_the_students_academic_profile_with_the_ticket(sign_in):
+    from src.accounts import store
+
+    student, advisor = sign_in(STUDENT), sign_in(ADVISOR)
+    store.update_profile(store.get_user_by_username(STUDENT)["id"], {"major": "علوم الحاسب"})
+    ticket = open_ticket(student)
+    data = advisor.get(f"/api/advisor/tickets/{ticket['id']}").json()
+    assert data["student"]["user"]["username"] == STUDENT
+    assert data["student"]["profile"]["major"] == "علوم الحاسب"
+    assert "password_hash" not in data["student"]["user"]

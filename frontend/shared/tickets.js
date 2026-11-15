@@ -46,16 +46,18 @@ const Tickets = (() => {
     // Tickets are for students; advisors answer them on the advisor page.
     if (!me || me.role !== 'student') return;
     user = me;
-    const actions = document.querySelector('.icon-actions');
-    if (!actions || document.querySelector('.tk-trigger')) return;
+    if (document.querySelector('.tk-trigger')) return;
+    // A small round button fixed at the bottom-right of every student page.
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'icon-btn tk-trigger';
+    btn.className = 'tk-trigger tk-fab';
     btn.title = 'Advising tickets';
     btn.setAttribute('aria-label', 'Advising tickets');
     btn.innerHTML = `${ICON.ticket}<span class="tk-trigger__badge" hidden></span>`;
-    btn.addEventListener('click', () => open());
-    actions.prepend(btn);
+    btn.addEventListener('click', () => (root ? close() : open()));
+    // On the chat page it sits above the message box, not over its send button.
+    if (document.querySelector('.composer')) document.body.classList.add('tk-raised');
+    document.body.appendChild(btn);
     refreshBadge();
     badgeTimer = setInterval(() => { if (!root && document.visibilityState === 'visible') refreshBadge(); }, BADGE_POLL_MS);
   }
@@ -177,26 +179,20 @@ const Tickets = (() => {
   function renderNew(v) {
     frame({
       title: 'New ticket',
-      sub: 'All fields are required.',
+      sub: user ? `Sent as <bdi>${esc(user.name)}</bdi> (${esc(user.username)})` : '',
       body: `
         <form class="tk-form" data-tk-form="new" novalidate>
           <div class="tk-field">
-            <label class="tk-label" for="tk-name">Full name (three parts)</label>
-            <input class="tk-input" id="tk-name" name="full_name" dir="auto" maxlength="120" autocomplete="name"
-                   value="${esc(v.full_name ?? '')}" placeholder="First, father's and family name" autofocus>
-          </div>
-          <div class="tk-field">
-            <label class="tk-label" for="tk-id">University ID</label>
-            <input class="tk-input" id="tk-id" name="university_id" inputmode="numeric" maxlength="12"
-                   value="${esc(v.university_id ?? (user ? user.username : ''))}" placeholder="e.g. 441000001">
-          </div>
-          <div class="tk-field">
             <label class="tk-label" for="tk-title-input">Problem title</label>
             <input class="tk-input" id="tk-title-input" name="title" dir="auto" maxlength="150"
-                   value="${esc(v.title ?? '')}" placeholder="e.g. Adding a course after the add/drop week">
-            <span class="tk-hint">You can explain the details in the chat after opening the ticket.</span>
+                   value="${esc(v.title ?? '')}" placeholder="e.g. Adding a course after the add/drop week" autofocus>
           </div>
-          ${v.message ? `<input type="hidden" name="message" value="${esc(v.message)}">` : ''}
+          <div class="tk-field">
+            <label class="tk-label" for="tk-message">Your problem or request</label>
+            <textarea class="tk-input tk-textarea" id="tk-message" name="message" dir="auto" maxlength="2000" rows="5"
+                      placeholder="Explain what happened or what you need.">${esc(v.message ?? '')}</textarea>
+            <span class="tk-hint">An academic advisor will reply here, and you can keep chatting in the ticket.</span>
+          </div>
           <p class="tk-error" role="alert"></p>
           <div class="tk-actions">
             <button type="button" class="tk-btn tk-btn--ghost" data-tk-back>Back</button>
@@ -279,8 +275,8 @@ const Tickets = (() => {
     v.count = messages.length;
     const closed = ticket.status === 'closed';
     frame({
-      title: `${esc(ticket.code)} · ${esc(ticket.title)}`,
-      sub: `${STATUS_LABEL[ticket.status] || ticket.status} · ${esc(ticket.full_name)} (${esc(ticket.university_id)})`,
+      title: `${esc(ticket.code)} · <bdi>${esc(ticket.title)}</bdi>`,
+      sub: `${STATUS_LABEL[ticket.status] || ticket.status} · <bdi>${esc(ticket.full_name)}</bdi> (${esc(ticket.university_id)})`,
       body: chatBody(ticket, messages),
       chat: true,
       footer: closed
@@ -341,7 +337,7 @@ const Tickets = (() => {
   }
 
   function goNew(prefill = {}) {
-    go('new', { full_name: user ? user.name : '', ...prefill });
+    go('new', { ...prefill });
   }
 
   function onKey(e) {
@@ -372,21 +368,18 @@ const Tickets = (() => {
 
   async function submitNew(form) {
     form.querySelectorAll('[aria-invalid]').forEach((el) => el.removeAttribute('aria-invalid'));
-    const fullName = form.elements.full_name.value.trim().replace(/\s+/g, ' ');
-    const universityId = form.elements.university_id.value.trim();
     const title = form.elements.title.value.trim();
+    const message = form.elements.message.value.trim();
     // Keep what was typed if the student goes back and forth.
-    Object.assign(current(), { full_name: fullName, university_id: universityId, title });
-    if (fullName.split(' ').length < 3) return fieldError(form, 'full_name', 'Enter your full name: first, father\'s and family name.');
-    if (!/^\d{6,12}$/.test(universityId)) return fieldError(form, 'university_id', 'Enter your university ID: 6 to 12 digits.');
+    Object.assign(current(), { title, message });
     if (title.length < 3) return fieldError(form, 'title', 'Write a short title for your problem.');
+    if (message.length < 10) return fieldError(form, 'message', 'Describe your problem in a few words (at least 10 characters).');
 
     const submit = form.querySelector('[type="submit"]');
     submit.disabled = true;
     submit.textContent = 'Opening...';
     try {
-      const body = { full_name: fullName, university_id: universityId, title };
-      if (form.elements.message) body.message = form.elements.message.value;
+      const body = { title, message };
       const data = await Auth.api('/api/tickets', { method: 'POST', body });
       tickets = [data.ticket, ...tickets];
       // Back from the new conversation goes to the ticket list, not the form.
@@ -431,7 +424,7 @@ const Tickets = (() => {
     open,
     /* Opens the new-ticket form, e.g. from the chatbot's ticket suggestion. */
     openNew(prefill = {}) {
-      open('new', { full_name: user ? user.name : '', ...prefill });
+      open('new', { ...prefill });
     },
   };
 })();

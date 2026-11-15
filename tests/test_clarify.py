@@ -1,10 +1,8 @@
 """Clarifying questions before the ticket suggestion (no LLM or DB needed)."""
 
 import asyncio
-import json
 from types import SimpleNamespace
 
-from src import tickets
 from src.citation import NO_ANSWER_SENTINEL
 from src.clarify import (
     CLARIFY_MARK,
@@ -110,9 +108,8 @@ def test_unanswered_question_clarifies_then_suggests_a_ticket():
     replies = [m["text"] for m in history if m["role"] == "bot"]
     assert [CLARIFY_MARK in r for r in replies] == [True, True, False]
     assert TICKET_MARK in replies[-1]
-    assert ticket and ticket["status"] == "open"
+    assert set(ticket) == {"summary"}
     assert "مواقف السيارات" in ticket["summary"]
-    assert ticket["transcript"][-1] == {"role": "user", "text": "وين اوقف سيارتي"}
 
 
 def test_clarified_question_is_searched_with_the_earlier_message():
@@ -130,26 +127,6 @@ def test_answered_question_is_unchanged():
     assert reply == "الغياب المسموح 25%." and ticket is None
 
 
-# ------------------------------------------------------------ tickets hook
-
-
-def test_ticket_masks_ids_and_emails():
-    t = tickets.build_ticket("رقمي 441012345 وايميلي a.b@imamu.edu.sa",
-                             [{"role": "user", "text": "جوالي 0551234567"}])
-    assert "441012345" not in t["summary"] and "@" not in t["summary"]
-    assert "0551234567" not in t["transcript"][0]["text"]
-
-
-def test_create_ticket_is_off_by_default_and_writes_jsonl_when_on(tmp_path, monkeypatch):
-    monkeypatch.setattr(tickets, "TICKETS_FILE", "")
-    assert not tickets.tickets_enabled()
-    path = tmp_path / "tickets.jsonl"
-    monkeypatch.setattr(tickets, "TICKETS_FILE", str(path))
-    t = tickets.create_ticket(tickets.build_ticket("سؤال", []))
-    saved = json.loads(path.read_text(encoding="utf-8").strip())
-    assert saved["id"] == t["id"] and saved["status"] == "open"
-
-
 # ------------------------------------------------------------ API
 
 
@@ -162,4 +139,4 @@ def test_chat_api_passes_history_and_returns_ticket(monkeypatch, sign_in):
     r = client.post("/api/chat", json={"message": "ما زالت المشكلة", "history": history})
     assert r.status_code == 200
     body = r.json()
-    assert TICKET_MARK in body["response"] and body["ticket"]["status"] == "open"
+    assert TICKET_MARK in body["response"] and body["ticket"]["summary"]
