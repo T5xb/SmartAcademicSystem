@@ -47,6 +47,11 @@ async def lifespan(app: FastAPI):
     created = store.seed_preset_accounts()
     if created:
         logger.info("Created preset accounts: %s", ", ".join(created))
+    from src.accounts.samples import seed_sample_records
+
+    sampled = seed_sample_records()
+    if sampled:
+        logger.info("Added sample academic records for: %s", ", ".join(sampled))
 
     logger.info("Loading index and building workflow...")
     _load_workflow()

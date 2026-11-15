@@ -51,7 +51,7 @@
 
   /* Misc */
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Sans Arabic', ui-monospace, Consolas, monospace;
   --transition: 0.2s ease;
   --sidebar-width: 360px;
   --row-height: 96px;
@@ -428,7 +428,7 @@ body {
 .icon-btn__badge {
   position: absolute;
   top: 6px;
-  right: 6px;
+  inset-inline-end: 6px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -440,8 +440,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-left: 12px;
-  border-left: 1px solid var(--border-soft);
+  padding-inline-start: 12px;
+  border-inline-start: 1px solid var(--border-soft);
 }
 
 .user__avatar {
@@ -478,7 +478,7 @@ body {
 }
 
 .sign-out {
-  margin-left: 8px;
+  margin-inline-start: 8px;
   color: var(--text-400);
   transition: color var(--transition);
 }
@@ -510,7 +510,7 @@ body {
   display: flex;
   flex-direction: column;
   background-color: var(--surface);
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
 }
 
 .sidebar__header {
@@ -596,7 +596,7 @@ body {
   background-color: rgba(21, 25, 26, 0.8);
   border: 1px dashed var(--primary-40);
   box-shadow: 0 0 12px var(--primary-05);
-  text-align: left;
+  text-align: start;
   transition: border-color var(--transition), background-color var(--transition);
 }
 
@@ -785,7 +785,7 @@ body {
 .search svg {
   position: absolute;
   top: 50%;
-  left: 12px;
+  inset-inline-start: 12px;
   width: 16px;
   height: 16px;
   transform: translateY(-50%);
@@ -795,7 +795,8 @@ body {
 
 .search__input {
   width: 100%;
-  padding: 8px 12px 8px 36px;
+  padding: 8px 12px;
+  padding-inline-start: 36px;
   border-radius: 8px;
   background-color: var(--surface-2);
   border: 1px solid var(--border);
@@ -849,7 +850,7 @@ body {
   gap: 8px;
   max-height: 260px;
   overflow-y: auto;
-  padding-right: 4px;
+  padding-inline-end: 4px;
 }
 
 .course-list__empty {
@@ -1251,7 +1252,7 @@ body {
   content: '';
   position: absolute;
   top: 2px;
-  left: 2px;
+  inset-inline-start: 2px;
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -1372,7 +1373,7 @@ body {
 }
 
 .results {
-  text-align: right;
+  text-align: end;
 }
 
 .results__label {
@@ -1481,11 +1482,11 @@ body {
 
 .timetable__head > div {
   padding: 12px 0;
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
 }
 
 .timetable__head > div:last-child {
-  border-right: none;
+  border-inline-end: none;
 }
 
 .timetable__head .is-off {
@@ -1509,7 +1510,7 @@ body {
 
 .tt-col {
   position: relative;
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   background-image: repeating-linear-gradient(
     to bottom,
     transparent 0,
@@ -1565,8 +1566,8 @@ body {
 /* Course blocks (color comes from --c) */
 .tt-block {
   position: absolute;
-  left: 6px;
-  right: 6px;
+  inset-inline-start: 6px;
+  inset-inline-end: 6px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1980,7 +1981,7 @@ body {
 }
 
 .section-card__exam-value {
-  margin-left: 4px;
+  margin-inline-start: 4px;
   font-family: var(--font-mono);
   color: var(--text-200);
 }
@@ -2332,7 +2333,7 @@ body.modal-open {
 
   .sidebar {
     width: 100%;
-    border-right: none;
+    border-inline-end: none;
     border-bottom: 1px solid var(--border);
   }
 
@@ -2362,8 +2363,8 @@ body.modal-open {
 
   .toolbar,
   .content__scroll {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-inline-start: 16px;
+    padding-inline-end: 16px;
   }
 }
 
@@ -2375,4 +2376,38 @@ a.user__avatar {
 a.user__avatar:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 3px;
+}
+
+/* ==========================================================
+   Right-to-left (Arabic)
+   ========================================================== */
+[dir="rtl"] .import-card:hover .import-card__arrow {
+  transform: scaleX(-1) translateX(2px);
+}
+
+[dir="rtl"] .switch__input:checked + .switch__track::after {
+  transform: translateX(-16px);
+}
+
+/* Time slider keeps its left-to-right scale so the fill matches the handles */
+.range,
+.range__labels,
+.time-badge,
+#time-badge {
+  direction: ltr;
+}
+
+.badge--mono,
+.mono-tag {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+html[dir="rtl"] .section-head__title,
+html[dir="rtl"] .time-picker__head,
+html[dir="rtl"] .tt-col__off-label,
+html[dir="rtl"] .timetable__head .is-off,
+html[dir="rtl"] .timetable__head .is-time {
+  letter-spacing: 0;
+  text-transform: none;
 }

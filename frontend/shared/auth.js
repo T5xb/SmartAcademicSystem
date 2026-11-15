@@ -16,7 +16,11 @@ const Auth = (() => {
     advisor: '../advisor-page/index.html?v=2',
     admin: '../admin-page/index.html?v=2',
   };
-  const SERVER_DOWN = `Couldn't reach the Academic AI server at ${API_URL}. Make sure the server is running (Start-API.bat).`;
+  // In the interface language (i18n.js is loaded first on every page).
+  const tr = (key, vars, fallback) => (typeof I18n !== 'undefined' ? I18n.t(key, vars) : fallback);
+  const serverDown = () => tr('common.serverDown', { url: API_URL },
+    `Couldn't reach the Academic AI server at ${API_URL}. Make sure the server is running (Start-API.bat).`);
+  const SERVER_DOWN = serverDown();
 
   let user = null;
 
@@ -35,12 +39,14 @@ const Auth = (() => {
       res = await fetch(`${API_URL}${path}`, init);
     } catch (err) {
       if (err.name === 'AbortError') throw err;
-      throw new Error(SERVER_DOWN);
+      throw new Error(serverDown());
     }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       if (res.status === 401 && !options.keepPage) location.replace(SIGN_IN_PAGE);
-      const detail = typeof data.detail === 'string' ? data.detail : `Server error (${res.status})`;
+      const raw = typeof data.detail === 'string' ? data.detail : `Server error (${res.status})`;
+      // The server answers in English; known messages are shown in Arabic.
+      const detail = typeof I18n !== 'undefined' ? I18n.server(raw) : raw;
       const error = new Error(detail);
       error.status = res.status;
       throw error;
@@ -109,17 +115,19 @@ const Auth = (() => {
      so the header pill never shows a past semester. */
   function termLabel(date = new Date()) {
     const m = date.getMonth();
-    const term = m >= 7 ? 'Fall' : m <= 4 ? 'Spring' : 'Summer';
-    return `${term} ${date.getFullYear()}`;
+    const term = m >= 7 ? 'fall' : m <= 4 ? 'spring' : 'summer';
+    return tr(`term.${term}`, { year: date.getFullYear() },
+      `${term[0].toUpperCase()}${term.slice(1)} ${date.getFullYear()}`);
   }
 
   function fillTerm() {
     document.querySelectorAll('[data-term]').forEach((el) => {
-      el.textContent = `${el.dataset.term}${termLabel()} Online`;
+      el.textContent = `${el.dataset.term}${tr('term.online', { term: termLabel() }, `${termLabel()} Online`)}`;
     });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fillTerm);
   else fillTerm();
+  if (typeof I18n !== 'undefined') I18n.onChange(fillTerm);
 
   return {
     API_URL, SERVER_DOWN, api, whoAmI, requireRole, signOut, fillUser, home, initials, firstName, termLabel,

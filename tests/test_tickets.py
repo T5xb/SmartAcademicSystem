@@ -137,3 +137,31 @@ def test_advisor_sees_the_students_academic_profile_with_the_ticket(sign_in):
     assert data["student"]["user"]["username"] == STUDENT
     assert data["student"]["profile"]["major"] == "علوم الحاسب"
     assert "password_hash" not in data["student"]["user"]
+
+
+def test_students_get_a_sample_academic_record_once(sign_in):
+    from src.accounts import samples, store
+
+    sign_in()  # seeds the preset accounts
+    assert set(samples.seed_sample_records()) == {"441000001", "441000002", "441000003"}
+    assert samples.seed_sample_records() == []  # never twice
+    third = store.get_profile(store.get_user_by_username("441000003")["id"])
+    record = third["transcript"]
+    assert record["source"] == "sample" and record["gpa"] == 2.31
+    assert record["completed"] and len(record["not_passed"]) == 1 and record["earned_hours"] > 0
+    assert third["major"] == "علوم الحاسب" and third["level"] == "Level 7"
+    # A student's own details are kept.
+    user = store.get_user_by_username("441000001")
+    store.update_profile(user["id"], {"transcript": {}, "phone": "0555555555"})
+    samples.ensure_sample_record(user)
+    assert store.get_profile(user["id"])["phone"] == "0555555555"
+
+
+def test_admin_added_student_gets_a_sample_record(sign_in):
+    from src.accounts import store
+
+    admin = sign_in(ADMIN)
+    r = admin.post("/api/admin/users", json={"username": "441000099", "name": "طالب جديد", "role": "student"})
+    assert r.status_code == 201
+    profile = store.get_profile(r.json()["user"]["id"])
+    assert profile["transcript"]["source"] == "sample"

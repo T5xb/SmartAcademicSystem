@@ -49,7 +49,7 @@
 
   /* Misc */
   --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Sans Arabic', ui-monospace, Consolas, monospace;
   --transition: 0.2s ease;
   --sidebar-width: 288px;
   --chat-width: 768px;
@@ -175,7 +175,7 @@ body {
 .icon-btn__badge {
   position: absolute;
   top: 6px;
-  right: 6px;
+  inset-inline-end: 6px;
   width: 6px;
   height: 6px;
   border-radius: 50%;
@@ -372,8 +372,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-left: 12px;
-  border-left: 1px solid var(--border-soft);
+  padding-inline-start: 12px;
+  border-inline-start: 1px solid var(--border-soft);
 }
 
 .user__info {
@@ -396,7 +396,7 @@ body {
 }
 
 .sign-out {
-  margin-left: 8px;
+  margin-inline-start: 8px;
   color: var(--text-400);
   transition: color var(--transition);
 }
@@ -432,12 +432,12 @@ body {
   gap: 12px;
   padding: 16px 12px;
   background-color: var(--surface-2);
-  border-right: 1px solid var(--surface-3);
-  transition: margin-left 0.25s ease;
+  border-inline-end: 1px solid var(--surface-3);
+  transition: margin 0.25s ease;
 }
 
 body.sidebar-collapsed .sidebar {
-  margin-left: calc(var(--sidebar-width) * -1);
+  margin-inline-start: calc(var(--sidebar-width) * -1);
 }
 
 .sidebar__top {
@@ -450,7 +450,7 @@ body.sidebar-collapsed .sidebar {
 
 .sidebar__top > .text-btn {
   align-self: flex-start;
-  margin-left: 4px;
+  margin-inline-start: 4px;
 }
 
 .new-chat {
@@ -529,7 +529,7 @@ body.sidebar-collapsed .sidebar {
   width: 100%;
   padding: 6px 12px;
   border-radius: 8px;
-  text-align: left;
+  text-align: start;
   font-size: 13px;
   color: var(--text-variant);
   transition: color var(--transition), background-color var(--transition);
@@ -610,7 +610,7 @@ body.sidebar-collapsed .sidebar {
 
 .menu {
   position: absolute;
-  right: 0;
+  inset-inline-end: 0;
   bottom: calc(100% + 8px);
   z-index: 20;
   min-width: 180px;
@@ -767,7 +767,7 @@ body.sidebar-collapsed .strip__open {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  text-align: left;
+  text-align: start;
 }
 
 .suggestions__label {
@@ -792,7 +792,7 @@ body.sidebar-collapsed .strip__open {
   padding: 12px;
   border-radius: 12px;
   background-color: var(--surface-3);
-  text-align: left;
+  text-align: start;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   transition: background-color var(--transition);
 }
@@ -834,6 +834,14 @@ body.sidebar-collapsed .strip__open {
 
 .suggestion:hover .suggestion__arrow {
   transform: translateX(4px);
+}
+
+[dir="rtl"] .suggestion .suggestion__arrow {
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] .suggestion:hover .suggestion__arrow {
+  transform: scaleX(-1) translateX(4px);
 }
 
 .suggestion__title {
@@ -885,7 +893,8 @@ body.sidebar-collapsed .strip__open {
 .msg-user__bubble {
   max-width: 85%;
   padding: 16px;
-  border-radius: 16px 4px 16px 16px;
+  border-radius: 16px;
+  border-start-end-radius: 4px;
   background-color: var(--surface-4);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
   white-space: pre-wrap;
@@ -1354,7 +1363,7 @@ body.sidebar-collapsed .strip__open {
 
 .source__part--file {
   background-color: transparent;
-  padding-left: 0;
+  padding-inline-start: 0;
   font-family: var(--font-mono);
   font-size: 11px;
   color: var(--text-variant);
@@ -1516,9 +1525,13 @@ body.sidebar-collapsed .strip__open {
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 0;
+    inset-inline-start: 0;
     z-index: 40;
     box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+  }
+
+  [dir="rtl"] .sidebar {
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
   }
 
   body:not(.sidebar-collapsed) .sidebar-backdrop {

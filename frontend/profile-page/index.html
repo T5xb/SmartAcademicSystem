@@ -1,15 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Academic AI - My Profile</title>
+  <title data-i18n="profile.docTitle">Academic AI - My Profile</title>
+  <script src="../shared/i18n.js?v=1"></script>
+  <link rel="stylesheet" href="../shared/i18n.css?v=3">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap">
-  <link rel="stylesheet" href="style.css?v=2">
-  <link rel="stylesheet" href="../shared/tickets.css?v=2">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap">
+  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="../shared/tickets.css?v=6">
 </head>
 
 <body>
@@ -17,7 +19,7 @@
   <!-- ======================= Header ======================= -->
   <header class="header">
     <div class="header__left">
-      <a href="../welcome-page/index.html?v=2" class="brand" aria-label="Academic AI home">
+      <a href="../welcome-page/index.html?v=2" class="brand" data-i18n-aria-label="profile.home" aria-label="Academic AI home">
         <div class="brand__logo">
           <svg fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24">
             <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
@@ -26,10 +28,10 @@
         </div>
         <span class="brand__name">Academic AI</span>
       </a>
-      <nav class="nav-tabs" aria-label="Main tabs">
-        <a href="../chatbot-page/index.html?v=2" class="nav-tab">AI Chatbot</a>
-        <a href="../schedule-page/index.html?v=2" class="nav-tab">Study Schedule</a>
-        <a href="index.html" class="nav-tab is-active" aria-current="page">My profile</a>
+      <nav class="nav-tabs" data-i18n-aria-label="profile.mainTabs" aria-label="Main tabs">
+        <a href="../chatbot-page/index.html?v=2" class="nav-tab" data-i18n="profile.navChat">AI Chatbot</a>
+        <a href="../schedule-page/index.html?v=2" class="nav-tab" data-i18n="profile.navSchedule">Study Schedule</a>
+        <a href="index.html" class="nav-tab is-active" aria-current="page" data-i18n="profile.navProfile">My profile</a>
       </nav>
     </div>
 
@@ -40,8 +42,8 @@
           <div class="user__name">Loading</div>
           <div class="user__id"></div>
         </div>
-        <button type="button" id="sign-out-btn" class="sign-out" title="Sign out" aria-label="Sign out">
-          <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+        <button type="button" id="sign-out-btn" class="sign-out" data-i18n-title="common.signOut" data-i18n-aria-label="common.signOut" title="Sign out" aria-label="Sign out">
+          <svg class="flip-rtl" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
           </svg>
         </button>
@@ -52,59 +54,59 @@
   <!-- ======================= Main ======================= -->
   <main class="main">
     <div class="page">
-      <h1 class="page__title">My profile</h1>
+      <h1 class="page__title" data-i18n="profile.title">My profile</h1>
       <div id="load-status" class="status" role="status">Loading your profile...</div>
 
       <div id="content" hidden>
 
         <!-- 1. Identity -->
         <section class="section" aria-labelledby="h-identity">
-          <h2 class="section__title" id="h-identity">Identity</h2>
+          <h2 class="section__title" id="h-identity" data-i18n="profile.identity">Identity</h2>
           <div class="identity">
             <div class="avatar avatar--lg" id="id-avatar" aria-hidden="true">?</div>
             <div>
               <div class="identity__name" id="id-name" dir="auto"></div>
               <div class="identity__id mono" id="id-username"></div>
-              <p class="hint">Managed by the administrator</p>
+              <p class="hint" data-i18n="profile.managed">Managed by the administrator</p>
             </div>
           </div>
         </section>
 
         <!-- 2. Contact and study details -->
         <section class="section" aria-labelledby="h-details">
-          <h2 class="section__title" id="h-details">Contact and study details</h2>
+          <h2 class="section__title" id="h-details" data-i18n="profile.details">Contact and study details</h2>
           <form id="details-form" class="form" novalidate>
             <div class="form__row">
               <label class="field">
-                <span class="field__label">Email</span>
-                <input class="input" type="email" id="f-email" maxlength="200" autocomplete="email">
+                <span class="field__label" data-i18n="profile.email">Email</span>
+                <input class="input" type="email" dir="ltr" id="f-email" maxlength="200" autocomplete="email">
               </label>
               <label class="field">
-                <span class="field__label">Phone</span>
-                <input class="input" type="tel" id="f-phone" maxlength="40" autocomplete="tel" dir="auto">
+                <span class="field__label" data-i18n="profile.phone">Phone</span>
+                <input class="input" type="tel" id="f-phone" maxlength="40" autocomplete="tel" dir="ltr">
               </label>
             </div>
             <div class="form__row">
               <label class="field">
-                <span class="field__label">Major</span>
+                <span class="field__label" data-i18n="profile.major">Major</span>
                 <select class="input" id="f-major" dir="auto">
-                  <option value="">Not set</option>
+                  <option value="" data-i18n="profile.notSet">Not set</option>
                   <option value="علوم الحاسب">علوم الحاسب</option>
                   <option value="نظم المعلومات">نظم المعلومات</option>
                   <option value="تقنية المعلومات">تقنية المعلومات</option>
                 </select>
               </label>
               <label class="field">
-                <span class="field__label">Level</span>
+                <span class="field__label" data-i18n="profile.level">Level</span>
                 <select class="input" id="f-level">
-                  <option value="">Not set</option>
-                  <option>Level 1</option><option>Level 2</option><option>Level 3</option><option>Level 4</option>
-                  <option>Level 5</option><option>Level 6</option><option>Level 7</option><option>Level 8</option>
+                  <option value="" data-i18n="profile.notSet">Not set</option>
+                  <option value="Level 1">Level 1</option><option value="Level 2">Level 2</option><option value="Level 3">Level 3</option><option value="Level 4">Level 4</option>
+                  <option value="Level 5">Level 5</option><option value="Level 6">Level 6</option><option value="Level 7">Level 7</option><option value="Level 8">Level 8</option>
                 </select>
               </label>
             </div>
             <div class="form__actions">
-              <button type="submit" class="btn btn--primary" id="save-btn" disabled>Save changes</button>
+              <button type="submit" class="btn btn--primary" id="save-btn" disabled data-i18n="profile.save">Save changes</button>
               <span class="status status--inline" id="details-status" role="status"></span>
             </div>
           </form>
@@ -112,39 +114,39 @@
 
         <!-- 3. Academic record -->
         <section class="section" aria-labelledby="h-record">
-          <h2 class="section__title" id="h-record">Academic record</h2>
+          <h2 class="section__title" id="h-record" data-i18n="profile.record">Academic record</h2>
           <div id="record"></div>
         </section>
 
         <!-- 4. Saved schedule choices -->
         <section class="section" aria-labelledby="h-planner">
-          <h2 class="section__title" id="h-planner">Saved schedule choices</h2>
+          <h2 class="section__title" id="h-planner" data-i18n="profile.planner">Saved schedule choices</h2>
           <div id="planner"></div>
         </section>
 
         <!-- 5. Password -->
         <section class="section" aria-labelledby="h-password">
-          <h2 class="section__title" id="h-password">Change password</h2>
+          <h2 class="section__title" id="h-password" data-i18n="profile.password">Change password</h2>
           <form id="password-form" class="form form--narrow" novalidate>
             <label class="field">
-              <span class="field__label">Current password</span>
+              <span class="field__label" data-i18n="profile.currentPw">Current password</span>
               <input class="input" type="password" id="p-current" autocomplete="current-password">
             </label>
             <label class="field">
-              <span class="field__label">New password</span>
+              <span class="field__label" data-i18n="profile.newPw">New password</span>
               <input class="input" type="password" id="p-new" autocomplete="new-password" maxlength="200" aria-describedby="p-new-err">
               <span class="field__error" id="p-new-err" role="alert"></span>
             </label>
             <label class="field">
-              <span class="field__label">Confirm new password</span>
+              <span class="field__label" data-i18n="profile.confirmPw">Confirm new password</span>
               <input class="input" type="password" id="p-confirm" autocomplete="new-password" maxlength="200" aria-describedby="p-confirm-err">
               <span class="field__error" id="p-confirm-err" role="alert"></span>
             </label>
             <label class="check">
-              <input type="checkbox" id="p-show"> Show passwords
+              <input type="checkbox" id="p-show"> <span data-i18n="profile.showPw">Show passwords</span>
             </label>
             <div class="form__actions">
-              <button type="submit" class="btn btn--primary" id="password-btn" disabled>Change password</button>
+              <button type="submit" class="btn btn--primary" id="password-btn" disabled data-i18n="profile.changePw">Change password</button>
               <span class="status status--inline" id="password-status" role="status"></span>
             </div>
           </form>
@@ -156,11 +158,12 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <footer class="footer">
-    <span>Your profile is visible to you and to your academic advisor.</span>
+    <span data-i18n="profile.footer">Your profile is visible to you and to your academic advisor.</span>
   </footer>
 
-  <script src="../shared/auth.js?v=2"></script>
-  <script src="../shared/tickets.js?v=3"></script>
-  <script src="script.js?v=2"></script>
+  <script src="../shared/auth.js?v=3"></script>
+  <script src="strings.js?v=1"></script>
+  <script src="../shared/tickets.js?v=5"></script>
+  <script src="script.js?v=3"></script>
 </body>
 </html>

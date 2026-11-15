@@ -135,6 +135,14 @@ When the reply suggests a ticket, the `/api/chat` response also carries
 `ticket: {summary}`, and the chat page shows an "Open an advising ticket"
 button that opens the ticket form with the question filled in.
 
+### Interface language
+
+Every page has an "EN | ع" switch in its top bar. Arabic (the default) shows the
+interface in Arabic, right-to-left; English shows it left-to-right. The choice is kept in
+the browser. Strings live in `frontend/<page>/strings.js` and `frontend/shared/i18n.js`
+(which also translates the server's error messages); chat answers, documents, course
+names and anything people write are never translated.
+
 ### Advising tickets
 
 Every student page has a round ticket button at the bottom-right. A student

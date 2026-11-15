@@ -283,6 +283,10 @@ def add_user(req: NewUser, _: dict = Depends(require_admin)):
         )
     except store.UsernameTaken:
         raise HTTPException(status_code=409, detail="This ID is already used by another account.")
+    # Imported here: it loads the scheduling module.
+    from .samples import ensure_sample_record
+
+    ensure_sample_record(user)
     # Shown to the admin once; only its hash is stored.
     return {"user": store.public_user(user), "temporary_password": password}
 

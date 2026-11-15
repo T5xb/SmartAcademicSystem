@@ -43,7 +43,7 @@
   --warn-30: rgba(251, 191, 36, 0.3);
 
   --font: 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Sans Arabic', monospace;
   --transition: 0.2s ease;
 }
 
@@ -171,8 +171,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-left: 12px;
-  border-left: 1px solid var(--border);
+  padding-inline-start: 12px;
+  border-inline-start: 1px solid var(--border);
 }
 
 .user__avatar {
@@ -189,7 +189,7 @@ body {
   color: var(--primary);
 }
 
-.user__info { display: none; text-align: left; }
+.user__info { display: none; text-align: start; }
 
 .user__name { font-size: 12px; line-height: 1; font-weight: 500; color: var(--white); }
 
@@ -201,7 +201,7 @@ body {
 }
 
 .sign-out {
-  margin-left: 8px;
+  margin-inline-start: 8px;
   padding: 4px;
   border-radius: 6px;
   color: var(--gray-400);
@@ -388,7 +388,8 @@ select.input { cursor: pointer; }
 .progress::before {
   content: '';
   position: absolute;
-  inset: 0 auto 0 0;
+  inset-block: 0;
+  inset-inline-start: 0;
   width: 35%;
   border-radius: 9999px;
   background-color: var(--primary);
@@ -437,7 +438,7 @@ select.input { cursor: pointer; }
   padding: 10px 14px;
   border-radius: 10px;
   background-color: var(--card);
-  text-align: left;
+  text-align: start;
   font-size: 13px;
   font-weight: 600;
   color: var(--white);
@@ -453,6 +454,8 @@ select.input { cursor: pointer; }
 }
 
 .group.is-open .group__chev { transform: rotate(90deg); }
+[dir="rtl"] .group__chev { transform: scaleX(-1); }
+[dir="rtl"] .group.is-open .group__chev { transform: rotate(90deg); }
 
 .group__path { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 
@@ -528,7 +531,7 @@ select.input { cursor: pointer; }
   padding: 10px 14px;
   border-bottom: 1px solid var(--border);
   background-color: var(--card);
-  text-align: left;
+  text-align: start;
   font-size: 12px;
   font-weight: 500;
   color: var(--gray-400);
@@ -545,8 +548,8 @@ select.input { cursor: pointer; }
 .cell-name { font-weight: 500; color: var(--white); }
 .cell-mono { font-family: var(--font-mono); font-size: 12px; color: var(--gray-300); }
 .cell-muted { font-size: 12px; color: var(--gray-400); }
-.cell-actions { text-align: right; white-space: nowrap; }
-.you { margin-left: 6px; font-size: 11px; color: var(--gray-400); }
+.cell-actions { text-align: end; white-space: nowrap; }
+.you { margin-inline-start: 6px; font-size: 11px; color: var(--gray-400); }
 
 /* ---------- Empty / loading ---------- */
 .state {
@@ -715,9 +718,9 @@ select.input { cursor: pointer; }
 
 @media (max-width: 720px) {
   .dialog--viewer { width: 100vw; height: 100vh; max-width: 100vw; max-height: 100vh; border-radius: 0; }
-  .viewer__head { flex-direction: column; padding: 12px 52px 12px 16px; }
+  .viewer__head { flex-direction: column; padding: 12px 16px; padding-inline-end: 52px; }
   .viewer__actions { flex-wrap: wrap; }
-  .viewer__close { position: absolute; top: 8px; right: 8px; }
+  .viewer__close { position: absolute; top: 8px; inset-inline-end: 8px; }
   .viewer__text { padding: 16px; }
 }
 
@@ -805,7 +808,7 @@ code {
    ========================================================== */
 .toasts {
   position: fixed;
-  right: 16px;
+  inset-inline-end: 16px;
   bottom: 16px;
   z-index: 100;
   display: flex;
@@ -855,6 +858,11 @@ code {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(300%); }
 }
+@keyframes slide-rtl {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-300%); }
+}
+[dir="rtl"] .progress::before { animation-name: slide-rtl; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -889,7 +897,7 @@ code {
 
   .row__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; grid-column: 1 / -1; }
   .row__name { grid-column: 1 / -1; }
-  .row__actions { grid-column: 1 / -1; justify-content: flex-start; margin-left: -8px; }
+  .row__actions { grid-column: 1 / -1; justify-content: flex-start; margin-inline-start: -8px; }
 
   .table thead {
     position: absolute;
@@ -913,7 +921,7 @@ code {
     gap: 12px;
     padding: 3px 0;
     border: 0;
-    text-align: right;
+    text-align: end;
   }
 
   .table td::before {
@@ -921,7 +929,7 @@ code {
     flex-shrink: 0;
     font-size: 12px;
     color: var(--gray-400);
-    text-align: left;
+    text-align: start;
   }
 
   .table td.cell-actions { justify-content: flex-start; padding-top: 6px; }

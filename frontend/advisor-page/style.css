@@ -37,7 +37,7 @@
   --header-h: 65px;
 
   --font: 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Sans Arabic', monospace;
   --transition: 0.2s ease;
 }
 
@@ -105,7 +105,7 @@ body {
 }
 .nav-link:hover { color: var(--white); }
 
-.user { display: flex; align-items: center; gap: 12px; padding-left: 12px; border-left: 1px solid var(--border); }
+.user { display: flex; align-items: center; gap: 12px; padding-inline-start: 12px; border-inline-start: 1px solid var(--border); }
 .user__avatar {
   width: 28px; height: 28px;
   display: flex; align-items: center; justify-content: center;
@@ -114,10 +114,10 @@ body {
   border: 1px solid var(--primary-40);
   font-size: 12px; font-weight: 700; color: var(--primary);
 }
-.user__info { display: none; text-align: left; }
+.user__info { display: none; text-align: start; }
 .user__name { font-size: 12px; line-height: 1; font-weight: 500; color: var(--white); }
 .user__id { margin-top: 2px; font-family: var(--font-mono); font-size: 10px; color: var(--gray-400); }
-.sign-out { margin-left: 8px; color: var(--gray-400); transition: color var(--transition); }
+.sign-out { margin-inline-start: 8px; color: var(--gray-400); transition: color var(--transition); }
 .sign-out:hover { color: var(--danger); }
 .sign-out svg { width: 16px; height: 16px; }
 
@@ -161,7 +161,7 @@ body {
   border-radius: 10px;
   border: 1px solid var(--border);
   background-color: var(--card);
-  text-align: left;
+  text-align: start;
   transition: border-color var(--transition);
 }
 .student-row:hover { border-color: var(--primary-30); }
@@ -219,7 +219,7 @@ body {
 
 .section { padding: 20px 0; border-top: 1px solid var(--border-60); }
 .section__title { margin-bottom: 12px; font-size: 15px; font-weight: 600; color: var(--white); }
-.section__title .count { margin-left: 6px; font-weight: 400; color: var(--gray-400); }
+.section__title .count { margin-inline-start: 6px; font-weight: 400; color: var(--gray-400); }
 
 .facts { display: grid; grid-template-columns: 1fr; gap: 12px 24px; margin: 0; }
 .fact dt { font-size: 12px; color: var(--gray-400); }
@@ -320,7 +320,7 @@ body {
 .side-link.is-active { color: var(--white); background-color: var(--primary-10); border-color: var(--primary-30); }
 .side-link.is-active svg { color: var(--primary); }
 .side-count {
-  margin-left: auto;
+  margin-inline-start: auto;
   min-width: 26px;
   padding: 1px 8px;
   border-radius: 9999px;
@@ -422,7 +422,7 @@ body {
   border-bottom: 1px solid var(--border);
 }
 .column__title { font-size: 14px; font-weight: 600; color: var(--white); }
-.column__all { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--primary); }
+.column__all { margin-inline-start: auto; font-size: 12px; font-weight: 500; color: var(--primary); }
 .column__all:hover { text-decoration: underline; }
 /* Each column scrolls on its own; the page itself doesn't. */
 .column__list {
@@ -533,13 +533,13 @@ body {
   font-size: 14px; line-height: 1.7;
   white-space: pre-wrap; overflow-wrap: anywhere;
   background-color: var(--card-3);
-  border-top-left-radius: 4px;
+  border-start-start-radius: 4px;
 }
 .msg--staff .msg__bubble {
   background-color: var(--primary-10);
   border: 1px solid var(--primary-20);
-  border-top-left-radius: 14px;
-  border-top-right-radius: 4px;
+  border-start-start-radius: 14px;
+  border-start-end-radius: 4px;
 }
 .avatar--sm { width: 30px; height: 30px; font-size: 11px; flex-shrink: 0; }
 
@@ -605,7 +605,7 @@ select.input { cursor: pointer; }
     padding: 20px 14px;
     overflow-y: auto;
     border-bottom: none;
-    border-right: 1px solid var(--border);
+    border-inline-end: 1px solid var(--border);
   }
   .sidebar__label {
     display: block;
@@ -659,3 +659,17 @@ select.input { cursor: pointer; }
   .composer__btns { flex-direction: row; width: 100%; }
   .composer__btns .btn { flex: 1; }
 }
+
+/* ==========================================================
+   Arabic (RTL): letter spacing breaks joined letters
+   ========================================================== */
+[dir="rtl"] .brand__name,
+[dir="rtl"] .list-pane__title,
+[dir="rtl"] .profile-head__name,
+[dir="rtl"] .view__title,
+[dir="rtl"] .pane__title,
+[dir="rtl"] .sidebar__label { letter-spacing: 0; text-transform: none; }
+[dir="rtl"] .side-link,
+[dir="rtl"] .btn,
+[dir="rtl"] .composer__hint { white-space: normal; }
+[dir="rtl"] .side-link { white-space: nowrap; }

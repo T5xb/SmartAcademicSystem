@@ -46,7 +46,7 @@
 
   /* Misc */
   --font: 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Sans Arabic', monospace;
   --transition: 0.2s ease;
 }
 
@@ -200,8 +200,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding-left: 12px;
-  border-left: 1px solid var(--border);
+  padding-inline-start: 12px;
+  border-inline-start: 1px solid var(--border);
 }
 
 .user__avatar {
@@ -220,7 +220,7 @@ body {
 
 .user__info {
   display: none;
-  text-align: left;
+  text-align: start;
 }
 
 .user__name {
@@ -238,7 +238,7 @@ body {
 }
 
 .sign-out {
-  margin-left: 8px;
+  margin-inline-start: 8px;
   color: var(--gray-400);
   transition: color var(--transition);
 }
@@ -333,7 +333,7 @@ body {
   display: grid;
   grid-template-columns: 1fr;
   gap: 24px;
-  text-align: left;
+  text-align: start;
 }
 
 .option-card {
@@ -445,6 +445,14 @@ body {
 .option-card:hover .option-card__title svg {
   opacity: 1;
   transform: translateX(0);
+}
+
+[dir="rtl"] .option-card__title svg {
+  transform: translateX(4px) scaleX(-1);
+}
+
+[dir="rtl"] .option-card:hover .option-card__title svg {
+  transform: translateX(0) scaleX(-1);
 }
 
 .option-card__desc {

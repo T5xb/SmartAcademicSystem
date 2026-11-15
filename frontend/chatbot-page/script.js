@@ -26,10 +26,10 @@ const NO_ANSWER_PREFIX = 'لم أجد إجابة لسؤالك';
 
 // Used when the server has no NEXT_PUBLIC_STARTER_QUESTIONS configured
 const DEFAULT_SUGGESTIONS = [
-  { icon: 'withdraw', title: 'الانسحاب من مقرر', desc: 'Course withdrawal procedure', prompt: 'ما هي إجراءات الانسحاب من مقرر؟' },
-  { icon: 'transfer', title: 'التحويل إلى كلية الحاسب', desc: 'CCIS transfer conditions', prompt: 'ما هي شروط التحويل إلى كلية علوم الحاسب والمعلومات؟' },
-  { icon: 'warning', title: 'الإنذار الأكاديمي', desc: 'Academic probation rules', prompt: 'متى يحصل الطالب على إنذار أكاديمي؟' },
-  { icon: 'calendar', title: 'الاعتذار عن الفصل', desc: 'Semester deferral', prompt: 'ما هي شروط الاعتذار عن الدراسة لفصل دراسي؟' },
+  { icon: 'withdraw', title: 'الانسحاب من مقرر', descKey: 'chat.sug.withdraw', prompt: 'ما هي إجراءات الانسحاب من مقرر؟' },
+  { icon: 'transfer', title: 'التحويل إلى كلية الحاسب', descKey: 'chat.sug.transfer', prompt: 'ما هي شروط التحويل إلى كلية علوم الحاسب والمعلومات؟' },
+  { icon: 'warning', title: 'الإنذار الأكاديمي', descKey: 'chat.sug.warning', prompt: 'متى يحصل الطالب على إنذار أكاديمي؟' },
+  { icon: 'calendar', title: 'الاعتذار عن الفصل', descKey: 'chat.sug.calendar', prompt: 'ما هي شروط الاعتذار عن الدراسة لفصل دراسي؟' },
 ];
 const SUGGESTION_ICONS = ['withdraw', 'transfer', 'warning', 'calendar'];
 
@@ -46,7 +46,7 @@ const ICONS = {
   alert: '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>',
   info: '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>',
   copy: '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
-  send: '<svg fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>',
+  send: '<svg class="flip-rtl" fill="none" stroke="currentColor" stroke-width="2.6" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>',
   stop: '<svg fill="currentColor" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"></rect></svg>',
   arrow: '<svg class="suggestion__arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>',
   withdraw: '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="9" y1="15" x2="15" y2="15"></line></svg>',
@@ -65,8 +65,9 @@ const escapeHtml = (text) =>
 
 const makeId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
-const formatClock = (timestamp) =>
-  new Date(timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+const t = (key, vars) => I18n.t(key, vars);
+
+const formatClock = (timestamp) => I18n.time(new Date(timestamp).toISOString());
 
 const startOfDay = (timestamp) => {
   const d = new Date(timestamp);
@@ -76,10 +77,10 @@ const startOfDay = (timestamp) => {
 
 function historyGroup(timestamp) {
   const days = Math.round((startOfDay(Date.now()) - startOfDay(timestamp)) / 86400000);
-  if (days <= 0) return 'Today';
-  if (days === 1) return 'Yesterday';
-  if (days <= 7) return 'Previous 7 Days';
-  return 'Older';
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days <= 7) return 'week';
+  return 'older';
 }
 
 /* Turns e-mail addresses in already-escaped text into mailto links */
@@ -120,16 +121,16 @@ async function apiFetch(path, options = {}, { timeout = REQUEST_TIMEOUT, signal 
   }
 }
 
-/* Converts a failed request into a user-facing error message */
-function describeError(err, status, detail) {
-  if (err && err.kind === 'stopped') return 'You stopped this response.';
-  if (err && err.kind === 'timeout') return 'The server took too long to answer. Please try again.';
-  if (err && err.kind === 'network') {
-    return `Couldn't reach the Academic AI server at ${API_URL}. Make sure the server is running (Start-API.bat).`;
-  }
-  if (status === 422) return 'The question is empty or too long. Please shorten it and try again.';
-  if (detail) return detail;
-  return `The server returned an error (HTTP ${status}). Please try again.`;
+/* Converts a failed request into a user-facing error message. Kept as a
+   kind (+ server detail) on the message so it is translated when shown. */
+function errorMessage({ kind, status, detail, text }) {
+  if (kind === 'stopped') return t('chat.err.stopped');
+  if (kind === 'timeout') return t('chat.err.timeout');
+  if (kind === 'network') return t('common.serverDown', { url: API_URL });
+  if (kind === 'interrupted') return t('chat.err.interrupted');
+  if (kind === 'invalid') return t('chat.err.invalid');
+  if (kind === 'http') return detail || t('chat.err.http', { status });
+  return text || t('chat.err.generic');
 }
 
 /* The last messages of a chat, sent with each question so the server can
@@ -151,7 +152,7 @@ async function askServer(question, history, signal) {
       body: JSON.stringify({ message: question, history }),
     }, { signal });
   } catch (err) {
-    throw Object.assign(new Error(describeError(err)), { kind: err.kind });
+    throw Object.assign(new Error(err.kind), { kind: err.kind });
   }
 
   let data = null;
@@ -162,8 +163,10 @@ async function askServer(question, history, signal) {
   }
 
   if (!res.ok || !data || typeof data.response !== 'string') {
-    const detail = data && typeof data.detail === 'string' ? data.detail : '';
-    throw Object.assign(new Error(describeError(null, res.status, detail)), { kind: 'http' });
+    const detail = data && typeof data.detail === 'string' ? I18n.server(data.detail) : '';
+    throw Object.assign(new Error(detail), {
+      kind: res.status === 422 ? 'invalid' : 'http', status: res.status, detail,
+    });
   }
   // `ticket` is a draft for the advising ticket page (not built yet)
   return { text: data.response, ticket: data.ticket || null };
@@ -183,7 +186,7 @@ async function loadSuggestions() {
     suggestions = questions.map((q, i) => ({
       icon: SUGGESTION_ICONS[i % SUGGESTION_ICONS.length],
       title: q,
-      desc: 'Suggested question',
+      descKey: 'chat.sug.suggested',
       prompt: q,
     }));
     if (!activeChat()) renderMessages();
@@ -213,7 +216,7 @@ async function loadChats() {
   try {
     chats = (await Auth.api('/api/me/chats')).chats || [];
   } catch (err) {
-    showToast(`Saved chats could not be loaded: ${err.message}`);
+    showToast(t('chat.toast.loadFailed', { error: err.message }));
   }
   chats.forEach((chat) => {
     savedChats.set(chat.id, JSON.stringify(chat));
@@ -221,7 +224,7 @@ async function loadChats() {
     chat.messages.forEach((m) => {
       if (m.status === 'typing') {
         m.status = 'error';
-        m.errorText = 'This response was interrupted when the page closed. Please ask your question again.';
+        m.errorKind = 'interrupted';
       }
     });
   });
@@ -249,7 +252,7 @@ async function syncChats() {
   const failed = results.find((r) => r.status === 'rejected');
   if (failed && !saveWarned) {
     saveWarned = true;   // once, not on every message
-    showToast(`This chat could not be saved to your account: ${failed.reason.message}`);
+    showToast(t('chat.toast.saveFailed', { error: failed.reason.message }));
   } else if (!failed) {
     saveWarned = false;
   }
@@ -302,7 +305,7 @@ function renderAnswerBody(body, msgId) {
     .map((para) => {
       const html = linkifyEmails(linkifyFileLinks(escapeHtml(para)))
         .replace(/\[(\d+)\]/g, (_, n) =>
-          `<button type="button" class="cite" data-cite="${n}" data-msg="${msgId}" title="Show source ${n}">${n}</button>`);
+          `<button type="button" class="cite" data-cite="${n}" data-msg="${msgId}" title="${escapeHtml(t('chat.showSource', { n }))}">${n}</button>`);
       return `<p dir="auto">${html}</p>`;
     })
     .join('');
@@ -313,7 +316,7 @@ function renderAnswerBody(body, msgId) {
    ---------------------------------------------------------- */
 function renderHistory() {
   if (!state.chats.length) {
-    $('#history').innerHTML = '<p class="history__empty">No conversations yet. Start a new chat below.</p>';
+    $('#history').innerHTML = `<p class="history__empty">${escapeHtml(t('chat.history.empty'))}</p>`;
     return;
   }
 
@@ -326,13 +329,13 @@ function renderHistory() {
 
   $('#history').innerHTML = [...groups].map(([label, chats]) => `
     <div class="history__group">
-      <span class="history__label">${label}</span>
+      <span class="history__label">${escapeHtml(t(`chat.group.${label}`))}</span>
       ${chats.map((chat) => `
         <div class="history-item${chat.id === state.activeId ? ' is-active' : ''}" role="button" tabindex="0" data-chat="${chat.id}"
           ${chat.id === state.activeId ? 'aria-current="page"' : ''}>
           ${ICONS.chat}
           <span class="history-item__title" dir="auto">${escapeHtml(chat.title)}</span>
-          <button type="button" class="history-item__delete" data-delete="${chat.id}" title="Delete chat" aria-label="Delete chat">${ICONS.trash}</button>
+          <button type="button" class="history-item__delete" data-delete="${chat.id}" title="${escapeHtml(t('chat.deleteChat'))}" aria-label="${escapeHtml(t('chat.deleteChat'))}">${ICONS.trash}</button>
         </div>`).join('')}
     </div>`).join('');
 }
@@ -342,11 +345,11 @@ function renderWelcome() {
     <div class="welcome">
       <div>
         <div class="logo-mark welcome__emblem" style="margin: 0 auto 20px">${ICONS.logo}</div>
-        <h1 class="welcome__title">How can I help you today, ${FIRST_NAME}?</h1>
-        <p class="welcome__subtitle">Ask about IMSIU's academic regulations — every answer comes from the official documents, with the source, page and article.</p>
+        <h1 class="welcome__title">${escapeHtml(t('chat.welcomeTitle', { name: '@@NAME@@' })).replace('@@NAME@@', `<bdi>${FIRST_NAME}</bdi>`)}</h1>
+        <p class="welcome__subtitle">${escapeHtml(t('chat.welcomeSubtitle'))}</p>
       </div>
       <div class="suggestions">
-        <span class="suggestions__label">Suggested prompts for discussion</span>
+        <span class="suggestions__label">${escapeHtml(t('chat.suggestionsLabel'))}</span>
         <div class="suggestions__grid">
           ${suggestions.map((s, i) => `
             <button type="button" class="suggestion" data-suggestion="${i}">
@@ -356,7 +359,7 @@ function renderWelcome() {
               </span>
               <span>
                 <span class="suggestion__title" dir="auto">${escapeHtml(s.title)}</span>
-                <span class="suggestion__desc">${escapeHtml(s.desc)}</span>
+                <span class="suggestion__desc">${escapeHtml(t(s.descKey))}</span>
               </span>
             </button>`).join('')}
         </div>
@@ -372,7 +375,7 @@ function renderUserMessage(msg) {
   const text = msg.text ? `<div dir="auto">${escapeHtml(msg.text)}</div>` : '';
   return `
     <div class="msg-user">
-      <div class="msg-meta"><span>${USER_NAME}</span><time>${formatClock(msg.time)}</time></div>
+      <div class="msg-meta"><span><bdi>${USER_NAME}</bdi></span><time>${formatClock(msg.time)}</time></div>
       <div class="msg-user__bubble">${file}${text}</div>
     </div>`;
 }
@@ -382,7 +385,7 @@ function renderBotBody(msg) {
     return `
       <div class="typing" aria-live="polite">
         <span class="typing__dots"><span></span><span></span><span></span></span>
-        <span>Searching the official regulations…</span>
+        <span>${escapeHtml(t('chat.searching'))}</span>
       </div>`;
   }
 
@@ -391,8 +394,8 @@ function renderBotBody(msg) {
       <div class="msg-error" role="alert">
         ${ICONS.alert}
         <div>
-          <div class="msg-error__title">Error</div>
-          <p class="msg-error__text">${escapeHtml(msg.errorText || 'Something went wrong while generating a response. Please try again.')}</p>
+          <div class="msg-error__title">${escapeHtml(t('chat.err.title'))}</div>
+          <p class="msg-error__text" dir="auto">${escapeHtml(errorMessage({ kind: msg.errorKind, status: msg.errorStatus, detail: msg.errorText, text: msg.errorText }))}</p>
         </div>
       </div>`;
   }
@@ -409,7 +412,7 @@ function renderBotBody(msg) {
   const { body, sources } = parseAnswer(msg.text);
   const sourcesHtml = sources.length
     ? `<div class="sources">
-         <span class="sources__title">${ICONS.book}Sources · المصادر</span>
+         <span class="sources__title">${ICONS.book}${escapeHtml(t('chat.sources'))}</span>
          <ol class="sources__list">
            ${sources.map((s) => `
              <li class="source" data-source="${escapeHtml(s.num)}">
@@ -431,9 +434,9 @@ function renderBotActions(msg) {
   return `
     <div class="msg-actions">
       <div class="msg-actions__group">
-        <button type="button" class="action-btn" data-action="copy" data-id="${msg.id}" title="Copy response">${ICONS.copy}Copy</button>
+        <button type="button" class="action-btn" data-action="copy" data-id="${msg.id}" title="${escapeHtml(t('chat.copyTitle'))}">${ICONS.copy}${escapeHtml(t('chat.copy'))}</button>
         ${msg.ticket && typeof Tickets !== 'undefined'
-          ? `<button type="button" class="action-btn action-btn--ticket" data-action="ticket" data-id="${msg.id}" title="Ask academic advising">Open an advising ticket</button>`
+          ? `<button type="button" class="action-btn action-btn--ticket" data-action="ticket" data-id="${msg.id}" title="${escapeHtml(t('chat.ticketTitle'))}">${escapeHtml(t('chat.ticket'))}</button>`
           : ''}
       </div>
     </div>`;
@@ -447,9 +450,9 @@ function renderBotMessage(msg) {
         <div class="msg-bot__identity">
           <span class="logo-mark msg-bot__logo">${ICONS.logo}</span>
           <span class="msg-bot__name">Academic AI</span>
-          <span class="msg-bot__mode">${typing ? 'Thinking…' : 'Official Regulations'}</span>
+          <span class="msg-bot__mode">${escapeHtml(typing ? t('chat.thinking') : t('chat.mode'))}</span>
         </div>
-        ${!typing && msg.thinking ? `<span class="msg-bot__time">${ICONS.chip}${(msg.thinking / 1000).toFixed(2)}s response time</span>` : ''}
+        ${!typing && msg.thinking ? `<span class="msg-bot__time">${ICONS.chip}${escapeHtml(t('chat.responseTime', { s: (msg.thinking / 1000).toFixed(2) }))}</span>` : ''}
       </div>
       <div class="msg-bot__body">${renderBotBody(msg)}${renderBotActions(msg)}</div>
     </div>`;
@@ -472,7 +475,7 @@ function renderComposer() {
   // While an answer loads, the send button turns into Stop
   sendBtn.classList.toggle('is-stop', busy);
   sendBtn.innerHTML = busy ? ICONS.stop : ICONS.send;
-  sendBtn.title = busy ? 'Stop response' : 'Send message';
+  sendBtn.title = busy ? t('chat.stop') : t('chat.send');
   sendBtn.setAttribute('aria-label', sendBtn.title);
   sendBtn.disabled = !busy && !hasText;
 
@@ -511,7 +514,7 @@ async function requestAnswer(chatId, botMessageId, question, history) {
     const answer = await askServer(question, history, controller.signal);
     result = { status: 'done', text: answer.text, ticket: answer.ticket };
   } catch (err) {
-    result = { status: 'error', errorText: err.message };
+    result = { status: 'error', errorKind: err.kind, errorStatus: err.status, errorText: err.detail || '' };
   }
   pending.delete(botMessageId);
 
@@ -520,7 +523,7 @@ async function requestAnswer(chatId, botMessageId, question, history) {
   const msg = chat && chat.messages.find((m) => m.id === botMessageId);
   if (!msg) return;
 
-  Object.assign(msg, { text: '', errorText: '' }, result, { thinking: performance.now() - started });
+  Object.assign(msg, { text: '', errorText: '', errorKind: '', errorStatus: 0 }, result, { thinking: performance.now() - started });
   chat.updatedAt = Date.now();
   saveChats();
 
@@ -599,21 +602,21 @@ function deleteChat(id) {
   if (state.activeId === id) state.activeId = null;
   saveChats();
   render();
-  showToast('Chat deleted');
+  showToast(t('chat.toast.deleted'));
 }
 
 function clearAllChats() {
   if (!state.chats.length) {
-    showToast('There are no chats to clear');
+    showToast(t('chat.toast.nothingToClear'));
     return;
   }
-  if (!window.confirm('Delete all conversations? This cannot be undone.')) return;
+  if (!window.confirm(t('chat.confirmClear'))) return;
   pending.forEach((controller) => controller.abort());
   state.chats = [];
   state.activeId = null;
   saveChats();
   render();
-  showToast('All chats cleared');
+  showToast(t('chat.toast.cleared'));
 }
 
 function handleMessageAction(action, id) {
@@ -621,7 +624,7 @@ function handleMessageAction(action, id) {
   const msg = chat && chat.messages.find((m) => m.id === id);
   if (!msg) return;
 
-  if (action === 'copy') copyText(msg.text, 'Response copied');
+  if (action === 'copy') copyText(msg.text, t('chat.toast.copied'));
   if (action === 'ticket' && msg.ticket) {
     // The question the bot couldn't answer becomes the title and first message.
     const question = (msg.ticket.summary || '').trim();
@@ -691,7 +694,7 @@ function copyText(text, message) {
     area.select();
     const ok = document.execCommand('copy');
     area.remove();
-    showToast(ok ? message : 'Could not copy');
+    showToast(ok ? message : t('chat.toast.copyFailed'));
   };
 
   if (navigator.clipboard && window.isSecureContext) {
@@ -707,7 +710,7 @@ function copyText(text, message) {
 function bindEvents() {
   // Header & strip
   document.querySelectorAll('[data-sign-out]').forEach((btn) => btn.addEventListener('click', signOut));
-  $('#notifications-btn').addEventListener('click', () => showToast('No new notifications'));
+  $('#notifications-btn').addEventListener('click', () => showToast(t('chat.toast.noNotifications')));
   $('#settings-btn').addEventListener('click', openSettings);
 
   // Sidebar
@@ -784,7 +787,7 @@ function bindEvents() {
 
   // The RAG server answers from the official regulations only — it has no upload endpoint
   $('#attach-btn').addEventListener('click', () =>
-    showToast("Attachments aren't supported yet — the advisor answers from the official regulations. Type your question instead.")
+    showToast(t('chat.toast.noAttach'))
   );
 
   // Settings (empty placeholder)
@@ -805,7 +808,14 @@ function bindEvents() {
 /* ----------------------------------------------------------
    Init
    ---------------------------------------------------------- */
-const ROLE_LABELS = { student: 'Student', advisor: 'Academic advisor', admin: 'Administrator' };
+const ROLE_KEYS = { student: 'role.student', advisor: 'chat.roleAdvisor', admin: 'chat.roleAdmin' };
+let currentUser = null;
+
+function renderProfileMeta() {
+  if (!currentUser) return;
+  const role = ROLE_KEYS[currentUser.role] ? t(ROLE_KEYS[currentUser.role]) : '';
+  $('#profile-meta').textContent = `${role} ${currentUser.username}`.trim();
+}
 
 Auth.requireRole().then(async (user) => {
   // Both are written into rendered markup, so they are escaped here
@@ -815,7 +825,8 @@ Auth.requireRole().then(async (user) => {
   Tickets.mount(user);
   $('#profile-avatar').textContent = Auth.initials(user.name);
   $('#profile-name').textContent = user.name;
-  $('#profile-meta').textContent = `${ROLE_LABELS[user.role] || ''} ${user.username}`.trim();
+  currentUser = user;
+  renderProfileMeta();
   // Advisors and admins have no student profile or schedule; the brand
   // link already takes them to their own home page.
   if (user.role !== 'student') {
@@ -828,6 +839,12 @@ Auth.requireRole().then(async (user) => {
   render();
   loadSuggestions();
   $('#prompt').focus();
+
+  // Language switch: re-render the text around the typed question (the textarea is untouched)
+  I18n.onChange(() => {
+    renderProfileMeta();
+    render();
+  });
 
   // A chat started while the saved ones were loading stays on top
   const saved = await loadChats();

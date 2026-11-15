@@ -32,7 +32,7 @@
   --danger-30: rgba(248, 113, 113, 0.3);
 
   --font: 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Sans Arabic', monospace;
   --transition: 0.2s ease;
 }
 
@@ -103,7 +103,7 @@ body {
   color: var(--primary-light);
 }
 
-.user { display: flex; align-items: center; gap: 12px; padding-left: 12px; border-left: 1px solid var(--border); }
+.user { display: flex; align-items: center; gap: 12px; padding-inline-start: 12px; border-inline-start: 1px solid var(--border); }
 .user__avatar {
   width: 28px; height: 28px;
   display: flex; align-items: center; justify-content: center;
@@ -112,10 +112,10 @@ body {
   border: 1px solid var(--primary-40);
   font-size: 12px; font-weight: 700; color: var(--primary);
 }
-.user__info { display: none; text-align: left; }
+.user__info { display: none; text-align: start; }
 .user__name { font-size: 12px; line-height: 1; font-weight: 500; color: var(--white); }
 .user__id { margin-top: 2px; font-family: var(--font-mono); font-size: 10px; color: var(--gray-400); }
-.sign-out { margin-left: 8px; color: var(--gray-400); transition: color var(--transition); }
+.sign-out { margin-inline-start: 8px; color: var(--gray-400); transition: color var(--transition); }
 .sign-out:hover { color: var(--danger); }
 .sign-out svg { width: 16px; height: 16px; }
 
@@ -128,13 +128,13 @@ body {
 .status:empty { display: none; }
 .status--error { color: var(--danger); }
 .status--ok { color: var(--primary); }
-.status--inline { margin-left: 4px; }
+.status--inline { margin-inline-start: 4px; }
 
 .section { padding: 24px 0; border-top: 1px solid var(--border-60); }
 .page__title + .status + div > .section:first-child,
 .page__title + div > .section:first-child { border-top: none; }
 .section__title { margin-bottom: 14px; font-size: 16px; font-weight: 600; color: var(--white); }
-.section__title .count { margin-left: 6px; font-weight: 400; font-size: 13px; color: var(--gray-400); }
+.section__title .count { margin-inline-start: 6px; font-weight: 400; font-size: 13px; color: var(--gray-400); }
 .hint { margin-top: 4px; font-size: 12px; color: var(--gray-400); }
 
 /* Identity */
@@ -203,7 +203,7 @@ select.input option { background-color: var(--card); }
 
 .sub { margin-top: 20px; }
 .sub__title { margin-bottom: 8px; font-size: 14px; font-weight: 600; color: var(--gray-200); }
-.sub__title .count { margin-left: 6px; font-weight: 400; color: var(--gray-400); }
+.sub__title .count { margin-inline-start: 6px; font-weight: 400; color: var(--gray-400); }
 .course-list { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
 .course-list li {
   display: flex; align-items: baseline; gap: 12px;
@@ -263,7 +263,10 @@ select.input option { background-color: var(--card); }
 }
 @media (max-width: 520px) {
   .header { padding: 12px 16px; }
-  .header__left { gap: 8px; }
+  .header__left { gap: 8px; flex: 1 1 auto; }
+  /* The page links scroll inside their bar so the language switch fits. */
+  .nav-tabs { min-width: 0; }
+  .header__right { gap: 10px; flex-shrink: 0; }
   .brand__name { display: none; }
   .nav-tab { padding: 6px 8px; }
   .page__title { font-size: 20px; }

@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const username = userInput.value.trim();
     const password = passwordInput.value;
     if (!username || !password) {
-      showError(authError, 'Enter your university ID and password.');
+      showError(authError, I18n.t('signin.enterBoth'));
       return;
     }
     showError(authError, '');
@@ -93,11 +93,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.preventDefault();
     const next = newPasswordInput.value;
     if (next.length < MIN_PASSWORD_LENGTH) {
-      showError(passwordError, `Use at least ${MIN_PASSWORD_LENGTH} characters.`);
+      showError(passwordError, I18n.t('signin.minLength', { n: MIN_PASSWORD_LENGTH }));
       return;
     }
     if (next !== confirmInput.value) {
-      showError(passwordError, 'The two passwords are not the same.');
+      showError(passwordError, I18n.t('signin.mismatch'));
       return;
     }
     showError(passwordError, '');

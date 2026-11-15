@@ -11,15 +11,15 @@ const $ = (s) => document.querySelector(s);
 
 /* ---------- Constants ---------- */
 const FILTERS = ['all', 'new', 'in_progress', 'closed'];
-const STATUS_LABEL = { new: 'New', in_progress: 'In progress', closed: 'Resolved' };
-const FILTER_TITLE = { all: 'All tickets', new: 'New tickets', in_progress: 'In progress', closed: 'Resolved tickets' };
+const T = (key, vars) => I18n.t(key, vars);
 const OVERVIEW_POLL_MS = 20000;
 const LIST_POLL_MS = 15000;
 const CHAT_POLL_MS = 5000;
 const COLLAPSED_COUNT = 8;
 const QUICK_REPLIES = [
   'السلام عليكم، تم استلام طلبك وجاري مراجعته، وسنعود إليك قريباً.',
-  'نرجو إرفاق صورة من السجل الأكاديمي أو توضيح رقم الشعبة لنتمكن من مساعدتك.',
+  // The advisor already sees the student's academic record, so don't ask for it.
+  'نرجو توضيح رمز المقرر أو رقم الشعبة لنتمكن من مساعدتك.',
   'تم تنفيذ طلبك بنجاح. هل هناك شيء آخر يمكننا مساعدتك فيه؟',
   'هذا الطلب يحتاج مراجعة من وكالة الكلية، تم تحويله وسنبلغك بالنتيجة.',
   'تم حل المشكلة، وسيتم إغلاق التذكرة. نتمنى لك التوفيق.',
@@ -38,6 +38,9 @@ let courseInfo = {};
 let studentsLoaded = false;
 let selectedStudent = null;
 let detailToken = 0;
+let overviewData = null;    // last dashboard payload, for re-rendering on language change
+let overviewAt = null;      // when it was fetched
+let selectedData = null;    // last student profile shown in the detail pane
 
 /* ---------- Helpers ---------- */
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => (
@@ -53,25 +56,24 @@ function fmtMinutes(m) {
 }
 
 function fmtDate(iso) {
-  if (!iso) return null;
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return iso ? (I18n.dateTime(iso) || null) : null;
 }
 
-function ago(iso) {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '';
-  const s = Math.max(0, (Date.now() - d.getTime()) / 1000);
-  if (s < 60) return 'just now';
-  if (s < 3600) return `${Math.floor(s / 60)} min ago`;
-  if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
-  if (s < 7 * 86400) return `${Math.floor(s / 86400)} d ago`;
-  return fmtDate(iso);
+const ago = (iso) => (iso ? I18n.relative(iso) : '');
+
+// Count with a unit word; Arabic has separate forms for 1, 2, 3-10 and 11+.
+function plural(n, key) {
+  let form = 'many';
+  if (n === 1) form = 'one';
+  else if (I18n.lang === 'ar') {
+    if (n === 2) form = 'two';
+    else if (n >= 3 && n <= 10) form = 'few';
+  }
+  return T(`${key}.${form}`, { n });
 }
 
-const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
-const statusBadge = (s) => `<span class="status-badge status-badge--${esc(s)}">${esc(STATUS_LABEL[s] || s)}</span>`;
+const statusLabel = (s) => (FILTERS.includes(s) && s !== 'all' ? T(`status.${s}`) : s);
+const statusBadge = (s) => `<span class="status-badge status-badge--${esc(s)}">${esc(statusLabel(s))}</span>`;
 
 let toastTimer;
 function toast(message, error = false) {
@@ -117,18 +119,18 @@ function setActiveNav() {
    Dashboard
    ========================================================== */
 const STAT_CARDS = [
-  { key: 'all', label: 'All tickets', tone: '', icon: '<path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z"></path>' },
+  { key: 'all', label: 'advisor.filter.all', tone: '', icon: '<path d="M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z"></path>' },
   // No advisor reply yet.
-  { key: 'new', label: 'New tickets', tone: 'new', icon: '<circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line>' },
+  { key: 'new', label: 'advisor.stat.new', tone: 'new', icon: '<circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line>' },
   // An advisor replied, not closed yet.
-  { key: 'in_progress', label: 'Not resolved yet', tone: 'progress', icon: '<circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline>' },
-  { key: 'closed', label: 'Resolved', tone: 'closed', icon: '<circle cx="12" cy="12" r="9"></circle><polyline points="8 12 11 15 16 9"></polyline>' },
+  { key: 'in_progress', label: 'advisor.stat.in_progress', tone: 'progress', icon: '<circle cx="12" cy="12" r="9"></circle><polyline points="12 7 12 12 15 14"></polyline>' },
+  { key: 'closed', label: 'status.closed', tone: 'closed', icon: '<circle cx="12" cy="12" r="9"></circle><polyline points="8 12 11 15 16 9"></polyline>' },
 ];
 
 const COLUMNS = [
-  { status: 'new', title: 'New', tone: 'new' },
-  { status: 'in_progress', title: 'In progress', tone: 'progress' },
-  { status: 'closed', title: 'Recently resolved', tone: 'closed' },
+  { status: 'new', title: 'advisor.col.new', tone: 'new' },
+  { status: 'in_progress', title: 'advisor.col.in_progress', tone: 'progress' },
+  { status: 'closed', title: 'advisor.col.closed', tone: 'closed' },
 ];
 
 function renderStats() {
@@ -136,7 +138,7 @@ function renderStats() {
   $('#stats').innerHTML = STAT_CARDS.map((c) => `
     <div class="stat stat--${c.tone || 'all'}">
       <div class="stat__top">
-        <span class="stat__label">${c.label}</span>
+        <span class="stat__label">${esc(T(c.label))}</span>
         <span class="stat__icon"><svg fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">${c.icon}</svg></span>
       </div>
       <span class="stat__value">${values[c.key] ?? 0}</span>
@@ -154,7 +156,7 @@ function boardCard(t) {
         </span>
         <span class="board-card__title" dir="auto">${esc(t.title)}</span>
         <span class="board-card__who"><span dir="auto">${esc(t.full_name)}</span> <span class="mono">(${esc(t.university_id)})</span></span>
-        ${closed && t.closed_by ? `<span class="board-card__foot">Resolved by <span dir="auto">${esc(t.closed_by)}</span></span>` : ''}
+        ${closed && t.closed_by ? `<span class="board-card__foot">${T('advisor.resolvedBy', { name: esc(t.closed_by) })}</span>` : ''}
       </a>
     </li>`;
 }
@@ -164,30 +166,43 @@ function renderBoard(recent) {
     const list = recent[c.status] || [];
     const total = counts[c.status] || 0;
     return `
-      <section class="column column--${c.tone}" aria-label="${c.title}">
+      <section class="column column--${c.tone}" aria-label="${esc(T(c.title))}">
         <div class="column__head">
           <span class="side-dot side-dot--${c.tone}"></span>
-          <h2 class="column__title">${c.title}</h2>
+          <h2 class="column__title">${esc(T(c.title))}</h2>
           <span class="count-pill">${total}</span>
-          <a class="column__all" href="#tickets/${c.status}">View all</a>
+          <a class="column__all" href="#tickets/${c.status}">${esc(T('advisor.viewAll'))}</a>
         </div>
         <ul class="column__list">
-          ${list.length ? list.map(boardCard).join('') : `<li class="column__empty">No ${c.title.toLowerCase()} tickets.</li>`}
+          ${list.length ? list.map(boardCard).join('') : `<li class="column__empty">${esc(T(`advisor.colEmpty.${c.status}`))}</li>`}
         </ul>
-        ${total > list.length ? `<p class="column__more muted">Showing the latest ${list.length} of ${total}.</p>` : ''}
+        ${total > list.length ? `<p class="column__more muted">${esc(T('advisor.showingLatest', { n: list.length, total }))}</p>` : ''}
       </section>`;
   }).join('');
 }
 
+function renderUpdated() {
+  $('#overview-updated').textContent = overviewAt
+    ? T('advisor.updated', { time: I18n.time(overviewAt) })
+    : T('advisor.loading');
+}
+
+function renderOverview() {
+  if (!counts || !overviewData) return;
+  renderCounts();
+  renderStats();
+  renderBoard(overviewData.recent);
+  renderUpdated();
+}
+
 async function loadOverview(quiet = false) {
-  if (!quiet) $('#overview-updated').textContent = 'Loading...';
+  if (!quiet) { overviewAt = null; renderUpdated(); }
   try {
     const data = await Auth.api('/api/advisor/tickets/overview');
     counts = data.counts;
-    renderCounts();
-    renderStats();
-    renderBoard(data.recent);
-    $('#overview-updated').textContent = `Updated ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+    overviewData = data;
+    overviewAt = new Date();
+    renderOverview();
   } catch (err) {
     $('#overview-updated').textContent = err.message;
     if (!quiet) toast(err.message, true);
@@ -218,15 +233,15 @@ function ticketRow(t) {
 }
 
 function renderInbox() {
-  $('#inbox-title').textContent = FILTER_TITLE[route.filter];
+  $('#inbox-title').textContent = T(`advisor.filterTitle.${route.filter}`);
   $('#inbox-count').textContent = inboxTickets.length;
   $('#ticket-list').innerHTML = inboxTickets.map(ticketRow).join('');
   const status = $('#ticket-list-status');
   const q = $('#ticket-search').value.trim();
   status.className = 'status';
   status.textContent = inboxTickets.length ? ''
-    : q ? 'No ticket matches your search. Try a number like TK-4001, a name or a university ID.'
-      : `No ${route.filter === 'all' ? '' : FILTER_TITLE[route.filter].toLowerCase().replace(' tickets', '') + ' '}tickets right now.`;
+    : q ? T('advisor.noMatch')
+      : T(`advisor.none.${route.filter}`);
 }
 
 let searchTimer;
@@ -234,7 +249,7 @@ async function loadInbox(quiet = false) {
   const status = $('#ticket-list-status');
   if (!quiet) {
     status.className = 'status';
-    status.textContent = 'Loading tickets...';
+    status.textContent = T('advisor.loadingTickets');
     $('#ticket-list').innerHTML = '';
   }
   const params = new URLSearchParams();
@@ -261,13 +276,13 @@ async function loadInbox(quiet = false) {
 function messageHtml(m) {
   const staff = m.sender_role !== 'student';
   const mine = me && m.sender_id === me.id;
-  const role = staff ? (m.sender_role === 'admin' ? 'Admin' : 'Advisor') : 'Student';
+  const role = T(`advisor.role.${staff ? (m.sender_role === 'admin' ? 'admin' : 'advisor') : 'student'}`);
   return `
     <div class="msg ${staff ? 'msg--staff' : 'msg--student'}">
       <span class="avatar avatar--sm" aria-hidden="true">${esc(Auth.initials(m.sender_name))}</span>
       <div class="msg__body">
         <div class="msg__meta">
-          <span class="msg__who" dir="auto">${mine ? 'You' : esc(m.sender_name)}</span>
+          <span class="msg__who" dir="auto">${mine ? esc(T('advisor.you')) : esc(m.sender_name)}</span>
           <span class="msg__role">${role}</span>
           <span class="muted">${esc(fmtDate(m.created_at))}</span>
         </div>
@@ -277,10 +292,12 @@ function messageHtml(m) {
 }
 
 function renderMessages({ ticket, messages }) {
-  const opened = `<div class="system-line">Ticket opened by <span dir="auto">${esc(ticket.full_name)}</span> · ${esc(fmtDate(ticket.created_at))}</div>`;
-  const none = messages.length ? '' : '<div class="system-line">No messages yet. The student will explain the problem here.</div>';
+  const opened = `<div class="system-line">${T('advisor.ticketOpenedBy', { name: esc(ticket.full_name), date: esc(fmtDate(ticket.created_at)) })}</div>`;
+  const none = messages.length ? '' : `<div class="system-line">${esc(T('advisor.noMessages'))}</div>`;
   const closed = ticket.status === 'closed'
-    ? `<div class="system-line">Resolved${ticket.closed_by ? ` by <span dir="auto">${esc(ticket.closed_by)}</span>` : ''} · ${esc(fmtDate(ticket.closed_at))}</div>`
+    ? `<div class="system-line">${ticket.closed_by
+      ? T('advisor.resolvedByLine', { name: esc(ticket.closed_by), date: esc(fmtDate(ticket.closed_at)) })
+      : T('advisor.resolvedLine', { date: esc(fmtDate(ticket.closed_at)) })}</div>`
     : '';
   const box = $('#chat-messages');
   const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
@@ -302,15 +319,13 @@ function renderChat(data) {
   $('#chat-meta').innerHTML = `
     <span dir="auto">${esc(ticket.full_name)}</span>
     <span class="mono">${esc(ticket.university_id)}</span>
-    <span>Opened ${esc(fmtDate(ticket.created_at))}</span>`;
+    <span>${esc(T('advisor.opened', { date: fmtDate(ticket.created_at) || '' }))}</span>`;
   $('#close-ticket-btn').hidden = closed;
   $('#reopen-ticket-btn').hidden = !closed;
   $('#composer').hidden = closed;
   renderChatProfile(data.student, ticket.id);
   $('#closed-note').hidden = !closed;
-  $('#closed-note').textContent = closed
-    ? 'This ticket is resolved: neither you nor the student can add messages. Reopen it to continue the conversation.'
-    : '';
+  $('#closed-note').textContent = closed ? T('advisor.closedNote') : '';
   renderMessages(data);
   // Highlight it in the list.
   document.querySelectorAll('.ticket-row').forEach((a) => {
@@ -324,7 +339,7 @@ function renderChatProfile(student, ticketId) {
   // Polling re-renders the chat; keep the profile (and its expanded lists) unless the ticket changed.
   if (body.dataset.ticket === ticketId) return;
   body.dataset.ticket = ticketId;
-  body.innerHTML = student ? detailHtml(student) : '<p class="muted">Student account not found.</p>';
+  body.innerHTML = student ? detailHtml(student) : `<p class="muted">${esc(T('advisor.studentNotFound'))}</p>`;
 }
 
 function clearChat() {
@@ -344,7 +359,7 @@ async function loadChat(id, quiet = false) {
     $('#chat').hidden = false;
     $('#view-tickets').classList.add('has-chat');
     if (!openTicket || openTicket.ticket.id !== id) {
-      $('#chat-messages').innerHTML = '<div class="system-line">Loading the conversation...</div>';
+      $('#chat-messages').innerHTML = `<div class="system-line">${esc(T('advisor.loadingChat'))}</div>`;
     }
   }
   try {
@@ -357,7 +372,7 @@ async function loadChat(id, quiet = false) {
   } catch (err) {
     if (token !== chatToken) return;
     if (!quiet) {
-      $('#chat-messages').innerHTML = `<div class="empty"><strong>Couldn't open this ticket</strong>${esc(err.message)}</div>`;
+      $('#chat-messages').innerHTML = `<div class="empty"><strong>${esc(T('advisor.openFailed'))}</strong>${esc(err.message)}</div>`;
     }
   }
 }
@@ -378,7 +393,7 @@ async function sendReply(e) {
       body: resolve ? { body, close: true } : { body },
     });
     box.value = '';
-    if (resolve) toast(`${ticket.code} resolved`);
+    if (resolve) toast(T('advisor.toast.resolved', { code: ticket.code }));
     await loadChat(ticket.id);
     loadInbox(true);
   } catch (err) {
@@ -393,12 +408,12 @@ async function sendReply(e) {
 async function setTicketState(action) {
   if (!openTicket) return;
   const { ticket } = openTicket;
-  if (action === 'close' && !confirm(`Mark ${ticket.code} as resolved? The student won't be able to send more messages.`)) return;
+  if (action === 'close' && !confirm(T('advisor.confirmClose', { code: ticket.code }))) return;
   const btn = action === 'close' ? $('#close-ticket-btn') : $('#reopen-ticket-btn');
   btn.disabled = true;
   try {
     await Auth.api(`/api/advisor/tickets/${encodeURIComponent(ticket.id)}/${action}`, { method: 'POST' });
-    toast(action === 'close' ? `${ticket.code} resolved` : `${ticket.code} reopened`);
+    toast(T(action === 'close' ? 'advisor.toast.resolved' : 'advisor.toast.reopened', { code: ticket.code }));
     await loadChat(ticket.id);
     loadInbox(true);
   } catch (err) {
@@ -420,7 +435,7 @@ function studentRow(s) {
   const meta = [
     `<span class="mono">${esc(s.username)}</span>`,
     s.major ? `<span dir="auto">${esc(s.major)}</span>` : '',
-    s.has_transcript || gpa ? '' : '<span>No transcript yet</span>',
+    s.has_transcript || gpa ? '' : `<span>${esc(T('advisor.noTranscriptYet'))}</span>`,
   ].join('');
   return `
     <li>
@@ -440,19 +455,19 @@ function renderStudentList() {
   const q = $('#search').value.trim().toLowerCase();
   const shown = students.filter((s) =>
     !q || (s.name || '').toLowerCase().includes(q) || (s.username || '').toLowerCase().includes(q));
-  $('#student-count').textContent = students.length ? `${shown.length} of ${students.length}` : '';
+  $('#student-count').textContent = students.length ? T('advisor.countOf', { n: shown.length, total: students.length }) : '';
   $('#student-list').innerHTML = shown.map(studentRow).join('');
   const status = $('#list-status');
   status.className = 'status';
-  if (!students.length) status.textContent = 'No students yet. Students appear here after they sign up.';
-  else if (!shown.length) status.textContent = 'No student matches your search. Try a name or a university ID.';
+  if (!students.length) status.textContent = T('advisor.noStudents');
+  else if (!shown.length) status.textContent = T('advisor.noStudentMatch');
   else status.textContent = '';
 }
 
 async function loadStudents() {
   const status = $('#list-status');
   status.className = 'status';
-  status.textContent = 'Loading students...';
+  status.textContent = T('advisor.loadingStudents');
   try {
     const [data] = await Promise.all([Auth.api('/api/advisor/students'), loadCourses()]);
     students = data.students || [];
@@ -460,7 +475,7 @@ async function loadStudents() {
     renderStudentList();
   } catch (err) {
     status.className = 'status status--error';
-    status.textContent = `${err.message} Reload the page to try again.`;
+    status.textContent = `${err.message} ${T('advisor.reloadHint')}`;
   }
 }
 
@@ -477,7 +492,7 @@ async function loadCourses() {
 
 function courseItem(code) {
   const info = courseInfo[code];
-  const credits = info && info.credits != null ? `${esc(info.credits)} cr` : '';
+  const credits = info && info.credits != null ? esc(T('advisor.cr', { n: info.credits })) : '';
   return `
     <li>
       <span class="course-list__code">${esc(code)}</span>
@@ -489,33 +504,33 @@ function courseItem(code) {
 function courseSection(title, codes) {
   const list = Array.isArray(codes) ? codes : [];
   const head = `<h3 class="section__title">${esc(title)}<span class="count">${list.length}</span></h3>`;
-  if (!list.length) return `<div class="section">${head}<p class="muted">None.</p></div>`;
+  if (!list.length) return `<div class="section">${head}<p class="muted">${esc(T('advisor.none'))}</p></div>`;
   const first = list.slice(0, COLLAPSED_COUNT).map(courseItem).join('');
   const rest = list.slice(COLLAPSED_COUNT).map(courseItem).join('');
   const more = rest
     ? `<ul class="course-list" data-rest hidden style="margin-top:-1px;border-top:none;border-radius:0 0 10px 10px">${rest}</ul>
-       <button type="button" class="link-btn" data-toggle-rest aria-expanded="false" data-n="${list.length}">Show all ${list.length}</button>`
+       <button type="button" class="link-btn" data-toggle-rest aria-expanded="false" data-n="${list.length}">${esc(T('advisor.showAll', { n: list.length }))}</button>`
     : '';
   return `<div class="section">${head}<ul class="course-list">${first}</ul>${more}</div>`;
 }
 
 const fact = (label, value, auto) => {
   const blank = value == null || value === '';
-  return `<div class="fact"><dt>${esc(label)}</dt>
-    <dd class="${blank ? 'is-blank' : ''}"${auto && !blank ? ' dir="auto"' : ''}>${blank ? 'Not provided' : esc(value)}</dd></div>`;
+  return `<div class="fact"><dt>${esc(T(label))}</dt>
+    <dd class="${blank ? 'is-blank' : ''}"${auto && !blank ? ' dir="auto"' : ''}>${blank ? esc(T('advisor.notProvided')) : esc(value)}</dd></div>`;
 };
 
 function identitySection(user, profile) {
   return `
     <div class="section">
-      <h3 class="section__title">Identity</h3>
+      <h3 class="section__title">${esc(T('advisor.identity'))}</h3>
       <dl class="facts">
-        ${fact('Name', user.name, true)}
-        ${fact('University ID', user.username)}
-        ${fact('Major', profile.major, true)}
-        ${fact('Level', profile.level)}
-        ${fact('Email', profile.email)}
-        ${fact('Phone', profile.phone)}
+        ${fact('advisor.f.name', user.name, true)}
+        ${fact('advisor.f.universityId', user.username)}
+        ${fact('advisor.f.major', profile.major, true)}
+        ${fact('advisor.f.level', profile.level)}
+        ${fact('advisor.f.email', profile.email)}
+        ${fact('advisor.f.phone', profile.phone)}
       </dl>
     </div>`;
 }
@@ -524,59 +539,59 @@ function standingSection(t) {
   if (!t) {
     return `
       <div class="section">
-        <h3 class="section__title">Academic standing</h3>
-        <div class="empty"><strong>No transcript yet</strong>
-          This student hasn't imported a transcript. Standing and course lists appear after they import it on the schedule page.</div>
+        <h3 class="section__title">${esc(T('advisor.standing'))}</h3>
+        <div class="empty"><strong>${esc(T('advisor.noTranscriptTitle'))}</strong>
+          ${esc(T('advisor.noTranscriptText'))}</div>
       </div>`;
   }
   const gpa = fmtGpa(t.gpa);
   const low = typeof t.gpa === 'number' && t.gpa < 2;
-  const hours = t.earned_hours != null ? esc(t.earned_hours) : 'Unknown';
+  const hours = t.earned_hours != null ? esc(t.earned_hours) : esc(T('advisor.unknown'));
   const done = (t.completed || []).length;
   const when = fmtDate(t.parsed_at);
   return `
     <div class="section">
-      <h3 class="section__title">Academic standing</h3>
+      <h3 class="section__title">${esc(T('advisor.standing'))}</h3>
       <dl class="standing">
-        <div class="standing__item"><dt>GPA</dt><dd>${gpa ? esc(gpa) : '--'}<small> / 5</small></dd></div>
-        <div class="standing__item"><dt>Earned hours</dt><dd>${hours}</dd></div>
-        <div class="standing__item"><dt>Completed courses</dt><dd>${done}</dd></div>
+        <div class="standing__item"><dt>${esc(T('advisor.gpa'))}</dt><dd>${gpa ? esc(gpa) : '--'}<small> / 5</small></dd></div>
+        <div class="standing__item"><dt>${esc(T('advisor.earnedHours'))}</dt><dd>${hours}</dd></div>
+        <div class="standing__item"><dt>${esc(T('advisor.completedCourses'))}</dt><dd>${done}</dd></div>
       </dl>
-      ${low ? '<p class="notice" role="note">Below 2.00: academic warning range.</p>' : ''}
-      <p class="muted" style="font-size:13px">${when ? `Transcript imported ${esc(when)}.` : 'Import date unknown.'}</p>
+      ${low ? `<p class="notice" role="note">${esc(T('advisor.lowGpa'))}</p>` : ''}
+      <p class="muted" style="font-size:13px">${when ? esc(T('advisor.importedOn', { date: when })) : esc(T('advisor.importUnknown'))}</p>
     </div>`;
 }
 
 function plannerSection(p) {
-  const head = '<h3 class="section__title">Saved schedule choices</h3>';
+  const head = `<h3 class="section__title">${esc(T('advisor.planner'))}</h3>`;
   if (!p || !Object.keys(p).length) {
-    return `<div class="section">${head}<p class="muted">The student hasn't saved any schedule choices yet.</p></div>`;
+    return `<div class="section">${head}<p class="muted">${esc(T('advisor.plannerNone'))}</p></div>`;
   }
   const selected = Array.isArray(p.selected) ? p.selected : [];
   const saved = fmtDate(p.savedAt);
-  const days = p.daysOff != null ? plural(Number(p.daysOff), 'day off', 'days off') : null;
+  const days = p.daysOff != null ? plural(Number(p.daysOff), 'advisor.daysOff') : null;
   return `
     <div class="section">
       ${head}
       <dl class="facts">
-        ${fact('Days off wanted', days)}
-        ${fact('Time window', p.timeFrom != null && p.timeTo != null ? `${fmtMinutes(p.timeFrom)} to ${fmtMinutes(p.timeTo)}` : '')}
-        ${fact('Closed sections', p.includeClosed == null ? '' : (p.includeClosed ? 'Included' : 'Not included'))}
-        ${fact('Saved', saved)}
+        ${fact('advisor.f.daysOff', days)}
+        ${fact('advisor.f.timeWindow', p.timeFrom != null && p.timeTo != null ? T('advisor.timeRange', { from: fmtMinutes(p.timeFrom), to: fmtMinutes(p.timeTo) }) : '')}
+        ${fact('advisor.f.closedSections', p.includeClosed == null ? '' : T(p.includeClosed ? 'advisor.included' : 'advisor.notIncluded'))}
+        ${fact('advisor.f.saved', saved)}
       </dl>
       ${selected.length
-        ? `<h3 class="section__title" style="margin-top:16px">Selected courses<span class="count">${selected.length}</span></h3>
+        ? `<h3 class="section__title" style="margin-top:16px">${esc(T('advisor.selectedCourses'))}<span class="count">${selected.length}</span></h3>
            <ul class="course-list">${selected.map(courseItem).join('')}</ul>`
-        : '<p class="muted" style="margin-top:12px">No courses selected.</p>'}
+        : `<p class="muted" style="margin-top:12px">${esc(T('advisor.noSelected'))}</p>`}
     </div>`;
 }
 
 function chatSection(n) {
   return `
     <div class="section">
-      <h3 class="section__title">Chatbot use</h3>
-      <p>${plural(Number(n) || 0, 'conversation', 'conversations')}</p>
-      <p class="chat-note">The messages themselves are private to the student.</p>
+      <h3 class="section__title">${esc(T('advisor.chatUse'))}</h3>
+      <p>${esc(plural(Number(n) || 0, 'advisor.conv'))}</p>
+      <p class="chat-note">${esc(T('advisor.chatPrivate'))}</p>
     </div>`;
 }
 
@@ -591,35 +606,37 @@ function detailHtml({ user, profile, chat_count }) {
         <h2 class="profile-head__name" dir="auto">${esc(user.name)}</h2>
         <div class="profile-head__sub">
           <span class="mono">${esc(user.username)}</span>
-          <span class="badge ${active ? 'badge--ok' : 'badge--off'}">${active ? 'Active account' : 'Account disabled'}</span>
+          <span class="badge ${active ? 'badge--ok' : 'badge--off'}">${esc(T(active ? 'advisor.activeAccount' : 'advisor.disabledAccount'))}</span>
         </div>
       </div>
     </div>
     ${identitySection(user, p)}
     ${standingSection(t)}
-    ${t ? courseSection('Completed', t.completed) : ''}
-    ${t ? courseSection('Not passed (failed or withdrawn)', t.not_passed) : ''}
-    ${t ? courseSection('Eligible now', t.eligible) : ''}
-    ${t ? courseSection('Suggested next term', t.suggested) : ''}
+    ${t ? courseSection(T('advisor.sec.completed'), t.completed) : ''}
+    ${t ? courseSection(T('advisor.sec.notPassed'), t.not_passed) : ''}
+    ${t ? courseSection(T('advisor.sec.eligible'), t.eligible) : ''}
+    ${t ? courseSection(T('advisor.sec.suggested'), t.suggested) : ''}
     ${plannerSection(p.planner)}
     ${chatSection(chat_count)}`;
 }
 
 function renderDetail(data) {
+  selectedData = data;
   $('#detail').innerHTML = detailHtml(data);
 }
 
 function showStudentPlaceholder() {
   $('#layout').classList.remove('has-selection');
   $('#detail').innerHTML = `
-    <div class="empty"><strong>Select a student</strong>Choose a student from the list to see their academic profile.</div>`;
+    <div class="empty"><strong>${esc(T('advisor.selectStudent'))}</strong>${esc(T('advisor.selectStudentHint'))}</div>`;
 }
 
 async function selectStudent(id) {
   selectedStudent = id;
   const token = ++detailToken;
   $('#layout').classList.add('has-selection');
-  $('#detail').innerHTML = '<div class="skeleton" style="width:40%;height:24px"></div><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:65%"></div><p class="muted">Loading profile...</p>';
+  $('#detail').innerHTML = '<div class="skeleton" style="width:40%;height:24px"></div><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:65%"></div><p class="muted">' + esc(T('advisor.loadingProfile')) + '</p>';
+  selectedData = null;
   renderStudentList();
   try {
     const data = await Auth.api(`/api/advisor/students/${encodeURIComponent(id)}`);
@@ -628,8 +645,8 @@ async function selectStudent(id) {
   } catch (err) {
     if (token !== detailToken) return;
     $('#detail').innerHTML = `
-      <div class="empty"><strong>Couldn't load this student</strong>${esc(err.message)}
-        <div><button type="button" class="link-btn" id="retry-btn">Try again</button></div></div>`;
+      <div class="empty"><strong>${esc(T('advisor.studentFailed'))}</strong>${esc(err.message)}
+        <div><button type="button" class="link-btn" id="retry-btn">${esc(T('common.retry'))}</button></div></div>`;
   }
 }
 
@@ -688,7 +705,7 @@ function toggleRest(e) {
   const open = rest.hidden;
   rest.hidden = !open;
   btn.setAttribute('aria-expanded', String(open));
-  btn.textContent = open ? 'Show fewer' : `Show all ${btn.dataset.n}`;
+  btn.textContent = open ? T('advisor.showFewer') : T('advisor.showAll', { n: btn.dataset.n });
 }
 
 function bindEvents() {
@@ -713,6 +730,7 @@ function bindEvents() {
   $('#reopen-ticket-btn').addEventListener('click', () => setTicketState('reopen'));
 
   const quick = $('#quick-reply');
+  // The replies are Arabic text sent to students, shown as they are; only the placeholder option is translated.
   quick.innerHTML += QUICK_REPLIES.map((r, i) => `<option value="${i}" dir="auto">${esc(r.length > 60 ? `${r.slice(0, 60)}…` : r)}</option>`).join('');
   quick.addEventListener('change', () => {
     if (quick.value === '') return;
@@ -737,6 +755,27 @@ function bindEvents() {
 }
 
 /* ==========================================================
+   Language change: re-render what is on screen. The reply textarea
+   is never rebuilt, so a typed reply stays.
+   ========================================================== */
+function rerender() {
+  setActiveNav();
+  renderOverview();
+  if (route.view === 'tickets') {
+    renderInbox();
+    if (openTicket) {
+      $('#chat-profile-body').dataset.ticket = '';   // rebuild the profile in the new language
+      renderChat(openTicket);
+    }
+  } else if (route.view === 'students') {
+    renderStudentList();
+    if (selectedData) renderDetail(selectedData);
+    else if (!selectedStudent) showStudentPlaceholder();
+  }
+  if (me) Auth.fillUser(me);
+}
+
+/* ==========================================================
    Init
    ========================================================== */
 Auth.requireRole('advisor', 'admin').then((user) => {
@@ -744,5 +783,6 @@ Auth.requireRole('advisor', 'admin').then((user) => {
   Auth.fillUser(user);
   if (user.role === 'admin') $('#admin-link').hidden = false;
   bindEvents();
+  I18n.onChange(rerender);
   applyRoute();
 });

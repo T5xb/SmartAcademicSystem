@@ -1,18 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Academic AI - Study Schedule</title>
+  <title data-i18n="schedule.pageTitle">Academic AI - Study Schedule</title>
+
+  <script src="../shared/i18n.js?v=1"></script>
+  <link rel="stylesheet" href="../shared/i18n.css?v=3">
 
   <!-- Google Fonts: Inter + JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css?v=2">
-  <link rel="stylesheet" href="../shared/tickets.css?v=2">
+  <link rel="stylesheet" href="style.css?v=4">
+  <link rel="stylesheet" href="../shared/tickets.css?v=6">
 </head>
 
 <body>
@@ -33,12 +36,12 @@
       </a>
 
       <!-- Navigation Tabs -->
-      <nav class="nav-tabs" aria-label="Main tabs">
+      <nav class="nav-tabs" aria-label="Main tabs" data-i18n-aria-label="schedule.mainTabs">
         <a href="../chatbot-page/index.html?v=2" class="nav-tab">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
           </svg>
-          <span class="nav-tab__label">AI Chatbot</span>
+          <span class="nav-tab__label" data-i18n="schedule.navChat">AI Chatbot</span>
         </a>
         <a href="index.html" class="nav-tab is-active" aria-current="page">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -47,7 +50,7 @@
             <line x1="8" y1="2" x2="8" y2="6"></line>
             <line x1="3" y1="10" x2="21" y2="10"></line>
           </svg>
-          <span class="nav-tab__label">Study Schedule</span>
+          <span class="nav-tab__label" data-i18n="schedule.navSchedule">Study Schedule</span>
           <span class="dot dot--small dot--pulse"></span>
         </a>
       </nav>
@@ -61,14 +64,14 @@
 
       <!-- Action Icons -->
       <div class="icon-actions">
-        <button type="button" id="notifications-btn" class="icon-btn" title="Notifications" aria-label="Notifications">
+        <button type="button" id="notifications-btn" class="icon-btn" title="Notifications" aria-label="Notifications" data-i18n-title="schedule.notifications" data-i18n-aria-label="schedule.notifications">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
           </svg>
           <span class="icon-btn__badge"></span>
         </button>
-        <button type="button" id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings">
+        <button type="button" id="settings-btn" class="icon-btn" title="Settings" aria-label="Settings" data-i18n-title="schedule.settings" data-i18n-aria-label="schedule.settings">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <circle cx="12" cy="12" r="3"></circle>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
@@ -78,12 +81,12 @@
 
       <!-- User -->
       <div class="user">
-        <a href="../profile-page/index.html?v=2" class="user__avatar" title="My profile" aria-label="My profile"></a>
+        <a href="../profile-page/index.html?v=2" class="user__avatar" title="My profile" aria-label="My profile" data-i18n-title="schedule.myProfile" data-i18n-aria-label="schedule.myProfile"></a>
         <div class="user__info">
           <div class="user__name"></div>
           <div class="user__id"></div>
         </div>
-        <button type="button" id="sign-out-btn" class="sign-out" title="Sign Out" aria-label="Sign Out">
+        <button type="button" id="sign-out-btn" class="sign-out" title="Sign Out" aria-label="Sign Out" data-i18n-title="common.signOut" data-i18n-aria-label="common.signOut">
           <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
           </svg>
@@ -102,7 +105,7 @@
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
           </svg>
-          <h2>Schedule Customization</h2>
+          <h2 data-i18n="schedule.customize">Schedule Customization</h2>
         </div>
         <button type="button" id="reset-btn" class="text-btn">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -111,7 +114,7 @@
             <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
             <path d="M8 16H3v5"></path>
           </svg>
-          Reset All
+          <span data-i18n="schedule.resetAll">Reset All</span>
         </button>
       </div>
 
@@ -128,10 +131,10 @@
             </svg>
           </span>
           <span class="import-card__text">
-            <span class="import-card__title">Import Academic Record <span class="mono-tag">PDF</span></span>
-            <span class="import-card__desc">Upload your IMSIU transcript to auto-fill courses</span>
+            <span class="import-card__title"><span data-i18n="schedule.importTitle">Import Academic Record</span> <span class="mono-tag">PDF</span></span>
+            <span class="import-card__desc" data-i18n="schedule.importDesc">Upload your IMSIU transcript to auto-fill courses</span>
           </span>
-          <svg class="import-card__arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <svg class="import-card__arrow flip-rtl" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <polyline points="9 18 15 12 9 6"></polyline>
           </svg>
         </button>
@@ -139,7 +142,7 @@
         <!-- Courses -->
         <section class="courses">
           <div class="section-head">
-            <h3 class="section-head__title section-head__title--caps">Courses</h3>
+            <h3 class="section-head__title section-head__title--caps" data-i18n="schedule.courses">Courses</h3>
             <div class="stats-pill">
               <span id="stat-selected" class="stats-pill__accent">Selected: 0</span>
               <span class="stats-pill__sep">|</span>
@@ -152,7 +155,7 @@
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="text" id="course-search" class="search__input" placeholder="Search course code or title..." autocomplete="off">
+            <input type="text" id="course-search" class="search__input" placeholder="Search course code or title..." data-i18n-placeholder="schedule.searchPlaceholder" aria-label="Search course code or title" data-i18n-aria-label="schedule.searchPlaceholder" autocomplete="off">
           </div>
 
           <div class="segmented" id="course-filter">
@@ -166,7 +169,7 @@
         <!-- Days Off -->
         <section class="panel">
           <div class="section-head">
-            <span class="section-head__title">Days Off (At least)</span>
+            <span class="section-head__title" data-i18n="schedule.daysOff">Days Off (At least)</span>
             <span class="badge badge--solid" id="days-off-badge">0 Days</span>
           </div>
           <div class="days-off" id="days-off">
@@ -181,30 +184,30 @@
         <!-- Lock Specific Sections -->
         <section class="panel">
           <div class="section-head">
-            <span class="section-head__title">Lock Specific Sections</span>
+            <span class="section-head__title" data-i18n="schedule.lockSections">Lock Specific Sections</span>
             <span class="badge" id="lock-badge">0 Locked</span>
           </div>
-          <p class="panel__desc">Lock specific sections to generate schedules containing only these selections.</p>
+          <p class="panel__desc" data-i18n="schedule.lockDesc">Lock specific sections to generate schedules containing only these selections.</p>
           <div class="lock-list" id="lock-list"></div>
         </section>
 
         <!-- Time Range -->
         <section class="panel">
           <div class="section-head">
-            <span class="section-head__title">Time Range</span>
+            <span class="section-head__title" data-i18n="schedule.timeRange">Time Range</span>
             <span class="badge badge--mono" id="time-badge">08:00 — 24:00</span>
           </div>
 
           <div class="time-pickers">
             <label class="time-picker">
-              <span class="time-picker__head">FROM <span class="dot dot--small"></span></span>
+              <span class="time-picker__head"><span data-i18n="schedule.from">FROM</span> <span class="dot dot--small"></span></span>
               <span class="time-picker__control">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 <select id="time-from" class="time-picker__select"></select>
               </span>
             </label>
             <label class="time-picker">
-              <span class="time-picker__head">TO <span class="dot dot--small"></span></span>
+              <span class="time-picker__head"><span data-i18n="schedule.to">TO</span> <span class="dot dot--small"></span></span>
               <span class="time-picker__control">
                 <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                 <select id="time-to" class="time-picker__select"></select>
@@ -215,21 +218,21 @@
           <div class="range">
             <div class="range__track"></div>
             <div class="range__fill" id="range-fill"></div>
-            <input type="range" id="range-from" class="range__input" min="480" max="1440" step="30" value="480" aria-label="From time">
-            <input type="range" id="range-to" class="range__input" min="480" max="1440" step="30" value="1440" aria-label="To time">
+            <input type="range" id="range-from" class="range__input" min="480" max="1440" step="30" value="480" aria-label="From time" data-i18n-aria-label="schedule.fromTime">
+            <input type="range" id="range-to" class="range__input" min="480" max="1440" step="30" value="1440" aria-label="To time" data-i18n-aria-label="schedule.toTime">
           </div>
           <div class="range__labels">
             <span>08:00</span><span>12:00</span><span>16:00</span><span>20:00</span><span>24:00</span>
           </div>
 
-          <p class="panel__note">* Schedules containing lecture slots outside this boundary are discarded.</p>
+          <p class="panel__note" data-i18n="schedule.timeNote">* Schedules containing lecture slots outside this boundary are discarded.</p>
         </section>
 
         <!-- Include Closed Sections -->
         <div class="panel panel--row">
           <div>
-            <span class="section-head__title">Include Closed Sections</span>
-            <span class="panel__desc">Show sections even if enrollment is full</span>
+            <span class="section-head__title" data-i18n="schedule.includeClosed">Include Closed Sections</span>
+            <span class="panel__desc" data-i18n="schedule.includeClosedDesc">Show sections even if enrollment is full</span>
           </div>
           <label class="switch">
             <input type="checkbox" id="include-closed" class="switch__input">
@@ -241,7 +244,7 @@
       <div class="sidebar__footer">
         <button type="button" id="generate-btn" class="btn-generate">
           <svg fill="currentColor" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
-          Generate Optimal Schedules
+          <span data-i18n="schedule.generate">Generate Optimal Schedules</span>
         </button>
       </div>
     </aside>
@@ -259,7 +262,7 @@
           </svg>
           <div class="conflict-banner__text" id="conflict-text"></div>
         </div>
-        <button type="button" id="resolve-btn" class="conflict-banner__btn">Resolve</button>
+        <button type="button" id="resolve-btn" class="conflict-banner__btn" data-i18n="schedule.resolve">Resolve</button>
       </div>
 
       <!-- Toolbar -->
@@ -270,25 +273,25 @@
             <polyline points="7 10 12 15 17 10"></polyline>
             <line x1="12" y1="15" x2="12" y2="3"></line>
           </svg>
-          Save Image
+          <span data-i18n="schedule.saveImage">Save Image</span>
         </button>
 
         <div class="toolbar__right">
           <div class="results">
-            <span class="results__label">Suggested Results</span>
+            <span class="results__label" data-i18n="schedule.suggested">Suggested Results</span>
             <span class="results__count" id="result-count">0 Schedules</span>
           </div>
           <div class="stepper">
-            <button type="button" id="prev-btn" class="stepper__btn" aria-label="Previous schedule">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
+            <button type="button" id="prev-btn" class="stepper__btn" aria-label="Previous schedule" data-i18n-aria-label="schedule.prev">
+              <svg class="flip-rtl" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"></polyline></svg>
             </button>
             <div class="stepper__value">
               <span class="stepper__current" id="page-current">0</span>
               <span class="stepper__sep">/</span>
               <span id="page-total">0</span>
             </div>
-            <button type="button" id="next-btn" class="stepper__btn" aria-label="Next schedule">
-              <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            <button type="button" id="next-btn" class="stepper__btn" aria-label="Next schedule" data-i18n-aria-label="schedule.next">
+              <svg class="flip-rtl" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
             </button>
           </div>
         </div>
@@ -305,7 +308,7 @@
         <div class="summary" id="summary">
           <div class="summary__legend" id="legend"></div>
           <button type="button" id="toggle-details-btn" class="btn-ghost btn-ghost--small" aria-expanded="true">
-            Detailed Card View
+            <span data-i18n="schedule.detailedView">Detailed Card View</span>
             <svg class="chevron" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="18 15 12 9 6 15"></polyline></svg>
           </button>
         </div>
@@ -321,14 +324,14 @@
                   <line x1="9" y1="21" x2="9" y2="9"></line>
                 </svg>
               </span>
-              <h3>Section Details</h3>
+              <h3 data-i18n="schedule.sectionDetails">Section Details</h3>
             </div>
             <button type="button" id="copy-all-btn" class="btn-ghost">
               <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
-              Copy All CRNs
+              <span data-i18n="schedule.copyAll">Copy All CRNs</span>
             </button>
           </div>
           <div class="details__grid" id="details-grid"></div>
@@ -353,10 +356,10 @@
           </svg>
         </span>
         <div class="modal__heading">
-          <h2 id="import-title">Import Academic Record <span class="mono-tag mono-tag--pill">PDF Audit</span></h2>
-          <p>Upload your academic transcript PDF to mark completed courses, check prerequisites, and suggest next-term courses.</p>
+          <h2 id="import-title"><span data-i18n="schedule.importTitle">Import Academic Record</span> <span class="mono-tag mono-tag--pill">PDF Audit</span></h2>
+          <p data-i18n="schedule.modalDesc">Upload your academic transcript PDF to mark completed courses, check prerequisites, and suggest next-term courses.</p>
         </div>
-        <button type="button" class="modal__close" data-close-modal aria-label="Close">
+        <button type="button" class="modal__close" data-close-modal aria-label="Close" data-i18n-aria-label="common.close">
           <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -366,7 +369,7 @@
 
       <div class="modal__body">
         <!-- Drop Zone -->
-        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload transcript">
+        <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="Upload transcript" data-i18n-aria-label="schedule.uploadTranscript">
           <input type="file" id="file-input" accept=".pdf" hidden>
 
           <div class="dropzone__empty" id="dz-empty">
@@ -377,15 +380,15 @@
                 <line x1="12" y1="3" x2="12" y2="15"></line>
               </svg>
             </span>
-            <p class="dropzone__title">Drag &amp; drop your academic transcript here</p>
-            <p class="dropzone__sub">or click to browse files from your computer</p>
+            <p class="dropzone__title" data-i18n="schedule.dropTitle">Drag &amp; drop your academic transcript here</p>
+            <p class="dropzone__sub" data-i18n="schedule.dropSub">or click to browse files from your computer</p>
             <span class="btn-ghost btn-ghost--small dropzone__browse">
               <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                 <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
               </svg>
-              Browse Files
+              <span data-i18n="schedule.browse">Browse Files</span>
             </span>
-            <p class="dropzone__hint">Text-based transcript PDF exported from the university system (up to 15MB)</p>
+            <p class="dropzone__hint" data-i18n="schedule.dropHint">Text-based transcript PDF exported from the university system (up to 15MB)</p>
           </div>
 
           <div class="dropzone__file" id="dz-file" hidden>
@@ -398,7 +401,7 @@
             </span>
             <p class="dropzone__title" id="dz-file-name"></p>
             <p class="dropzone__sub" id="dz-file-meta"></p>
-            <button type="button" class="text-btn text-btn--danger" id="dz-remove">Remove file</button>
+            <button type="button" class="text-btn text-btn--danger" id="dz-remove" data-i18n="schedule.removeFile">Remove file</button>
           </div>
 
           <p class="dropzone__error" id="dz-error" hidden></p>
@@ -407,9 +410,9 @@
         <!-- Sample -->
         <div class="sample-row" hidden>
           <span class="dot"></span>
-          <span class="sample-row__label">Sample available:</span>
+          <span class="sample-row__label" data-i18n="schedule.sampleAvail">Sample available:</span>
           <span class="sample-row__file">KFUPM_Audit_Sample.pdf</span>
-          <button type="button" class="sample-row__btn" id="load-sample-btn">Load Sample</button>
+          <button type="button" class="sample-row__btn" id="load-sample-btn" data-i18n="schedule.loadSample">Load Sample</button>
         </div>
 
         <p class="secure-note">
@@ -417,15 +420,15 @@
             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
           </svg>
-          Processed by the Academic AI server • Extracted data is used only for schedule generation and course validation, and is saved to your profile. The PDF itself is not kept.
+          <span data-i18n="schedule.secureNote">Processed by the Academic AI server • Extracted data is used only for schedule generation and course validation, and is saved to your profile. The PDF itself is not kept.</span>
         </p>
       </div>
 
       <div class="modal__footer">
-        <button type="button" class="btn-ghost" data-close-modal>Cancel</button>
+        <button type="button" class="btn-ghost" data-close-modal data-i18n="common.cancel">Cancel</button>
         <button type="button" class="btn-primary" id="process-btn" disabled>
-          <span id="process-label">Process Transcript &amp; Auto-fill</span>
-          <svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          <span id="process-label" data-i18n="schedule.process">Process Transcript &amp; Auto-fill</span>
+          <svg class="flip-rtl" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </button>
       </div>
     </div>
@@ -435,8 +438,9 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <!-- Scripts -->
-  <script src="../shared/auth.js?v=2"></script>
-  <script src="../shared/tickets.js?v=3"></script>
-  <script src="script.js?v=2"></script>
+  <script src="../shared/auth.js?v=3"></script>
+  <script src="strings.js?v=1"></script>
+  <script src="../shared/tickets.js?v=5"></script>
+  <script src="script.js?v=3"></script>
 </body>
 </html>

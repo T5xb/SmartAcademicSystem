@@ -43,7 +43,7 @@
 
   /* Misc */
   --font: 'Inter', sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, 'IBM Plex Sans Arabic', monospace;
   --transition: 0.15s ease;
 }
 
@@ -160,6 +160,12 @@ body {
   color: var(--text-white);
 }
 
+.header__right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .header__status {
   display: none;
   align-items: center;
@@ -240,8 +246,7 @@ body {
 .auth-card__accent {
   position: absolute;
   top: 0;
-  left: 0;
-  right: 0;
+  inset-inline: 0;
   height: 2px;
   background: linear-gradient(to right, transparent, var(--emerald), transparent);
   opacity: 0.85;
@@ -377,8 +382,8 @@ body {
   position: absolute;
   top: 0;
   bottom: 0;
-  left: 0;
-  padding-left: 12px;
+  inset-inline-start: 0;
+  padding-inline-start: 12px;
   display: flex;
   align-items: center;
   pointer-events: none;
@@ -393,7 +398,8 @@ body {
 
 .field__input {
   width: 100%;
-  padding: 10px 12px 10px 36px;
+  padding: 10px 12px;
+  padding-inline-start: 36px;
   border-radius: 8px;
   background-color: var(--input-bg);
   border: 1px solid var(--border);
@@ -414,15 +420,15 @@ body {
 }
 
 .field__input--password {
-  padding-right: 40px;
+  padding-inline-end: 40px;
 }
 
 .password-toggle {
   position: absolute;
   top: 0;
   bottom: 0;
-  right: 0;
-  padding-right: 12px;
+  inset-inline-end: 0;
+  padding-inline-end: 12px;
   display: flex;
   align-items: center;
   color: var(--text-muted);
@@ -476,7 +482,7 @@ body {
 }
 
 .checkbox__text {
-  margin-left: 8px;
+  margin-inline-start: 8px;
   font-size: 12px;
   line-height: 16px;
   color: var(--text-light);
@@ -526,7 +532,7 @@ body {
 }
 
 .register-prompt__link {
-  margin-left: 4px;
+  margin-inline-start: 4px;
   font-weight: 500;
   color: var(--emerald);
 }

@@ -10,7 +10,7 @@ const signOut = Auth.signOut;
 /* ----------------------------------------------------------
    Constants
    ---------------------------------------------------------- */
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+const DAY_COUNT = 5;                 // Sunday - Thursday
 const SCALE_START = 8 * 60;          // 08:00
 const SCALE_END = 24 * 60;           // 24:00
 const TIME_STEP = 30;                // minutes
@@ -34,25 +34,74 @@ const formatTime = (minutes) =>
 const escapeHtml = (text) =>
   String(text).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
+const tr = (key, vars) => I18n.t(key, vars);
+
+// "1 Section" / "2 Sections": picks the .one / .two / .other string of a key.
+function plural(base, n, shown = n) {
+  const key = `${base}.${n === 1 ? 'one' : n === 2 ? 'two' : 'other'}`;
+  const text = I18n.t(key, { n: shown });
+  return text === key ? I18n.t(`${base}.other`, { n: shown }) : text;
+}
+
+const dayName = (day) => tr(`schedule.day.${day}`);
+const dayList = (days) => days.map(dayName).join(tr('schedule.listSep'));
+
+// Meeting types come from the server ('Lecture', 'Lab'...); unknown ones show as they are.
+const typeLabel = (type) => {
+  const key = `schedule.type.${type}`;
+  const text = I18n.t(key);
+  return text === key ? type : text;
+};
+
+// Times, codes and ids keep left-to-right order inside Arabic sentences.
+const ltr = (html) => `<bdi dir="ltr">${html}</bdi>`;
+const timeRange = (start, end) => `${formatTime(start)} - ${formatTime(end)}`;
+
 const formatExamDate = (date) => {
   const [y, m, d] = date.split('-');
-  const weekday = new Date(`${date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long' });
+  const weekday = I18n.date(new Date(`${date}T00:00:00`), { weekday: 'long' });
   return `${weekday} (${m}/${d}/${y})`;
 };
 
 const formatExam = (exam) => {
-  if (!exam) return 'No final exam / not scheduled';
-  return `${formatExamDate(exam.date)} • ${formatTime(exam.start)}${exam.end != null ? ` - ${formatTime(exam.end)}` : ''}`;
+  if (!exam) return escapeHtml(tr('schedule.noExam'));
+  const times = `${formatTime(exam.start)}${exam.end != null ? ` - ${formatTime(exam.end)}` : ''}`;
+  return `${escapeHtml(formatExamDate(exam.date))} • ${ltr(times)}`;
 };
 
 const formatFileSize = (bytes) =>
-  bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  bytes >= 1024 * 1024
+    ? `${(bytes / 1024 / 1024).toFixed(1)} ${tr('schedule.mb')}`
+    : `${Math.max(1, Math.round(bytes / 1024))} ${tr('schedule.kb')}`;
 
 // A section without a capacity has unlimited seats.
 const isClosed = (section) => section.capacity != null && section.enrolled >= section.capacity;
 
 // Validation messages from the server use **bold** markers.
 const plainText = (text) => String(text).replace(/\*\*/g, '');
+
+/* The scheduling service words its messages in Arabic. In English mode the
+   known ones are mapped back here (names inside them are data and stay). */
+const SERVER_MESSAGES = [
+  [/^لا يمكنك تسجيل \[ (.+?) \] لأنك لم تجتز متطلبه السابق \[ (.+?) \]$/s, 'schedule.srv.prereq', ['a', 'b']],
+  [/^⚠️ إجمالي الساعات المختارة \((\d+) ساعة\) يتجاوز الحد الأقصى المسموح \((\d+) ساعة\)\. الرجاء إزالة بعض المقررات\.$/s, 'schedule.srv.credits', ['total', 'max']],
+  [/^⚠️ اخترت (\d+) مقررات من مجموعة الاختياريات \((.+)\)، والمسموح به حسب الخطة هو (\d+) فقط\. الرجاء إزالة البعض\.$/s, 'schedule.srv.electives', ['n', 'names', 'max']],
+  [/^لا توجد أي شعبة متاحة ضمن القيود المحددة \(الأيام\/الوقت\/السعة\/الشعبة المثبتة\) للمقرر التالي: (.+)\.$/s, 'schedule.srv.noSection', ['names']],
+  [/^تعذّر إيجاد جدول خالٍ من التعارض\. أعمق نقطة وصل إليها البحث كانت عند إسناد مقرر «(.+?)» .*$/s, 'schedule.srv.deepest', ['name']],
+  [/^تعذّر إيجاد جدول خالٍ من التعارض\.$/, 'schedule.srv.noSchedule', []],
+  [/^تعذّر تحليل صف: (.+)$/s, 'schedule.srv.parseRow', ['row']],
+  [/^لم يتم العثور على أي مقررات في الملف .*$/s, 'schedule.srv.noCourses', []],
+];
+
+function serverText(message) {
+  const text = plainText(message || '');
+  if (I18n.lang === 'ar') return text;
+  for (const [re, key, names] of SERVER_MESSAGES) {
+    const m = text.match(re);
+    if (m) return tr(key, Object.fromEntries(names.map((n, i) => [n, m[i + 1]])));
+  }
+  return text;
+}
 
 /* Course plan, loaded from GET /api/schedule/courses */
 let COURSES = [];
@@ -93,7 +142,7 @@ const state = {
   showDetails: true,
   schedules: [],
   truncated: false,
-  emptyReason: '',
+  emptyReason: null,     // function returning the text (so it follows the language)
   index: 0,
   loading: false,
   completed: null,       // Set of plan codes from an imported transcript (null = unknown)
@@ -152,7 +201,7 @@ async function generateSchedules() {
   const seq = ++requestSeq;
   state.schedules = [];
   state.truncated = false;
-  state.emptyReason = '';
+  state.emptyReason = null;
   state.index = 0;
 
   const body = scheduleRequest();
@@ -172,14 +221,16 @@ async function generateSchedules() {
   } catch (err) {
     if (seq !== requestSeq) return;
     state.loading = false;
-    state.emptyReason = err.message;
+    const message = err.message;
+    state.emptyReason = () => message;
     return;
   }
   if (seq !== requestSeq) return; // a newer request replaced this one
   state.loading = false;
 
   if (data.errors && data.errors.length) {
-    state.emptyReason = data.errors.map(plainText).join('\n');
+    const errors = data.errors;
+    state.emptyReason = () => errors.map(serverText).join('\n');
     return;
   }
 
@@ -198,8 +249,8 @@ async function generateSchedules() {
   state.schedules = schedules;
   state.truncated = data.truncated;
   if (!schedules.length) {
-    state.emptyReason = data.failure_reason ||
-      'Every combination of the selected courses clashes in time or breaks your filters. Try fewer days off, a wider time range, or unlocking a section.';
+    const reason = data.failure_reason;
+    state.emptyReason = () => (reason ? serverText(reason) : tr('schedule.noFit'));
   }
 }
 
@@ -210,11 +261,11 @@ const currentSchedule = () => state.schedules[state.index] || null;
    ---------------------------------------------------------- */
 function renderCourseStats() {
   const credits = COURSES.filter((c) => state.selected.has(c.code)).reduce((sum, c) => sum + c.credits, 0);
-  $('#stat-selected').textContent = `Selected: ${state.selected.size}`;
-  $('#stat-credits').textContent = `Credits: ${credits} / ${MAX_CREDITS}`;
+  $('#stat-selected').textContent = tr('schedule.selected', { n: state.selected.size });
+  $('#stat-credits').textContent = tr('schedule.credits', { n: credits, max: MAX_CREDITS });
   $('#stat-credits').parentElement.classList.toggle('is-over', credits > MAX_CREDITS);
-  $('#filter-all').textContent = `All (${COURSES.length})`;
-  $('#filter-selected').textContent = `Selected (${state.selected.size})`;
+  $('#filter-all').textContent = tr('schedule.filterAll', { n: COURSES.length });
+  $('#filter-selected').textContent = tr('schedule.filterSelected', { n: state.selected.size });
 }
 
 function renderCourseList() {
@@ -230,7 +281,7 @@ function renderCourseList() {
 
   if (!list.length) {
     $('#course-list').innerHTML = `<p class="course-list__empty">${
-      query ? `No courses match “${escapeHtml(state.search.trim())}”.` : 'No courses selected yet.'
+      query ? escapeHtml(tr('schedule.noMatch', { q: state.search.trim() })) : escapeHtml(tr('schedule.noneSelected'))
     }</p>`;
     return;
   }
@@ -240,19 +291,19 @@ function renderCourseList() {
     const done = Boolean(state.completed && state.completed.has(c.code));
     const missing = state.completed ? c.prerequisites.filter((p) => !state.completed.has(p.code)) : [];
     const tags = [
-      c.elective ? 'Elective' : '',
-      done ? 'Completed' : '',
-      !done && missing.length ? `Needs ${missing.map((p) => p.name).join(', ')}` : '',
-    ].filter(Boolean).map((t) => ` • ${escapeHtml(t)}`).join('');
+      c.elective ? tr('schedule.elective') : '',
+      done ? tr('schedule.completed') : '',
+      !done && missing.length ? tr('schedule.needs', { list: missing.map((p) => p.name).join(tr('schedule.listSep')) }) : '',
+    ].filter(Boolean).map((tag) => ` • ${escapeHtml(tag)}`).join('');
     const prereqTitle = c.prerequisites.length
-      ? `Prerequisites: ${c.prerequisites.map((p) => `${p.name} (${p.code})`).join(', ')}`
-      : 'No prerequisites';
+      ? tr('schedule.prereqs', { list: c.prerequisites.map((p) => `${p.name} (${p.code})`).join(tr('schedule.listSep')) })
+      : tr('schedule.noPrereqs');
     return `
       <label class="course-item${selected ? ' is-selected' : ''}" style="--c: ${escapeHtml(c.color)}${done ? '; opacity: .5' : ''}" title="${escapeHtml(prereqTitle)}">
         <input type="checkbox" class="course-item__check" data-code="${escapeHtml(c.code)}" ${selected ? 'checked' : ''} ${done ? 'disabled' : ''}>
         <span class="course-item__text">
           <span class="course-item__name" dir="auto">${escapeHtml(c.name)}</span>
-          <span class="course-item__meta">${escapeHtml(c.code)} • ${c.credits} Credit Hrs • ${c.sections.length} Section${c.sections.length === 1 ? '' : 's'}${tags}</span>
+          <span class="course-item__meta">${ltr(escapeHtml(c.code))} • ${escapeHtml(tr('schedule.creditHrs', { n: c.credits }))} • ${escapeHtml(plural('schedule.sections', c.sections.length))}${tags}</span>
         </span>
         <span class="course-item__dot"></span>
       </label>`;
@@ -260,7 +311,7 @@ function renderCourseList() {
 }
 
 function renderDaysOff() {
-  $('#days-off-badge').textContent = `${state.daysOff} Day${state.daysOff === 1 ? '' : 's'}`;
+  $('#days-off-badge').textContent = plural('schedule.days', state.daysOff);
   document.querySelectorAll('.days-off__btn').forEach((btn) =>
     btn.classList.toggle('is-active', Number(btn.dataset.days) === state.daysOff)
   );
@@ -268,10 +319,10 @@ function renderDaysOff() {
 
 function renderLocks() {
   const courses = COURSES.filter((c) => state.selected.has(c.code));
-  $('#lock-badge').textContent = `${Object.keys(state.locks).length} Locked`;
+  $('#lock-badge').textContent = tr('schedule.lockedN', { n: Object.keys(state.locks).length });
 
   if (!courses.length) {
-    $('#lock-list').innerHTML = '<p class="muted-note">Select courses to lock their sections.</p>';
+    $('#lock-list').innerHTML = `<p class="muted-note">${escapeHtml(tr('schedule.lockSelect'))}</p>`;
     return;
   }
 
@@ -283,8 +334,8 @@ function renderLocks() {
       const isLocked = locked === s.id;
       return `
         <button type="button" class="chip${isLocked ? ' is-locked' : ''}" data-lock="${escapeHtml(c.code)}" data-section="${escapeHtml(s.id)}"
-          ${disabled ? 'disabled title="Section is full — enable “Include Closed Sections”"' : ''}>
-          ${isLocked ? ICONS.lock : ''}${escapeHtml(s.id)}${closed ? ' <small>Full</small>' : ''}
+          ${disabled ? `disabled title="${escapeHtml(tr('schedule.fullTitle'))}"` : ''}>
+          ${isLocked ? ICONS.lock : ''}${escapeHtml(s.id)}${closed ? ` <small>${escapeHtml(tr('schedule.full'))}</small>` : ''}
         </button>`;
     }).join('');
 
@@ -292,7 +343,7 @@ function renderLocks() {
       <div class="lock-row" style="--c: ${escapeHtml(c.color)}">
         <div class="lock-row__head">
           <span>${escapeHtml(c.short)} (${escapeHtml(c.code)})</span>
-          <span class="lock-row__status${locked ? ' is-locked' : ''}">${locked ? `Locked: ${locked}` : 'Any section'}</span>
+          <span class="lock-row__status${locked ? ' is-locked' : ''}">${escapeHtml(locked ? tr('schedule.lockedSec', { id: locked }) : tr('schedule.anySection'))}</span>
         </div>
         <div class="lock-row__chips">${chips}</div>
       </div>`;
@@ -334,7 +385,7 @@ function scheduleBounds(schedule) {
 
 function renderToolbar() {
   const total = state.schedules.length;
-  $('#result-count').textContent = `${total}${state.truncated ? '+' : ''} Schedule${total === 1 ? '' : 's'}`;
+  $('#result-count').textContent = plural('schedule.schedules', total, `${total}${state.truncated ? '+' : ''}`);
   $('#page-current').textContent = total ? state.index + 1 : 0;
   $('#page-total').textContent = total;
   $('#prev-btn').disabled = state.index <= 0;
@@ -351,28 +402,28 @@ function renderConflictBanner(schedule) {
   }
 
   const [first, ...rest] = schedule.conflicts;
-  const label = (entry) => `${escapeHtml(entry.course.short)} (${entry.course.code})`;
+  const label = (entry) => `${escapeHtml(entry.course.short)} (${ltr(escapeHtml(entry.course.code))})`;
   $('#conflict-text').innerHTML = `
-    <strong>Two Final Exams on the Same Day:</strong>
+    <strong>${escapeHtml(tr('schedule.twoFinals'))}</strong>
     <span class="conflict-banner__date">${escapeHtml(formatExamDate(first.date))}</span>
-    <span class="conflict-banner__muted">between</span>
+    <span class="conflict-banner__muted">${escapeHtml(tr('schedule.between'))}</span>
     <span class="conflict-chip">${label(first.a)}</span>
-    <span class="conflict-banner__muted">and</span>
+    <span class="conflict-banner__muted">${escapeHtml(tr('schedule.and'))}</span>
     <span class="conflict-chip">${label(first.b)}</span>
-    ${rest.length ? `<span class="conflict-banner__muted">+${rest.length} more</span>` : ''}`;
+    ${rest.length ? `<span class="conflict-banner__muted">${escapeHtml(tr('schedule.more', { n: rest.length }))}</span>` : ''}`;
   banner.hidden = false;
 }
 
 function renderEmptyTimetable() {
   const noCourses = state.selected.size === 0;
-  const title = noCourses ? 'No courses selected' : state.loading ? 'Generating schedules…' : 'No schedules found';
+  const title = tr(noCourses ? 'schedule.noCoursesTitle' : state.loading ? 'schedule.generatingTitle' : 'schedule.noSchedulesTitle');
   const text = noCourses
-    ? 'Select courses from the sidebar to start building your schedule.'
-    : state.loading ? 'The CSP solver is checking every constraint.' : state.emptyReason;
+    ? tr('schedule.noCoursesText')
+    : state.loading ? tr('schedule.generatingText') : (state.emptyReason ? state.emptyReason() : '');
   $('#timetable').innerHTML = `
     <div class="timetable__empty">
       ${ICONS.emptyCalendar}
-      <h3>${title}</h3>
+      <h3>${escapeHtml(title)}</h3>
       <p dir="auto" style="white-space: pre-line">${escapeHtml(text)}</p>
     </div>`;
 }
@@ -388,11 +439,12 @@ function renderTimetable(schedule) {
   const height = hours * ROW_HEIGHT;
   const usedDays = new Set(schedule.entries.flatMap((e) => e.section.meetings.map((m) => m.day)));
 
-  const head = DAY_NAMES.map((name, day) =>
-    `<div class="${usedDays.has(day) ? '' : 'is-off'}">${name}</div>`
-  ).join('') + '<div class="is-time">Time</div>';
+  const days = Array.from({ length: DAY_COUNT }, (_, day) => day);
+  const head = days.map((day) =>
+    `<div class="${usedDays.has(day) ? '' : 'is-off'}">${escapeHtml(dayName(day))}</div>`
+  ).join('') + `<div class="is-time">${escapeHtml(tr('schedule.time'))}</div>`;
 
-  const columns = DAY_NAMES.map((_, day) => {
+  const columns = days.map((day) => {
     const blocks = schedule.entries.flatMap(({ course, section }) =>
       section.meetings
         .filter((m) => m.day === day)
@@ -400,17 +452,17 @@ function renderTimetable(schedule) {
           const top = ((m.start - start) / 60) * ROW_HEIGHT + 3;
           const blockHeight = ((m.end - m.start) / 60) * ROW_HEIGHT - 6;
           const isLab = m.type !== 'Lecture';
-          const title = isLab ? `${course.short} ${m.type}` : `${course.short} (${course.code})`;
+          const title = isLab ? `${course.short} ${typeLabel(m.type)}` : `${course.short} (${course.code})`;
           return `
             <div class="tt-block${isLab ? ' tt-block--lab' : ''}" style="--c: ${escapeHtml(course.color)}; top: ${top}px; height: ${blockHeight}px"
-              title="${escapeHtml(course.name)} — ${escapeHtml(section.id)} • ${formatTime(m.start)}-${formatTime(m.end)}${m.room ? ` • Rm ${escapeHtml(m.room)}` : ''}">
+              title="${escapeHtml(course.name)} — ${escapeHtml(section.id)} • ${formatTime(m.start)}-${formatTime(m.end)}${m.room ? ` • ${escapeHtml(tr('schedule.rm', { room: m.room }))}` : ''}">
               <div class="tt-block__top">
                 <span class="tt-block__title" dir="auto">${escapeHtml(title)}</span>
                 <span class="tt-block__badge">${escapeHtml(section.id)}</span>
               </div>
               <div class="tt-block__bottom">
-                <span>${ICONS.clock}${formatTime(m.start)} - ${formatTime(m.end)}</span>
-                ${m.room ? `<span class="tt-block__room">Rm ${escapeHtml(m.room)}</span>` : ''}
+                <span>${ICONS.clock}${ltr(timeRange(m.start, m.end))}</span>
+                ${m.room ? `<span class="tt-block__room">${escapeHtml(tr('schedule.rm', { room: m.room }))}</span>` : ''}
               </div>
             </div>`;
         })
@@ -418,7 +470,7 @@ function renderTimetable(schedule) {
 
     const off = !usedDays.has(day);
     return `<div class="tt-col${off ? ' is-off' : ''}" style="height: ${height}px">
-      ${off ? '<span class="tt-col__off-label">Day off</span>' : blocks}
+      ${off ? `<span class="tt-col__off-label">${escapeHtml(tr('schedule.dayOff'))}</span>` : blocks}
     </div>`;
   }).join('');
 
@@ -439,9 +491,9 @@ function renderLegend(schedule) {
   $('#legend').innerHTML = schedule.entries.map(({ course }) => `
     <span class="legend-item" style="--c: ${escapeHtml(course.color)}">
       <span class="legend-item__swatch"></span>
-      <strong>${escapeHtml(course.code)}</strong> (${escapeHtml(course.short)})
+      <strong>${ltr(escapeHtml(course.code))}</strong> (${escapeHtml(course.short)})
     </span>`).join('') +
-    `<span>•</span><span class="summary__total">Total Credit Hours: <strong>${credits} Hrs</strong></span>`;
+    `<span>•</span><span class="summary__total">${tr('schedule.totalCredits', { n: credits })}</span>`;
 }
 
 function groupMeetings(meetings) {
@@ -466,10 +518,10 @@ function renderDetails(schedule) {
     const times = groupMeetings(section.meetings).map((g) => `
       <div class="info-row">
         <span class="info-row__main">${ICONS.clock}
-          <span>${g.days.map((d) => DAY_NAMES[d]).join(', ')}: ${formatTime(g.start)} - ${formatTime(g.end)}</span>
-          ${g.type !== 'Lecture' ? `<span class="type-tag">${escapeHtml(g.type)}</span>` : ''}
+          <span>${escapeHtml(dayList(g.days))}: ${ltr(timeRange(g.start, g.end))}</span>
+          ${g.type !== 'Lecture' ? `<span class="type-tag">${escapeHtml(typeLabel(g.type))}</span>` : ''}
         </span>
-        <span class="info-row__aside">${escapeHtml(g.room)}</span>
+        <span class="info-row__aside" dir="auto">${escapeHtml(g.room)}</span>
       </div>`).join('');
 
     return `
@@ -478,31 +530,31 @@ function renderDetails(schedule) {
           <div class="section-card__top">
             <div>
               <h4 class="section-card__name" dir="auto">${escapeHtml(course.name)}</h4>
-              <div class="section-card__code">${escapeHtml(course.code)} • ${course.credits} Credit Hrs</div>
+              <div class="section-card__code">${ltr(escapeHtml(course.code))} • ${escapeHtml(tr('schedule.creditHrs', { n: course.credits }))}</div>
             </div>
-            <span class="section-card__badge">Section ${escapeHtml(section.id)}</span>
+            <span class="section-card__badge">${tr('schedule.sectionN', { id: ltr(escapeHtml(section.id)) })}</span>
           </div>
 
           <div class="section-card__stats">
             <div class="seats">
-              <span class="section-card__label">Seats:</span>
-              <span class="seats__value${isClosed(section) ? ' is-full' : ''}">${section.capacity == null ? 'Open' : `${section.enrolled} / ${section.capacity}`}${isClosed(section) ? ' Full' : ''}</span>
+              <span class="section-card__label">${escapeHtml(tr('schedule.seats'))}</span>
+              <span class="seats__value${isClosed(section) ? ' is-full' : ''}">${section.capacity == null ? escapeHtml(tr('schedule.seatsOpen')) : ltr(`${section.enrolled} / ${section.capacity}`)}${isClosed(section) ? ` ${escapeHtml(tr('schedule.fullTag'))}` : ''}</span>
             </div>
             <div class="crn">
-              <span class="section-card__label">CRN:</span>
+              <span class="section-card__label">${escapeHtml(tr('schedule.crn'))}</span>
               <span class="crn__value">${escapeHtml(section.crn)}</span>
-              <button type="button" class="crn__copy" data-copy="${escapeHtml(section.crn)}" title="Copy CRN" aria-label="Copy CRN ${escapeHtml(section.crn)}">${ICONS.copy}</button>
+              <button type="button" class="crn__copy" data-copy="${escapeHtml(section.crn)}" title="${escapeHtml(tr('schedule.copyCrn'))}" aria-label="${escapeHtml(tr('schedule.copyCrnN', { crn: section.crn }))}">${ICONS.copy}</button>
             </div>
           </div>
 
           <div class="info-list">
             ${times}
             ${rooms ? `<div class="info-row">
-              <span class="info-row__main">${ICONS.room}<span>Room: <strong>${escapeHtml(rooms)}</strong></span></span>
+              <span class="info-row__main">${ICONS.room}<span>${tr('schedule.room', { rooms: `<bdi>${escapeHtml(rooms)}</bdi>` })}</span></span>
             </div>` : ''}
             <div class="info-row">
               <span class="info-row__main">${ICONS.user}
-                <span class="instructor${section.instructor ? '' : ' is-tba'}">${escapeHtml(section.instructor || 'To Be Announced')}</span>
+                <span class="instructor${section.instructor ? '' : ' is-tba'}" dir="auto">${escapeHtml(section.instructor || tr('schedule.tba'))}</span>
               </span>
             </div>
           </div>
@@ -511,7 +563,7 @@ function renderDetails(schedule) {
         <div class="section-card__exam${conflictCodes.has(course.code) ? ' is-conflict' : ''}">
           ${ICONS.calendar}
           <div>
-            <span class="section-card__label">Final Exam:</span>
+            <span class="section-card__label">${escapeHtml(tr('schedule.finalExam'))}</span>
             <span class="section-card__exam-value">${formatExam(section.exam)}</span>
           </div>
         </div>
@@ -576,7 +628,7 @@ function copyText(text, message) {
     area.select();
     const ok = document.execCommand('copy');
     area.remove();
-    showToast(ok ? message : 'Could not copy — please copy manually');
+    showToast(ok ? message : tr('schedule.copyFailed'));
   };
 
   if (navigator.clipboard && window.isSecureContext) {
@@ -641,13 +693,14 @@ async function saveImage() {
   ctx.fillStyle = '#0c0f10';
   ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = '#ffffff';
-  ctx.font = '700 18px Inter, sans-serif';
-  ctx.fillText('Academic AI — Study Schedule', pad, pad + 18);
+  const FONT = 'Inter, "IBM Plex Sans Arabic", sans-serif';
+  ctx.font = `700 18px ${FONT}`;
+  ctx.fillText(tr('schedule.imageTitle'), pad, pad + 18);
   const credits = schedule.entries.reduce((sum, e) => sum + e.course.credits, 0);
   ctx.fillStyle = '#8b949e';
-  ctx.font = '500 12px Inter, sans-serif';
+  ctx.font = `500 12px ${FONT}`;
   ctx.fillText(
-    `Option ${state.index + 1} of ${state.schedules.length} • ${credits} credit hours • ` +
+    tr('schedule.imageSub', { i: state.index + 1, n: state.schedules.length, credits }) +
     schedule.entries.map((e) => `${e.course.code} ${e.section.id} (CRN ${e.section.crn})`).join('  ·  '),
     pad, pad + 40
   );
@@ -662,14 +715,14 @@ async function saveImage() {
 
   // Day headers & column lines
   ctx.textAlign = 'center';
-  ctx.font = '600 12px Inter, sans-serif';
-  DAY_NAMES.forEach((name, d) => {
+  ctx.font = `600 12px ${FONT}`;
+  for (let d = 0; d < DAY_COUNT; d++) {
     ctx.fillStyle = '#e2e8f0';
-    ctx.fillText(name, pad + d * colW + colW / 2, gridTop + 23);
-  });
+    ctx.fillText(dayName(d), pad + d * colW + colW / 2, gridTop + 23);
+  }
   ctx.fillStyle = '#8b949e';
   ctx.font = '600 11px "JetBrains Mono", monospace';
-  ctx.fillText('TIME', pad + 5 * colW + timeW / 2, gridTop + 23);
+  ctx.fillText(tr('schedule.imageTime'), pad + 5 * colW + timeW / 2, gridTop + 23);
 
   ctx.beginPath();
   for (let d = 1; d <= 5; d++) {
@@ -705,12 +758,12 @@ async function saveImage() {
       ctx.stroke();
 
       ctx.fillStyle = mixWithWhite(course.color, 0.55);
-      ctx.font = '700 11px Inter, sans-serif';
-      const title = m.type === 'Lecture' ? `${course.short} · ${section.id}` : `${course.short} ${m.type} · ${section.id}`;
+      ctx.font = `700 11px ${FONT}`;
+      const title = m.type === 'Lecture' ? `${course.short} · ${section.id}` : `${course.short} ${typeLabel(m.type)} · ${section.id}`;
       ctx.fillText(fitText(ctx, title, w - 16), x + 8, y + 16);
 
       ctx.font = '500 10px "JetBrains Mono", monospace';
-      ctx.fillText(`${formatTime(m.start)}-${formatTime(m.end)}${m.room ? `  Rm ${m.room}` : ''}`, x + 8, Math.min(y + h - 8, y + 32));
+      ctx.fillText(`${formatTime(m.start)}-${formatTime(m.end)}${m.room ? `  ${tr('schedule.rm', { room: m.room })}` : ''}`, x + 8, Math.min(y + h - 8, y + 32));
     });
   });
 
@@ -718,7 +771,7 @@ async function saveImage() {
   link.download = `academic-ai-schedule-${state.index + 1}.png`;
   link.href = canvas.toDataURL('image/png');
   link.click();
-  showToast('Schedule image saved');
+  showToast(tr('schedule.imageSaved'));
 }
 
 /* ----------------------------------------------------------
@@ -736,14 +789,19 @@ function renderImport() {
 
   if (hasFile) {
     $('#dz-file-name').textContent = importSource.name;
-    $('#dz-file-meta').textContent = `${formatFileSize(importSource.size)} • Ready to process`;
+    $('#dz-file-meta').textContent = tr('schedule.fileReady', { size: formatFileSize(importSource.size) });
   }
 }
 
+// The message may be a function so it can be written again when the language changes.
+let importError = null;
+
 function setImportError(message) {
+  importError = message || null;
   const error = $('#dz-error');
-  error.textContent = message || '';
-  error.hidden = !message;
+  const text = typeof importError === 'function' ? importError() : importError;
+  error.textContent = text || '';
+  error.hidden = !text;
 }
 
 function openImportModal() {
@@ -766,11 +824,11 @@ function handleFile(file) {
   if (!file) return;
   const valid = /\.pdf$/i.test(file.name);
   if (!valid) {
-    setImportError('Unsupported file type. Please upload your transcript as a PDF.');
+    setImportError(() => tr('schedule.badType'));
     return;
   }
   if (file.size > MAX_UPLOAD_SIZE) {
-    setImportError('File is too large. The maximum size is 15MB.');
+    setImportError(() => tr('schedule.tooLarge'));
     return;
   }
   setImportError('');
@@ -784,13 +842,13 @@ async function processImport() {
   setImportError('');
   const button = $('#process-btn');
   button.disabled = true;
-  $('#process-label').textContent = 'Processing…';
+  $('#process-label').textContent = tr('schedule.processing');
   button.querySelector('svg').outerHTML = '<span class="spinner"></span>';
 
   const finish = () => {
     processing = false;
-    $('#process-label').textContent = 'Process Transcript & Auto-fill';
-    button.querySelector('.spinner').outerHTML = '<svg fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+    $('#process-label').textContent = tr('schedule.process');
+    button.querySelector('.spinner').outerHTML = '<svg class="flip-rtl" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"></polyline></svg>';
     renderImport();
   };
 
@@ -802,13 +860,15 @@ async function processImport() {
     data = await apiFetch('/api/schedule/transcript', { method: 'POST', body: form });
   } catch (err) {
     finish();
-    setImportError(err.message);
+    const message = err.message;
+    setImportError(() => message);
     return;
   }
   finish();
 
   if (!data.parsed_courses) {
-    setImportError(data.warnings[0] || 'No courses were found in this file.');
+    const warning = data.warnings[0];
+    setImportError(() => (warning ? serverText(warning) : tr('schedule.noCoursesFound')));
     return;
   }
 
@@ -820,8 +880,8 @@ async function processImport() {
 
   closeImportModal();
   update();
-  const gpa = data.gpa != null ? ` • GPA ${data.gpa}` : '';
-  showToast(`${name}: ${data.completed.length} completed courses${gpa} — suggested ${data.suggested.length} courses`);
+  const gpa = data.gpa != null ? tr('schedule.importedGpa', { gpa: data.gpa }) : '';
+  showToast(tr('schedule.imported', { name, done: data.completed.length, gpa, n: data.suggested.length }));
 }
 
 /* ----------------------------------------------------------
@@ -859,14 +919,14 @@ function resetAll() {
   state.includeClosed = false;
   $('#course-search').value = '';
   update();
-  showToast('Filters reset');
+  showToast(tr('schedule.filtersReset'));
 }
 
 function bindEvents() {
   // Header
   $('#sign-out-btn').addEventListener('click', signOut);
-  $('#notifications-btn').addEventListener('click', () => showToast('No new notifications'));
-  $('#settings-btn').addEventListener('click', () => showToast('Settings are coming soon'));
+  $('#notifications-btn').addEventListener('click', () => showToast(tr('schedule.noNotifications')));
+  $('#settings-btn').addEventListener('click', () => showToast(tr('schedule.settingsSoon')));
 
   // Courses
   $('#course-search').addEventListener('input', (e) => {
@@ -933,7 +993,7 @@ function bindEvents() {
   $('#generate-btn').addEventListener('click', async () => {
     await update();
     const total = state.schedules.length;
-    showToast(total ? `Generated ${total}${state.truncated ? '+' : ''} schedule${total === 1 ? '' : 's'}` : 'No schedules match your filters');
+    showToast(total ? plural('schedule.generated', total, `${total}${state.truncated ? '+' : ''}`) : tr('schedule.noneMatch'));
     if (window.innerWidth < 1024) $('.content').scrollIntoView({ behavior: 'smooth' });
   });
   $('#reset-btn').addEventListener('click', resetAll);
@@ -953,8 +1013,11 @@ function bindEvents() {
   });
   document.addEventListener('keydown', (e) => {
     if (!$('#import-modal').hidden || e.target.matches('input, select, textarea')) return;
-    if (e.key === 'ArrowLeft') $('#prev-btn').click();
-    if (e.key === 'ArrowRight') $('#next-btn').click();
+    // In Arabic the "previous" button sits on the right, so the arrows swap.
+    const back = I18n.dir === 'rtl' ? 'ArrowRight' : 'ArrowLeft';
+    const forward = I18n.dir === 'rtl' ? 'ArrowLeft' : 'ArrowRight';
+    if (e.key === back) $('#prev-btn').click();
+    if (e.key === forward) $('#next-btn').click();
   });
 
   // Resolve exam conflict → jump to the next conflict-free schedule
@@ -965,11 +1028,11 @@ function bindEvents() {
       if (!state.schedules[i].conflicts.length) {
         state.index = i;
         renderResults();
-        showToast(`Switched to schedule ${i + 1} — no two finals on the same day`);
+        showToast(tr('schedule.switched', { i: i + 1 }));
         return;
       }
     }
-    showToast('Every matching schedule has two finals on one day — try a different course or section');
+    showToast(tr('schedule.allConflict'));
   });
 
   // Toolbar & details
@@ -982,11 +1045,11 @@ function bindEvents() {
     const schedule = currentSchedule();
     if (!schedule) return;
     const crns = schedule.entries.map((e) => e.section.crn).join(', ');
-    copyText(crns, `Copied ${schedule.entries.length} CRNs: ${crns}`);
+    copyText(crns, tr('schedule.copiedCrns', { n: schedule.entries.length, crns }));
   });
   $('#details-grid').addEventListener('click', (e) => {
     const btn = e.target.closest('[data-copy]');
-    if (btn) copyText(btn.dataset.copy, `Copied CRN ${btn.dataset.copy}`);
+    if (btn) copyText(btn.dataset.copy, tr('schedule.copiedCrn', { crn: btn.dataset.copy }));
   });
 
   // Import modal
@@ -1115,6 +1178,17 @@ function restoreProfile(profile) {
   }
   plannerSaved = JSON.stringify(plannerSnapshot());
 }
+
+/* Dynamic text follows the language at once. The search box and the
+   file input are not rebuilt, so what the student typed stays. */
+I18n.onChange(() => {
+  if (!COURSES.length) return;
+  renderSidebar();
+  renderResults();
+  renderImport();
+  setImportError(importError);
+  if (processing) $('#process-label').textContent = tr('schedule.processing');
+});
 
 Auth.requireRole('student').then(async (user) => {
   Auth.fillUser(user);

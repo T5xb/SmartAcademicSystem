@@ -1,17 +1,19 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Academic AI - Sign In</title>
+  <script src="../shared/i18n.js?v=1"></script>
+  <link rel="stylesheet" href="../shared/i18n.css?v=3">
+  <title data-i18n="signin.title">Academic AI - Sign In</title>
 
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css?v=2">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 
 <body>
@@ -28,17 +30,20 @@
       <span class="brand__name">Academic AI</span>
     </div>
 
-    <div class="header__status">
+    <div class="header__right">
+     <div class="header__status">
       <div class="status-badge">
         <span class="status-badge__dot"></span>
-        <span data-term="System: ">System: Fall 2026 Online</span>
+        <span data-i18n="signin.system">System:</span>
+        <span data-term="">Fall 2026 Online</span>
       </div>
       <a href="#" class="header__link">
         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
         </svg>
-        Assistance
+        <span data-i18n="signin.assistance">Assistance</span>
       </a>
+     </div>
     </div>
   </header>
 
@@ -55,7 +60,7 @@
           </svg>
         </div>
         <h1 class="card-header__title">Academic AI</h1>
-        <p class="card-header__subtitle">Intelligent Academic Planning &amp; AI Assistant</p>
+        <p class="card-header__subtitle" data-i18n="signin.subtitle">Intelligent Academic Planning &amp; AI Assistant</p>
       </div>
 
       <!-- Sign in -->
@@ -63,8 +68,8 @@
 
         <div class="field">
           <div class="field__header">
-            <label for="university-id" class="field__label">University ID</label>
-            <span class="field__hint">e.g. 441000001</span>
+            <label for="university-id" class="field__label" data-i18n="signin.universityId">University ID</label>
+            <span class="field__hint" data-i18n="signin.idHint">e.g. 441000001</span>
           </div>
           <div class="field__control">
             <div class="field__icon">
@@ -73,14 +78,14 @@
               </svg>
             </div>
             <input type="text" id="university-id" name="username" class="field__input"
-                   placeholder="Your university ID" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+                   placeholder="Your university ID" data-i18n-placeholder="signin.idPlaceholder" autocomplete="username" autocapitalize="none" spellcheck="false" required>
           </div>
         </div>
 
         <div class="field">
           <div class="field__header">
-            <label for="password" class="field__label">Password</label>
-            <span class="field__hint">Forgot it? Ask the administrator</span>
+            <label for="password" class="field__label" data-i18n="signin.password">Password</label>
+            <span class="field__hint" data-i18n="signin.forgot">Forgot it? Ask the administrator</span>
           </div>
           <div class="field__control">
             <div class="field__icon">
@@ -90,7 +95,7 @@
             </div>
             <input type="password" id="password" name="password" class="field__input field__input--password"
                    placeholder="••••••••••••" autocomplete="current-password" required>
-            <button type="button" id="toggle-password-btn" class="password-toggle" aria-label="Show or hide the password">
+            <button type="button" id="toggle-password-btn" class="password-toggle" aria-label="Show or hide the password" data-i18n-aria-label="signin.togglePassword">
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
                 <path d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
@@ -102,7 +107,7 @@
         <div class="remember">
           <label class="checkbox">
             <input type="checkbox" id="remember-me" name="remember-me" class="checkbox__input" checked>
-            <span class="checkbox__text">Remember me for 30 days</span>
+            <span class="checkbox__text" data-i18n="signin.remember">Remember me for 30 days</span>
           </label>
         </div>
 
@@ -112,20 +117,20 @@
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path>
           </svg>
-          <span>Sign in</span>
+          <span data-i18n="signin.submit">Sign in</span>
         </button>
       </form>
 
       <!-- Shown after signing in with a temporary password -->
       <form id="password-form" class="auth-form" novalidate hidden>
-        <p class="form-note">
+        <p class="form-note" data-i18n="signin.tempNote">
           You signed in with a temporary password. Choose your own password to continue.
         </p>
 
         <div class="field">
           <div class="field__header">
-            <label for="new-password" class="field__label">New password</label>
-            <span class="field__hint">At least 8 characters</span>
+            <label for="new-password" class="field__label" data-i18n="signin.newPassword">New password</label>
+            <span class="field__hint" data-i18n="signin.newPasswordHint">At least 8 characters</span>
           </div>
           <div class="field__control">
             <div class="field__icon">
@@ -139,7 +144,7 @@
 
         <div class="field">
           <div class="field__header">
-            <label for="confirm-password" class="field__label">Repeat the new password</label>
+            <label for="confirm-password" class="field__label" data-i18n="signin.repeatPassword">Repeat the new password</label>
           </div>
           <div class="field__control">
             <div class="field__icon">
@@ -154,12 +159,12 @@
         <p id="password-error" class="form-error" role="alert" hidden></p>
 
         <button type="submit" id="save-password-btn" class="btn-primary">
-          <span>Save password and continue</span>
+          <span data-i18n="signin.savePassword">Save password and continue</span>
         </button>
-        <button type="button" id="cancel-password-btn" class="btn-text">Sign out</button>
+        <button type="button" id="cancel-password-btn" class="btn-text" data-i18n="common.signOut">Sign out</button>
       </form>
 
-      <p class="register-prompt">
+      <p class="register-prompt" data-i18n="signin.accountsNote">
         Accounts are created by the system administrator.
       </p>
     </div>
@@ -170,20 +175,21 @@
 
       <div class="footer__trust">
         <span class="footer__dot"></span>
-        <span>End-to-end encrypted</span>
+        <span data-i18n="signin.encrypted">End-to-end encrypted</span>
         <span class="footer__separator">•</span>
-        <span class="footer__muted">Designed for University Students &amp; Faculty</span>
+        <span class="footer__muted" data-i18n="signin.designedFor">Designed for University Students &amp; Faculty</span>
       </div>
 
       <nav class="footer__links">
-        <a href="#">Privacy Policy</a>
-        <a href="#">Terms of Service</a>
-        <a href="#">Help Center</a>
+        <a href="#" data-i18n="signin.privacy">Privacy Policy</a>
+        <a href="#" data-i18n="signin.terms">Terms of Service</a>
+        <a href="#" data-i18n="signin.help">Help Center</a>
       </nav>
     </div>
   </footer>
 
-  <script src="../shared/auth.js?v=2"></script>
-  <script src="script.js?v=2"></script>
+  <script src="../shared/auth.js?v=3"></script>
+  <script src="strings.js?v=1"></script>
+  <script src="script.js?v=3"></script>
 </body>
 </html>

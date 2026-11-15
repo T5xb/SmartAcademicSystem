@@ -1,0 +1,80 @@
+/* ==========================================================
+   Academic AI - Language switch and shared RTL rules
+   ========================================================== */
+
+/* Latin text keeps Inter; Arabic letters fall through to Plex Arabic. */
+html[lang="ar"] body,
+html[lang="ar"] button,
+html[lang="ar"] input,
+html[lang="ar"] textarea,
+html[lang="ar"] select {
+  font-family: 'Inter', 'IBM Plex Sans Arabic', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* No flash of the other language before the first translation pass. */
+.i18n-pending [data-i18n],
+.i18n-pending [data-i18n-html] {
+  visibility: hidden;
+}
+
+/* Icons that point a direction (chevrons, arrows, send) mirror in Arabic. */
+[dir="rtl"] .flip-rtl {
+  transform: scaleX(-1);
+}
+
+/* ---------- EN | ع switch ---------- */
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 3px;
+  gap: 2px;
+  border-radius: 9999px;
+  border: 1px solid #2a2e30;
+  background-color: rgba(21, 25, 26, 0.8);
+}
+
+.lang-switch__btn {
+  min-width: 34px;
+  height: 28px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 9999px;
+  background: none;
+  color: #94a3b8;
+  font: 600 12px/1 'Inter', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.lang-switch__btn[lang="ar"] {
+  font-size: 15px;
+}
+
+.lang-switch__btn:hover {
+  color: #ffffff;
+}
+
+.lang-switch__btn.is-active {
+  background-color: rgba(22, 208, 118, 0.15);
+  color: #16d076;
+}
+
+.lang-switch__btn:focus-visible {
+  outline: 2px solid #16d076;
+  outline-offset: 1px;
+}
+
+@media (max-width: 480px) {
+  .lang-switch__btn { min-width: 30px; padding: 0 8px; height: 26px; }
+}
+
+/* Letter-spacing pulls joined Arabic letters apart; uppercase has no meaning there. */
+html[lang="ar"] body * {
+  letter-spacing: normal !important;
+}
+
+/* E-mail, phone and ID fields stay left-to-right, aligned with the Arabic layout. */
+[dir="rtl"] input[dir="ltr"] {
+  text-align: right;
+}

@@ -4,6 +4,9 @@
    ========================================================== */
 
 const $ = (s) => document.querySelector(s);
+const t = (key, vars) => I18n.t(key, vars);
+// Wraps a name (file, folder, person) so it keeps its own direction inside a sentence
+const iso = (value) => '\u2068' + value + '\u2069';
 
 /* ==========================================================
    Constants & state
@@ -25,6 +28,11 @@ const state = {
   pollTimer: null,
   tickTimer: null,
   sawRunning: false,
+  // What the open dialogs / panels were built from, so a language switch can redraw them
+  jobResult: null,
+  confirmText: null,
+  secret: null,
+  secretCopied: false,
 };
 
 /* ==========================================================
@@ -61,14 +69,12 @@ function toDate(value) {
 
 function formatDate(value) {
   const d = toDate(value);
-  return d ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+  return d ? I18n.date(d) : '';
 }
 
 function formatDateTime(value) {
   const d = toDate(value);
-  return d
-    ? d.toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : '';
+  return d ? I18n.dateTime(d) : '';
 }
 
 function formatElapsed(startedAt) {
@@ -78,15 +84,15 @@ function formatElapsed(startedAt) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-const folderLabel = (folder) => (folder ? folder.split('/').join(' / ') : 'Top level');
+const folderLabel = (folder) => (folder ? folder.split('/').join(' / ') : t('admin.topLevel'));
 
 const contentUrl = (path, download = false) =>
   `/api/admin/files/content?path=${encodeURIComponent(path)}${download ? '&download=true' : ''}`;
 
 function fileError(file) {
-  if (!ALLOWED_EXT.includes(extOf(file.name))) return 'Only PDF, DOCX, TXT and MD files are allowed.';
-  if (file.size > MAX_BYTES) return 'That file is larger than 50 MB.';
-  if (file.size === 0) return 'That file is empty.';
+  if (!ALLOWED_EXT.includes(extOf(file.name))) return t('admin.errType');
+  if (file.size > MAX_BYTES) return t('admin.errSize');
+  if (file.size === 0) return t('admin.errEmpty');
   return '';
 }
 
@@ -124,20 +130,28 @@ function initDialogs() {
   });
 }
 
-/* Generic confirmation. `action` runs on confirm; if it throws, the message
-   shows in the dialog and the dialog stays open. */
-function confirmDialog({ title, body, label, danger = false, action }) {
+/* The confirmation's words come from `text()` so they can be rebuilt when
+   the language changes while the dialog is open. */
+function renderConfirmText() {
+  if (!state.confirmText) return;
+  const { title, body, label } = state.confirmText();
   $('#confirm-title').textContent = title;
-  const bodyEl = $('#confirm-body');
-  bodyEl.replaceChildren(...body.map((item) => {
+  $('#confirm-body').replaceChildren(...body.map((item) => {
     const p = document.createElement('p');
     p.textContent = item.text;
     if (item.warn) p.className = 'warn';
     if (item.dir) p.dir = 'auto';
     return p;
   }));
+  $('#confirm-submit').textContent = label;
+}
+
+/* Generic confirmation. `action` runs on confirm; if it throws, the message
+   shows in the dialog and the dialog stays open. */
+function confirmDialog({ text, danger = false, action }) {
+  state.confirmText = text;
+  renderConfirmText();
   const submit = $('#confirm-submit');
-  submit.textContent = label;
   submit.className = 'btn ' + (danger ? 'btn--danger' : 'btn--primary');
   submit.disabled = false;
   setError('#confirm-error', '');
@@ -158,11 +172,21 @@ function confirmDialog({ title, body, label, danger = false, action }) {
 }
 
 /* Temporary password shown once */
-function showSecret({ title, who, password }) {
-  $('#secret-title').textContent = title;
-  $('#secret-sub').textContent = who;
+function renderSecret() {
+  const secret = state.secret;
+  if (!secret) return;
+  $('#secret-title').textContent = t(secret.titleKey);
+  $('#secret-sub').innerHTML = esc(t('admin.forWho', { name: '\u0000n', username: '\u0000u' }))
+    .replace('\u0000n', `<bdi>${esc(secret.name)}</bdi>`)
+    .replace('\u0000u', `<bdi>${esc(secret.username)}</bdi>`);
+  $('#secret-copy').textContent = t(state.secretCopied ? 'admin.copied' : 'admin.copy');
+}
+
+function showSecret({ titleKey, name, username, password }) {
+  state.secret = { titleKey, name, username };
+  state.secretCopied = false;
+  renderSecret();
   $('#secret-value').textContent = password;
-  $('#secret-copy').textContent = 'Copy';
   openDialog($('#secret-dialog'));
 }
 
@@ -170,14 +194,15 @@ async function copySecret() {
   const text = $('#secret-value').textContent;
   try {
     await navigator.clipboard.writeText(text);
-    $('#secret-copy').textContent = 'Copied';
+    state.secretCopied = true;
+    renderSecret();
   } catch {
     const range = document.createRange();
     range.selectNodeContents($('#secret-value'));
     const sel = window.getSelection();
     sel.removeAllRanges();
     sel.addRange(range);
-    toast('Press Ctrl+C to copy the selected password.', 'error');
+    toast(t('admin.copyHint'), 'error');
   }
 }
 
@@ -236,7 +261,9 @@ function initTabs() {
 /* ==========================================================
    Documents: index status bar and background job
    ========================================================== */
-const jobTitle = (job) => (job.kind === 'ocr' ? `Reading ${job.target || 'a PDF'} (OCR)` : 'Rebuilding the index');
+const jobTitle = (job) => (job.kind === 'ocr'
+  ? t('admin.jobOcr', { target: iso(job.target || t('admin.jobOcrFallback')) })
+  : t('admin.jobRebuild'));
 const isRunning = () => state.index?.job?.status === 'running';
 
 function setIndex(index) {
@@ -260,17 +287,24 @@ function setIndex(index) {
   syncPolling();
 }
 
-function showJobResult(job) {
+function renderJobResult() {
+  const job = state.jobResult;
   const box = $('#job-result');
+  if (!job) { box.hidden = true; return; }
   const failed = job.status === 'error';
-  const fallback = failed ? 'The job failed.' : 'Finished.';
+  const fallback = failed ? t('admin.jobFailed') : t('admin.jobFinished');
   box.className = 'job-result' + (failed ? ' job-result--error' : '');
   box.innerHTML = `
     <div><strong>${esc(jobTitle(job))}:</strong> <span dir="auto">${esc(job.message || fallback)}</span></div>
-    <button type="button" class="act" id="job-dismiss">Dismiss</button>`;
+    <button type="button" class="act" id="job-dismiss">${esc(t('admin.dismiss'))}</button>`;
   box.hidden = false;
-  $('#job-dismiss').addEventListener('click', () => { box.hidden = true; });
-  if (!failed) toast(job.message || `${jobTitle(job)} finished`);
+  $('#job-dismiss').addEventListener('click', () => { state.jobResult = null; box.hidden = true; });
+}
+
+function showJobResult(job) {
+  state.jobResult = job;
+  renderJobResult();
+  if (job.status !== 'error') toast(job.message || t('admin.jobFinishedToast', { title: jobTitle(job) }));
 }
 
 function renderIndexBar() {
@@ -278,7 +312,7 @@ function renderIndexBar() {
   const index = state.index;
   if (!index) {
     bar.className = 'index-bar';
-    bar.textContent = 'Checking the index...';
+    bar.textContent = t('admin.checkingIndex');
     return;
   }
   const job = index.job || {};
@@ -288,10 +322,10 @@ function renderIndexBar() {
     bar.innerHTML = `
       <div class="index-bar__text">
         <div class="index-bar__title" dir="auto">${esc(jobTitle(job))}</div>
-        <div class="index-bar__sub">Running for <span id="job-elapsed">${esc(formatElapsed(job.started_at))}</span>${job.message ? ' &middot; <span dir="auto">' + esc(job.message) + '</span>' : ''}</div>
+        <div class="index-bar__sub">${esc(t('admin.runningFor'))} <span id="job-elapsed">${esc(formatElapsed(job.started_at))}</span>${job.message ? ' &middot; <span dir="auto">' + esc(job.message) + '</span>' : ''}</div>
       </div>
-      <button type="button" class="btn btn--outline" disabled>Rebuild index</button>
-      <div class="progress" role="progressbar" aria-label="Job in progress"></div>`;
+      <button type="button" class="btn btn--outline" disabled>${esc(t('admin.rebuildIndex'))}</button>
+      <div class="progress" role="progressbar" aria-label="${esc(t('admin.jobInProgress'))}"></div>`;
     return;
   }
 
@@ -299,19 +333,19 @@ function renderIndexBar() {
     bar.className = 'index-bar index-bar--stale';
     bar.innerHTML = `
       <div class="index-bar__text">
-        <div class="index-bar__title">Documents changed since the last index build.</div>
-        <div class="index-bar__sub">The chatbot still answers from the old files.</div>
+        <div class="index-bar__title">${esc(t('admin.indexStale'))}</div>
+        <div class="index-bar__sub">${esc(t('admin.indexStaleSub'))}</div>
       </div>
-      <button type="button" class="btn btn--primary" id="rebuild-btn">Rebuild index</button>`;
+      <button type="button" class="btn btn--primary" id="rebuild-btn">${esc(t('admin.rebuildIndex'))}</button>`;
   } else {
     const built = formatDateTime(index.built_at);
     bar.className = 'index-bar';
     bar.innerHTML = `
       <div class="index-bar__text">
-        <span class="index-bar__title">Index is up to date</span>
-        ${built ? `<span class="index-bar__sub"> &middot; last built ${esc(built)}</span>` : ''}
+        <span class="index-bar__title">${esc(t('admin.indexUpToDate'))}</span>
+        ${built ? `<span class="index-bar__sub"> &middot; ${esc(t('admin.lastBuilt', { date: built }))}</span>` : ''}
       </div>
-      <button type="button" class="btn btn--outline" id="rebuild-btn">Rebuild index</button>`;
+      <button type="button" class="btn btn--outline" id="rebuild-btn">${esc(t('admin.rebuildIndex'))}</button>`;
   }
   $('#rebuild-btn').addEventListener('click', confirmRebuild);
 }
@@ -346,16 +380,18 @@ async function pollIndex() {
 
 function confirmRebuild() {
   confirmDialog({
-    title: 'Rebuild the index?',
-    body: [
-      { text: 'This re-reads every document so the chatbot answers from the current files.' },
-      { text: "The chatbot can't answer questions for a few minutes while the index is rebuilt.", warn: true },
-    ],
-    label: 'Rebuild index',
+    text: () => ({
+      title: t('admin.rebuildTitle'),
+      body: [
+        { text: t('admin.rebuildBody1') },
+        { text: t('admin.rebuildBody2'), warn: true },
+      ],
+      label: t('admin.rebuildIndex'),
+    }),
     action: async () => {
       const res = await Auth.api('/api/admin/index/rebuild', { method: 'POST' });
       setIndex(res.index);
-      toast('Index rebuild started');
+      toast(t('admin.rebuildStarted'));
     },
   });
 }
@@ -365,7 +401,7 @@ function confirmRebuild() {
    ========================================================== */
 async function loadFiles({ quiet = false } = {}) {
   if (!quiet && !state.filesLoaded) {
-    $('#file-list').innerHTML = '<div class="state">Loading documents...</div>';
+    $('#file-list').innerHTML = `<div class="state">${esc(t('admin.loadingDocs'))}</div>`;
   }
   try {
     const data = await Auth.api('/api/admin/files');
@@ -377,7 +413,7 @@ async function loadFiles({ quiet = false } = {}) {
     renderFiles();
   } catch (err) {
     if (!state.filesLoaded) {
-      $('#file-list').innerHTML = `<div class="state state--error"><strong>Couldn't load documents</strong>${esc(err.message)}</div>`;
+      $('#file-list').innerHTML = `<div class="state state--error"><strong>${esc(t('admin.loadDocsFail'))}</strong>${esc(err.message)}</div>`;
     } else {
       toast(err.message, 'error');
     }
@@ -388,7 +424,7 @@ function renderFolderFilter() {
   const select = $('#folder-filter');
   // Empty on the first load: "" would otherwise match the top-level folder
   const current = select.options.length ? select.value : '__all';
-  select.innerHTML = '<option value="__all">All folders</option>' +
+  select.innerHTML = `<option value="__all">${esc(t('admin.allFolders'))}</option>` +
     state.folders.map((f) => `<option value="${esc(f)}">${esc(folderLabel(f))}</option>`).join('');
   select.value = [...select.options].some((o) => o.value === current) ? current : '__all';
 }
@@ -407,13 +443,13 @@ function renderFiles() {
   const files = visibleFiles();
   const searching = $('#file-search').value.trim() !== '';
   $('#file-count').textContent = state.filesLoaded
-    ? `${files.length} of ${state.files.length} documents`
+    ? t('admin.docCount', { shown: files.length, total: state.files.length })
     : '';
 
   if (!files.length) {
     list.innerHTML = state.files.length
-      ? '<div class="state"><strong>No files match this search</strong>Try a shorter name, or choose All folders.</div>'
-      : '<div class="state"><strong>No documents yet</strong>Use Add document to upload the first one.</div>';
+      ? `<div class="state"><strong>${esc(t('admin.noFilesMatch'))}</strong>${esc(t('admin.noFilesMatchHint'))}</div>`
+      : `<div class="state"><strong>${esc(t('admin.noDocs'))}</strong>${esc(t('admin.noDocsHint'))}</div>`;
     return;
   }
 
@@ -457,15 +493,15 @@ function fileRow(f, busy) {
     <li class="row" data-path="${esc(f.path)}">
       <div class="row__name" dir="auto">${esc(f.name)}</div>
       <div class="row__meta">
-        <span class="row__cell"><span class="badge badge--${esc(ext)}">${esc(ext.toUpperCase() || 'FILE')}</span></span>
+        <span class="row__cell"><span class="badge badge--${esc(ext)}">${esc(ext.toUpperCase() || t('admin.fileLabel'))}</span></span>
         <span class="row__cell">${esc(formatSize(f.size))}</span>
         <span class="row__cell">${esc(formatDate(f.modified))}</span>
       </div>
       <div class="row__actions">
-        <button type="button" class="act" data-act="view" aria-label="View ${esc(f.name)}">View</button>
-        <button type="button" class="act" data-act="replace" aria-label="Replace ${esc(f.name)}">Replace</button>
-        ${isPdf ? `<button type="button" class="act" data-act="ocr" aria-label="Run OCR on ${esc(f.name)}"${busy ? ' disabled' : ''}>OCR</button>` : ''}
-        <button type="button" class="act act--danger" data-act="remove" aria-label="Remove ${esc(f.name)}">Remove</button>
+        <button type="button" class="act" data-act="view" aria-label="${esc(t('admin.viewFile', { name: iso(f.name) }))}">${esc(t('admin.view'))}</button>
+        <button type="button" class="act" data-act="replace" aria-label="${esc(t('admin.replaceFileAria', { name: iso(f.name) }))}">${esc(t('admin.replace'))}</button>
+        ${isPdf ? `<button type="button" class="act" data-act="ocr" aria-label="${esc(t('admin.ocrFile', { name: iso(f.name) }))}"${busy ? ' disabled' : ''}>${esc(t('admin.ocr'))}</button>` : ''}
+        <button type="button" class="act act--danger" data-act="remove" aria-label="${esc(t('admin.removeFile', { name: iso(f.name) }))}">${esc(t('admin.remove'))}</button>
       </div>
     </li>`;
 }
@@ -517,7 +553,7 @@ function viewerState(title, detail, withDownload) {
     const a = document.createElement('a');
     a.className = 'btn btn--outline';
     a.href = contentUrl(previewFile.path, true);
-    a.textContent = 'Download the file instead';
+    a.textContent = t('admin.downloadInstead');
     box.append(a);
   }
   return box;
@@ -535,7 +571,7 @@ function updatePreviewNav() {
   const i = list.findIndex((f) => f.path === previewFile.path);
   $('#preview-prev').disabled = i <= 0;
   $('#preview-next').disabled = i < 0 || i >= list.length - 1;
-  $('#preview-pos').textContent = i >= 0 ? `${i + 1} of ${list.length}` : '';
+  $('#preview-pos').textContent = i >= 0 ? t('admin.position', { n: i + 1, total: list.length }) : '';
 }
 
 async function showPreview(file) {
@@ -549,11 +585,11 @@ async function showPreview(file) {
   badge.textContent = ext.toUpperCase();
   $('#preview-folder').textContent = folderLabel(file.folder);
   $('#preview-size').textContent = formatSize(file.size);
-  $('#preview-date').textContent = `Modified ${formatDate(file.modified)}`;
+  $('#preview-date').textContent = t('admin.modified', { date: formatDate(file.modified) });
   const download = $('#preview-download');
   download.href = contentUrl(file.path, true);
   download.setAttribute('download', file.name);
-  download.setAttribute('aria-label', `Download ${file.name}`);
+  download.setAttribute('aria-label', t('admin.downloadAria', { name: iso(file.name) }));
   updatePreviewNav();
 
   const body = $('#preview-body');
@@ -567,23 +603,23 @@ async function showPreview(file) {
     return;
   }
 
-  body.replaceChildren(viewerState('Opening the file…'));
+  body.replaceChildren(viewerState(t('admin.opening')));
   let data;
   try {
     data = await Auth.api(`/api/admin/files/preview?path=${encodeURIComponent(file.path)}`);
   } catch (err) {
-    if (seq === previewSeq) body.replaceChildren(viewerState("This file can't be shown here", err.message, true));
+    if (seq === previewSeq) body.replaceChildren(viewerState(t('admin.cantShow'), err.message, true));
     return;
   }
   if (seq !== previewSeq) return;   // another file was opened meanwhile
 
   if (!data.text) {
-    body.replaceChildren(viewerState('This file has no text', 'It may hold only images. Download it to see it.', true));
+    body.replaceChildren(viewerState(t('admin.noText'), t('admin.noTextHint'), true));
     return;
   }
   const nodes = [];
-  if (ext === 'docx') nodes.push(viewerNotice('Showing the text of this Word file. Download it to see its layout and tables.'));
-  if (data.truncated) nodes.push(viewerNotice('This file is long, so only its beginning is shown. Download it to read all of it.'));
+  if (ext === 'docx') nodes.push(viewerNotice(t('admin.docxNotice')));
+  if (data.truncated) nodes.push(viewerNotice(t('admin.truncatedNotice')));
   const pre = document.createElement('pre');
   pre.className = 'viewer__text';
   pre.dir = 'auto';
@@ -639,15 +675,21 @@ function initPreview() {
 let replaceTarget = null;
 let replaceFile = null;
 
+function renderReplaceTexts() {
+  if (!replaceTarget) return;
+  $('#replace-title').textContent = t('admin.replaceTitle', { name: iso(replaceTarget.name) });
+  $('#replace-sub').textContent = t('admin.inFolder', { folder: iso(folderLabel(replaceTarget.folder)) });
+  $('#replace-drop-text').textContent = replaceFile
+    ? `${replaceFile.name} (${formatSize(replaceFile.size)})`
+    : t('admin.dropNew');
+}
+
 function openReplace(file) {
   replaceTarget = file;
   replaceFile = null;
   $('#replace-form').reset();
-  $('#replace-title').textContent = `Replace ${file.name}`;
-  $('#replace-title').dir = 'auto';
-  $('#replace-sub').textContent = `In ${folderLabel(file.folder)}`;
   $('#replace-drop').classList.remove('has-file');
-  $('#replace-drop-text').textContent = 'Choose the new file, or drop it here';
+  renderReplaceTexts();
   $('#replace-choice').disabled = true;
   $('#replace-submit').disabled = true;
   $('#replace-keep').textContent = '-';
@@ -665,14 +707,14 @@ function onReplacePick(file) {
     setError('#replace-error', problem);
     $('#replace-file').value = '';
     $('#replace-drop').classList.remove('has-file');
-    $('#replace-drop-text').textContent = 'Choose the new file, or drop it here';
+    renderReplaceTexts();
     $('#replace-choice').disabled = true;
     $('#replace-submit').disabled = true;
     return;
   }
   replaceFile = file;
   $('#replace-drop').classList.add('has-file');
-  $('#replace-drop-text').textContent = `${file.name} (${formatSize(file.size)})`;
+  renderReplaceTexts();
   $('#replace-drop-text').dir = 'auto';
   $('#replace-keep').textContent = `${stemOf(replaceTarget.name)}.${extOf(file.name)}`;
   $('#replace-new').textContent = file.name;
@@ -690,21 +732,21 @@ async function submitReplace(e) {
   body.append('file', replaceFile);
   const submit = $('#replace-submit');
   submit.disabled = true;
-  submit.textContent = 'Replacing...';
+  submit.textContent = t('admin.replacing');
   try {
     const res = await Auth.api('/api/admin/files/replace', { method: 'POST', body });
     $('#replace-dialog').close();
     const newName = res.file?.name || replaceFile.name;
     state.highlight = res.file?.path || '';
     if (res.file) state.expanded.add(res.file.folder);  // so the highlighted row is visible
-    toast(`Replaced ${newName}`);
+    toast(t('admin.replacedToast', { name: iso(newName) }));
     await loadFiles({ quiet: true });
     setIndex(res.index);
   } catch (err) {
     setError('#replace-error', err.message);
     submit.disabled = false;
   } finally {
-    submit.textContent = 'Replace file';
+    submit.textContent = t('admin.replaceFile');
   }
 }
 
@@ -713,15 +755,24 @@ async function submitReplace(e) {
    ========================================================== */
 let addFile = null;
 
+function renderAddFolders(selected) {
+  const select = $('#add-folder');
+  select.innerHTML = state.folders
+    .map((f) => `<option value="${esc(f)}">${esc(folderLabel(f))}</option>`).join('');
+  select.value = selected;
+}
+
+function renderAddDropText() {
+  $('#add-drop-text').textContent = addFile ? `${addFile.name} (${formatSize(addFile.size)})` : t('admin.dropFile');
+}
+
 function openAdd() {
   addFile = null;
   $('#add-form').reset();
   const current = $('#folder-filter').value;
-  $('#add-folder').innerHTML = state.folders
-    .map((f) => `<option value="${esc(f)}">${esc(folderLabel(f))}</option>`).join('');
-  $('#add-folder').value = current !== '__all' && state.folders.includes(current) ? current : '';
+  renderAddFolders(current !== '__all' && state.folders.includes(current) ? current : '');
   $('#add-drop').classList.remove('has-file');
-  $('#add-drop-text').textContent = 'Choose a file, or drop it here';
+  renderAddDropText();
   $('#add-submit').disabled = true;
   setError('#add-error', '');
   openDialog($('#add-dialog'));
@@ -736,13 +787,13 @@ function onAddPick(file) {
     setError('#add-error', problem);
     $('#add-file').value = '';
     $('#add-drop').classList.remove('has-file');
-    $('#add-drop-text').textContent = 'Choose a file, or drop it here';
+    renderAddDropText();
     $('#add-submit').disabled = true;
     return;
   }
   addFile = file;
   $('#add-drop').classList.add('has-file');
-  $('#add-drop-text').textContent = `${file.name} (${formatSize(file.size)})`;
+  renderAddDropText();
   $('#add-drop-text').dir = 'auto';
   $('#add-submit').disabled = false;
 }
@@ -755,20 +806,20 @@ async function submitAdd(e) {
   body.append('file', addFile);
   const submit = $('#add-submit');
   submit.disabled = true;
-  submit.textContent = 'Adding...';
+  submit.textContent = t('admin.adding');
   try {
     const res = await Auth.api('/api/admin/files', { method: 'POST', body });
     $('#add-dialog').close();
     state.highlight = res.file?.path || '';
     if (res.file) state.expanded.add(res.file.folder);  // so the highlighted row is visible
-    toast(`Added ${res.file?.name || addFile.name}`);
+    toast(t('admin.addedToast', { name: iso(res.file?.name || addFile.name) }));
     await loadFiles({ quiet: true });
     setIndex(res.index);
   } catch (err) {
     setError('#add-error', err.message);
     submit.disabled = false;
   } finally {
-    submit.textContent = 'Add document';
+    submit.textContent = t('admin.addDocument');
   }
 }
 
@@ -777,16 +828,18 @@ async function submitAdd(e) {
    ========================================================== */
 function confirmRemove(file) {
   confirmDialog({
-    title: `Remove ${file.name}?`,
-    body: [
-      { text: 'The file leaves the chatbot\'s sources once the index is rebuilt. A backup copy is kept, so it can be restored.' },
-      { text: `Folder: ${folderLabel(file.folder)}`, dir: true },
-    ],
-    label: 'Remove file',
+    text: () => ({
+      title: t('admin.removeTitle', { name: iso(file.name) }),
+      body: [
+        { text: t('admin.removeBody') },
+        { text: t('admin.folderLine', { folder: iso(folderLabel(file.folder)) }), dir: true },
+      ],
+      label: t('admin.removeFileBtn'),
+    }),
     danger: true,
     action: async () => {
       const res = await Auth.api('/api/admin/files/remove', { method: 'POST', body: { path: file.path } });
-      toast(`Removed ${file.name}`);
+      toast(t('admin.removedToast', { name: iso(file.name) }));
       await loadFiles({ quiet: true });
       setIndex(res.index);
     },
@@ -795,16 +848,18 @@ function confirmRemove(file) {
 
 function confirmOcr(file) {
   confirmDialog({
-    title: `Read ${file.name} with OCR?`,
-    body: [
-      { text: 'This turns a scanned PDF into a text file. It can take several minutes, and you can keep using this page meanwhile.' },
-      { text: "The text file replaces the PDF as the chatbot's source." },
-    ],
-    label: 'Start OCR',
+    text: () => ({
+      title: t('admin.ocrTitle', { name: iso(file.name) }),
+      body: [
+        { text: t('admin.ocrBody1') },
+        { text: t('admin.ocrBody2') },
+      ],
+      label: t('admin.startOcr'),
+    }),
     action: async () => {
       const res = await Auth.api('/api/admin/files/ocr', { method: 'POST', body: { path: file.path } });
       setIndex(res.index);
-      toast('OCR started');
+      toast(t('admin.ocrStarted'));
     },
   });
 }
@@ -812,27 +867,27 @@ function confirmOcr(file) {
 /* ==========================================================
    Accounts
    ========================================================== */
-const ROLE_LABEL = { student: 'Student', advisor: 'Advisor', admin: 'Admin' };
+const roleLabel = (role) => (['student', 'advisor', 'admin'].includes(role) ? t(`role.${role}`) : role);
 const ROLES = ['student', 'advisor', 'admin'];
 
 /* Your own role is shown, not editable (the server refuses it too). */
 function roleCell(u, me) {
-  if (u.id === me) return `<span class="badge">${esc(ROLE_LABEL[u.role] || u.role)}</span>`;
+  if (u.id === me) return `<span class="badge">${esc(roleLabel(u.role))}</span>`;
   return `
-    <select class="input input--role" data-urole aria-label="Role for ${esc(u.name)}">
-      ${ROLES.map((r) => `<option value="${r}"${r === u.role ? ' selected' : ''}>${ROLE_LABEL[r]}</option>`).join('')}
+    <select class="input input--role" data-urole aria-label="${esc(t('admin.roleFor', { name: iso(u.name) }))}">
+      ${ROLES.map((r) => `<option value="${r}"${r === u.role ? ' selected' : ''}>${esc(roleLabel(r))}</option>`).join('')}
     </select>`;
 }
 
 async function loadUsers() {
-  if (!state.usersLoaded) $('#user-list').innerHTML = '<div class="state">Loading accounts...</div>';
+  if (!state.usersLoaded) $('#user-list').innerHTML = `<div class="state">${esc(t('admin.loadingAccounts'))}</div>`;
   try {
     state.users = (await Auth.api('/api/admin/users')).users || [];
     state.usersLoaded = true;
     renderUsers();
   } catch (err) {
     if (!state.usersLoaded) {
-      $('#user-list').innerHTML = `<div class="state state--error"><strong>Couldn't load accounts</strong>${esc(err.message)}</div>`;
+      $('#user-list').innerHTML = `<div class="state state--error"><strong>${esc(t('admin.loadAccountsFail'))}</strong>${esc(err.message)}</div>`;
     } else {
       toast(err.message, 'error');
     }
@@ -849,18 +904,18 @@ function visibleUsers() {
 }
 
 function statusBadge(u) {
-  if (!u.active) return '<span class="badge badge--danger">Disabled</span>';
-  if (u.must_change_password) return '<span class="badge badge--warn">Temporary password</span>';
-  return '<span class="badge badge--primary">Active</span>';
+  if (!u.active) return `<span class="badge badge--danger">${esc(t('admin.statusDisabled'))}</span>`;
+  if (u.must_change_password) return `<span class="badge badge--warn">${esc(t('admin.statusTemp'))}</span>`;
+  return `<span class="badge badge--primary">${esc(t('admin.statusActive'))}</span>`;
 }
 
 function renderUsers() {
   const users = visibleUsers();
-  $('#user-count').textContent = `${users.length} of ${state.users.length} accounts`;
+  $('#user-count').textContent = t('admin.accountCount', { shown: users.length, total: state.users.length });
   if (!users.length) {
     $('#user-list').innerHTML = state.users.length
-      ? '<div class="state"><strong>No accounts match this search</strong>Try a different name or ID, or choose All roles.</div>'
-      : '<div class="state"><strong>No accounts yet</strong>Use Add account to create one.</div>';
+      ? `<div class="state"><strong>${esc(t('admin.noAccountsMatch'))}</strong>${esc(t('admin.noAccountsMatchHint'))}</div>`
+      : `<div class="state"><strong>${esc(t('admin.noAccounts'))}</strong>${esc(t('admin.noAccountsHint'))}</div>`;
     return;
   }
   const me = Auth.user?.id;
@@ -868,19 +923,19 @@ function renderUsers() {
     <div class="table-wrap">
       <table class="table">
         <thead>
-          <tr><th>Name</th><th>ID</th><th>Role</th><th>Status</th><th>Created</th><th><span class="sr-only">Actions</span></th></tr>
+          <tr><th>${esc(t('admin.name'))}</th><th>${esc(t('admin.id'))}</th><th>${esc(t('admin.role'))}</th><th>${esc(t('admin.status'))}</th><th>${esc(t('admin.created'))}</th><th><span class="sr-only">${esc(t('admin.actions'))}</span></th></tr>
         </thead>
         <tbody>
           ${users.map((u) => `
             <tr data-id="${esc(u.id)}">
-              <td class="cell-name" data-label="Name"><span dir="auto">${esc(u.name)}</span>${u.id === me ? '<span class="you">(you)</span>' : ''}</td>
-              <td class="cell-mono" data-label="ID" dir="auto">${esc(u.username)}</td>
-              <td data-label="Role">${roleCell(u, me)}</td>
-              <td data-label="Status">${statusBadge(u)}</td>
-              <td class="cell-muted" data-label="Created">${esc(formatDate(u.created_at))}</td>
+              <td class="cell-name" data-label="${esc(t('admin.name'))}"><span dir="auto">${esc(u.name)}</span>${u.id === me ? `<span class="you">${esc(t('admin.you'))}</span>` : ''}</td>
+              <td class="cell-mono" data-label="${esc(t('admin.id'))}" dir="auto">${esc(u.username)}</td>
+              <td data-label="${esc(t('admin.role'))}">${roleCell(u, me)}</td>
+              <td data-label="${esc(t('admin.status'))}">${statusBadge(u)}</td>
+              <td class="cell-muted" data-label="${esc(t('admin.created'))}">${esc(formatDate(u.created_at))}</td>
               <td class="cell-actions">${u.id === me ? '' : `
-                <button type="button" class="act" data-uact="toggle">${u.active ? 'Disable' : 'Enable'}</button>
-                <button type="button" class="act" data-uact="reset">Reset password</button>`}
+                <button type="button" class="act" data-uact="toggle">${esc(t(u.active ? 'admin.disable' : 'admin.enable'))}</button>
+                <button type="button" class="act" data-uact="reset">${esc(t('admin.resetPassword'))}</button>`}
               </td>
             </tr>`).join('')}
         </tbody>
@@ -909,17 +964,19 @@ function confirmRoleChange(user, role) {
   // Cancel puts the dropdown back; after a change it shows the saved role.
   $('#confirm-dialog').addEventListener('close', renderUsers, { once: true });
   confirmDialog({
-    title: `Make ${user.name} ${role === 'admin' ? 'an' : 'a'} ${ROLE_LABEL[role]}?`,
-    body: [
-      { text: `${ROLE_LABEL[user.role]} → ${ROLE_LABEL[role]}. They are signed out now and open the ${ROLE_LABEL[role]} pages at their next sign-in.` },
-      ...(role === 'admin'
-        ? [{ text: 'Admins can manage every account and the chatbot\'s documents.', warn: true }]
-        : []),
-    ],
-    label: 'Change role',
+    text: () => ({
+      title: t('admin.roleTitle', { name: iso(user.name), role: roleLabel(role) }),
+      body: [
+        { text: t('admin.roleBody', { from: roleLabel(user.role), to: roleLabel(role) }) },
+        ...(role === 'admin'
+          ? [{ text: t('admin.roleAdminWarn'), warn: true }]
+          : []),
+      ],
+      label: t('admin.changeRole'),
+    }),
     action: async () => {
       await Auth.api(`/api/admin/users/${encodeURIComponent(user.id)}`, { method: 'PATCH', body: { role } });
-      toast(`${user.name} is now ${role === 'admin' ? 'an' : 'a'} ${ROLE_LABEL[role]}`);
+      toast(t('admin.roleChanged', { name: iso(user.name), role: roleLabel(role) }));
       await loadUsers();
     },
   });
@@ -929,7 +986,7 @@ async function toggleUser(user, btn) {
   btn.disabled = true;
   try {
     await Auth.api(`/api/admin/users/${encodeURIComponent(user.id)}`, { method: 'PATCH', body: { active: !user.active } });
-    toast(`${user.active ? 'Disabled' : 'Enabled'} ${user.name}`);
+    toast(t(user.active ? 'admin.disabledToast' : 'admin.enabledToast', { name: iso(user.name) }));
     await loadUsers();
   } catch (err) {
     toast(err.message, 'error');
@@ -939,15 +996,15 @@ async function toggleUser(user, btn) {
 
 function confirmReset(user) {
   confirmDialog({
-    title: `Reset password for ${user.name}?`,
-    body: [
-      { text: 'They are signed out of their current password and get a new temporary one. You will see it once, on the next screen.' },
-    ],
-    label: 'Reset password',
+    text: () => ({
+      title: t('admin.resetTitle', { name: iso(user.name) }),
+      body: [{ text: t('admin.resetBody') }],
+      label: t('admin.resetPassword'),
+    }),
     action: async () => {
       const res = await Auth.api(`/api/admin/users/${encodeURIComponent(user.id)}/reset-password`, { method: 'POST' });
       $('#confirm-dialog').close();
-      showSecret({ title: 'Temporary password', who: `For ${user.name} (${user.username})`, password: res.temporary_password });
+      showSecret({ titleKey: 'admin.tempPassword', name: user.name, username: user.username, password: res.temporary_password });
       loadUsers();
     },
   });
@@ -965,9 +1022,9 @@ async function submitAccount(e) {
   const name = $('#account-name').value.trim();
   const username = $('#account-username').value.trim();
   const role = $('#account-role').value;
-  if (!name) return setError('#account-error', 'Enter the person\'s name.');
+  if (!name) return setError('#account-error', t('admin.errName'));
   if (!/^[A-Za-z0-9._@-]{3,60}$/.test(username)) {
-    return setError('#account-error', 'The ID needs 3 to 60 characters: letters, digits, dot, dash, underscore or @.');
+    return setError('#account-error', t('admin.errId'));
   }
   setError('#account-error', '');
   const submit = $('#account-submit');
@@ -975,7 +1032,7 @@ async function submitAccount(e) {
   try {
     const res = await Auth.api('/api/admin/users', { method: 'POST', body: { username, name, role } });
     $('#account-dialog').close();
-    showSecret({ title: 'Account created', who: `For ${res.user.name} (${res.user.username})`, password: res.temporary_password });
+    showSecret({ titleKey: 'admin.accountCreated', name: res.user.name, username: res.user.username, password: res.temporary_password });
     loadUsers();
   } catch (err) {
     setError('#account-error', err.message);
@@ -1012,6 +1069,34 @@ function init() {
   $('#account-form').addEventListener('submit', submitAccount);
   $('#secret-copy').addEventListener('click', copySecret);
 
+  // Redraw everything the script wrote when the language switches
+  I18n.onChange(() => {
+    renderIndexBar();
+    renderJobResult();
+    if (state.filesLoaded) {
+      renderFolderFilter();
+      renderFiles();
+    } else {
+      $('#file-list').innerHTML = `<div class="state">${esc(t('admin.loadingDocs'))}</div>`;
+    }
+    if (state.usersLoaded) renderUsers();
+    else if (!$('#panel-accounts').hidden) $('#user-list').innerHTML = `<div class="state">${esc(t('admin.loadingAccounts'))}</div>`;
+    if ($('#confirm-dialog').open) renderConfirmText();
+    if ($('#secret-dialog').open) renderSecret();
+    if ($('#replace-dialog').open) renderReplaceTexts();
+    if ($('#add-dialog').open) {
+      renderAddFolders($('#add-folder').value);
+      renderAddDropText();
+    }
+    if ($('#preview-dialog').open && previewFile) {
+      $('#preview-date').textContent = t('admin.modified', { date: formatDate(previewFile.modified) });
+      $('#preview-folder').textContent = folderLabel(previewFile.folder);
+      $('#preview-download').setAttribute('aria-label', t('admin.downloadAria', { name: iso(previewFile.name) }));
+      updatePreviewNav();
+    }
+  });
+
+  renderConfirmText();
   renderIndexBar();
   loadFiles();
 }

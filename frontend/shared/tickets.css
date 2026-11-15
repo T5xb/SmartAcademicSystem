@@ -25,7 +25,7 @@
   --tk-danger: #f87171;
   --tk-danger-10: rgba(248, 113, 113, 0.1);
   --tk-font: 'Inter', system-ui, sans-serif;
-  --tk-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --tk-mono: 'JetBrains Mono', 'IBM Plex Sans Arabic', ui-monospace, monospace;
 }
 
 /* ---------- Floating button (bottom-right) ---------- */
@@ -53,6 +53,12 @@
 .tk-fab svg { width: 24px; height: 24px; }
 /* The chat page keeps its message box at the bottom: sit above it. */
 body.tk-raised .tk-fab { bottom: 140px; }
+/* Schedule page in Arabic: the sidebar sits on the right, so the button moves to the
+   bottom-right corner of the timetable, next to the sidebar. */
+@media (min-width: 1024px) {
+  [dir="rtl"] body.tk-raised-low .tk-fab { right: calc(var(--sidebar-width, 360px) + 20px); }
+  [dir="rtl"] body.tk-raised-low .tk-root { padding-right: calc(var(--sidebar-width, 360px) + 20px); }
+}
 
 .tk-trigger__badge {
   position: absolute;
@@ -111,6 +117,9 @@ body.tk-raised .tk-root { padding-bottom: 204px; }
 body.tk-raised .tk-dialog { max-height: calc(100vh - 220px); }
 body.tk-raised .tk-dialog.is-tall { height: min(600px, calc(100vh - 220px)); }
 
+/* The dialog stays at the bottom-right, next to the button, in both languages. */
+[dir="rtl"] .tk-root { justify-content: flex-start; }
+
 @media (max-width: 480px) {
   .tk-root { padding: 8px 8px 80px; justify-content: center; }
   body.tk-raised .tk-root { padding-bottom: 200px; }
@@ -161,7 +170,7 @@ body.tk-raised .tk-dialog.is-tall { height: min(600px, calc(100vh - 220px)); }
   border-radius: 12px;
   border: 1px solid var(--tk-border);
   background-color: var(--tk-card-2);
-  color: inherit; font: inherit; text-align: left;
+  color: inherit; font: inherit; text-align: start;
   cursor: pointer;
   transition: border-color 0.2s ease, background-color 0.2s ease;
 }
@@ -234,7 +243,7 @@ body.tk-raised .tk-dialog.is-tall { height: min(600px, calc(100vh - 220px)); }
   border-radius: 12px;
   border: 1px solid var(--tk-border);
   background-color: var(--tk-card-2);
-  color: inherit; font: inherit; text-align: left;
+  color: inherit; font: inherit; text-align: start;
   cursor: pointer;
   transition: border-color 0.2s ease;
 }
@@ -272,8 +281,8 @@ body.tk-raised .tk-dialog.is-tall { height: min(600px, calc(100vh - 220px)); }
   font-size: 14px; line-height: 1.6;
   white-space: pre-wrap; overflow-wrap: anywhere;
 }
-.tk-msg--mine .tk-msg__bubble { background-color: var(--tk-card-3); border-top-right-radius: 4px; }
-.tk-msg--staff .tk-msg__bubble { background-color: var(--tk-primary-10); border: 1px solid var(--tk-primary-20); border-top-left-radius: 4px; }
+.tk-msg--mine .tk-msg__bubble { background-color: var(--tk-card-3); border-start-end-radius: 4px; }
+.tk-msg--staff .tk-msg__bubble { background-color: var(--tk-primary-10); border: 1px solid var(--tk-primary-20); border-start-start-radius: 4px; }
 
 .tk-system {
   align-self: center;
