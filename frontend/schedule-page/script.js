@@ -652,6 +652,12 @@ function mixWithWhite(hex, amount) {
   return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
 }
 
+function mixWithBlack(hex, amount) {
+  const n = parseInt(hex.slice(1), 16);
+  const mix = (c) => Math.round(c * (1 - amount));
+  return `rgb(${mix((n >> 16) & 255)}, ${mix((n >> 8) & 255)}, ${mix(n & 255)})`;
+}
+
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -683,6 +689,11 @@ async function saveImage() {
   const height = gridTop + dayHeadH + hours * rowH + pad;
   const scale = 2;
 
+  const light = window.I18n && I18n.theme === 'light';
+  const T = light
+    ? { bg: '#F2F5F3', title: '#102019', muted: '#55655D', frame: '#FFFFFF', line: '#D3DCD6', day: '#1E2B24' }
+    : { bg: '#0c0f10', title: '#ffffff', muted: '#8b949e', frame: '#111415', line: '#2a2e30', day: '#e2e8f0' };
+
   const canvas = document.createElement('canvas');
   canvas.width = width * scale;
   canvas.height = height * scale;
@@ -690,14 +701,14 @@ async function saveImage() {
   ctx.scale(scale, scale);
 
   // Background & title
-  ctx.fillStyle = '#0c0f10';
+  ctx.fillStyle = T.bg;
   ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = '#ffffff';
+  ctx.fillStyle = T.title;
   const FONT = 'Inter, "IBM Plex Sans Arabic", sans-serif';
   ctx.font = `700 18px ${FONT}`;
   ctx.fillText(tr('schedule.imageTitle'), pad, pad + 18);
   const credits = schedule.entries.reduce((sum, e) => sum + e.course.credits, 0);
-  ctx.fillStyle = '#8b949e';
+  ctx.fillStyle = T.muted;
   ctx.font = `500 12px ${FONT}`;
   ctx.fillText(
     tr('schedule.imageSub', { i: state.index + 1, n: state.schedules.length, credits }) +
@@ -707,9 +718,9 @@ async function saveImage() {
 
   // Grid frame
   roundRect(ctx, pad, gridTop, gridW, dayHeadH + hours * rowH, 12);
-  ctx.fillStyle = '#111415';
+  ctx.fillStyle = T.frame;
   ctx.fill();
-  ctx.strokeStyle = '#2a2e30';
+  ctx.strokeStyle = T.line;
   ctx.lineWidth = 1;
   ctx.stroke();
 
@@ -717,10 +728,10 @@ async function saveImage() {
   ctx.textAlign = 'center';
   ctx.font = `600 12px ${FONT}`;
   for (let d = 0; d < DAY_COUNT; d++) {
-    ctx.fillStyle = '#e2e8f0';
+    ctx.fillStyle = T.day;
     ctx.fillText(dayName(d), pad + d * colW + colW / 2, gridTop + 23);
   }
-  ctx.fillStyle = '#8b949e';
+  ctx.fillStyle = T.muted;
   ctx.font = '600 11px "JetBrains Mono", monospace';
   ctx.fillText(tr('schedule.imageTime'), pad + 5 * colW + timeW / 2, gridTop + 23);
 
@@ -757,7 +768,7 @@ async function saveImage() {
       ctx.strokeStyle = hexToRgba(course.color, m.type === 'Lecture' ? 0.85 : 0.55);
       ctx.stroke();
 
-      ctx.fillStyle = mixWithWhite(course.color, 0.55);
+      ctx.fillStyle = light ? mixWithBlack(course.color, 0.55) : mixWithWhite(course.color, 0.55);
       ctx.font = `700 11px ${FONT}`;
       const title = m.type === 'Lecture' ? `${course.short} · ${section.id}` : `${course.short} ${typeLabel(m.type)} · ${section.id}`;
       ctx.fillText(fitText(ctx, title, w - 16), x + 8, y + 16);

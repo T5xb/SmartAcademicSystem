@@ -78,3 +78,44 @@ html[lang="ar"] body * {
 [dir="rtl"] input[dir="ltr"] {
   text-align: right;
 }
+
+/* ---------- theme button (sun / moon) ---------- */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 9999px;
+  border: 1px solid #2a2e30;
+  background-color: rgba(21, 25, 26, 0.8);
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+.theme-toggle svg { width: 17px; height: 17px; }
+.theme-toggle:hover { color: #16d076; border-color: rgba(22, 208, 118, 0.4); }
+.theme-toggle:focus-visible { outline: 2px solid #16d076; outline-offset: 2px; }
+
+@media (max-width: 480px) {
+  .theme-toggle { width: 30px; height: 30px; }
+}
+
+/* ---------- shared controls in light mode ---------- */
+[data-theme="light"] .lang-switch,
+[data-theme="light"] .theme-toggle {
+  border-color: #D3DCD6;
+  background-color: #FFFFFF;
+}
+[data-theme="light"] .lang-switch__btn,
+[data-theme="light"] .theme-toggle { color: #55655D; }
+[data-theme="light"] .lang-switch__btn:hover { color: #102019; }
+[data-theme="light"] .lang-switch__btn.is-active {
+  background-color: rgba(14, 143, 81, 0.12);
+  color: #07613A;
+}
+[data-theme="light"] .theme-toggle:hover { color: #07613A; border-color: rgba(14, 143, 81, 0.4); }
+[data-theme="light"] .lang-switch__btn:focus-visible,
+[data-theme="light"] .theme-toggle:focus-visible { outline-color: #07613A; }

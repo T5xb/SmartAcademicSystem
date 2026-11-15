@@ -1503,11 +1503,14 @@ body.sidebar-collapsed .strip__open {
 /* ==========================================================
    Responsive
    ========================================================== */
-@media (min-width: 768px) {
+/* The term pill only fits beside the language and theme buttons on wide screens. */
+@media (min-width: 1200px) {
   .status-pill {
     display: flex;
   }
+}
 
+@media (min-width: 768px) {
   .user__info {
     display: block;
   }
@@ -1569,4 +1572,229 @@ body.sidebar-collapsed .strip__open {
   .msg-bot__body {
     padding: 16px;
   }
+}
+
+/* ---------- Light theme ---------- */
+:root[data-theme="light"] {
+  /* Brand (text/icon/outline value; fills are restored below) */
+  --primary: #07613A;
+  --primary-light: #0A6E42;
+  --primary-05: rgba(14, 143, 81, 0.05);
+  --primary-10: rgba(14, 143, 81, 0.1);
+  --primary-15: rgba(14, 143, 81, 0.15);
+  --primary-20: rgba(14, 143, 81, 0.2);
+  --primary-25: rgba(14, 143, 81, 0.25);
+  --primary-30: rgba(14, 143, 81, 0.3);
+  --primary-40: rgba(14, 143, 81, 0.4);
+  --primary-50: rgba(14, 143, 81, 0.5);
+
+  /* Surfaces */
+  --bg: #f2f5f3;
+  --surface: #ffffff;
+  --surface-low: #ffffff;
+  --surface-2: #eef2ef;
+  --surface-3: #e5ebe7;
+  --surface-4: #dce4df;
+  --surface-5: #ced8d2;
+  --surface-dim-70: rgba(242, 245, 243, 0.85);
+  --logo-bg: #e3f4ea;
+
+  /* Borders */
+  --border: #d3dcd6;
+  --border-soft: #e1e7e3;
+  --border-header: rgba(211, 220, 214, 0.8);
+
+  /* Text */
+  --white: #102019;
+  --text: #1e2b24;
+  --text-300: #3a4a42;
+  --text-400: #55655d;
+  --text-variant: #3a4a42;
+  --muted: #5C6B64;
+  --faint: #9aa8a1;
+  --on-primary: #06140d;
+
+  /* Status */
+  --danger: #b42318;
+  --danger-10: rgba(220, 38, 38, 0.1);
+  --danger-30: rgba(220, 38, 38, 0.3);
+}
+
+[data-theme="light"] ::selection {
+  background-color: rgba(14, 143, 81, 0.25);
+  color: #102019;
+}
+
+/* Header / nav */
+[data-theme="light"] .nav-tab {
+  color: #55655d;
+}
+
+[data-theme="light"] .nav-tab:hover {
+  color: #102019;
+}
+
+[data-theme="light"] .nav-tab.is-active {
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06);
+}
+
+[data-theme="light"] .status-pill {
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+/* Bright fills keep the brand green with dark content */
+[data-theme="light"] .dot,
+[data-theme="light"] .icon-btn__badge,
+[data-theme="light"] .typing__dots span {
+  background-color: #16d076;
+}
+
+[data-theme="light"] .logo-mark,
+[data-theme="light"] .brand__logo,
+[data-theme="light"] .welcome__emblem {
+  box-shadow: none;
+}
+
+[data-theme="light"] .welcome__emblem {
+  background-color: #e3f4ea;
+}
+
+/* Sidebar */
+[data-theme="light"] .new-chat {
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06);
+}
+
+[data-theme="light"] .menu {
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06), 0 8px 24px rgba(16, 32, 25, 0.12);
+}
+
+/* Chat area */
+[data-theme="light"] .chat::before {
+  background: linear-gradient(to bottom, rgba(14, 143, 81, 0.06), rgba(14, 143, 81, 0.02), transparent);
+}
+
+[data-theme="light"] .suggestion {
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06);
+}
+
+[data-theme="light"] .suggestion:hover .suggestion__icon {
+  background-color: #16d076;
+  color: #06140d;
+}
+
+[data-theme="light"] .msg-user__bubble {
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06), 0 4px 12px rgba(16, 32, 25, 0.06);
+}
+
+[data-theme="light"] .msg-bot__body {
+  background-color: #ffffff;
+  border: 1px solid #e1e7e3;
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06), 0 8px 24px rgba(16, 32, 25, 0.08);
+}
+
+/* Composer */
+[data-theme="light"] .composer-dock {
+  background: linear-gradient(to top, #f2f5f3, rgba(242, 245, 243, 0.95), transparent);
+}
+
+[data-theme="light"] .composer {
+  background-color: #ffffff;
+  border-color: #d3dcd6;
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06), 0 8px 24px rgba(16, 32, 25, 0.08);
+}
+
+[data-theme="light"] .composer:focus-within {
+  border-color: rgba(14, 143, 81, 0.5);
+  box-shadow: 0 0 0 3px rgba(14, 143, 81, 0.12), 0 8px 24px rgba(16, 32, 25, 0.08);
+}
+
+[data-theme="light"] .send-btn {
+  background-color: #16d076;
+  color: #06140d;
+  box-shadow: none;
+}
+
+[data-theme="light"] .send-btn:hover:not(:disabled) {
+  background-color: #22e584;
+}
+
+[data-theme="light"] .send-btn:disabled {
+  background-color: #ced8d2;
+  color: #5C6B64;
+}
+
+[data-theme="light"] .send-btn.is-stop {
+  background-color: #ced8d2;
+  color: #1e2b24;
+}
+
+[data-theme="light"] .send-btn.is-stop:hover {
+  background-color: #b42318;
+  color: #ffffff;
+}
+
+[data-theme="light"] .composer__count.is-near {
+  color: #9a6100;
+}
+
+/* Answer / sources */
+[data-theme="light"] .cite:hover {
+  background-color: rgba(14, 143, 81, 0.25);
+}
+
+[data-theme="light"] .action-btn--ticket:hover {
+  color: #06140d;
+  background-color: #16d076;
+}
+
+/* Notices */
+[data-theme="light"] .msg-notice {
+  background-color: rgba(217, 119, 6, 0.12);
+  border-color: rgba(217, 119, 6, 0.35);
+}
+
+[data-theme="light"] .msg-notice > svg {
+  color: #9a6100;
+}
+
+/* Modal / toast */
+[data-theme="light"] .modal__backdrop {
+  background-color: rgba(16, 32, 25, 0.25);
+}
+
+[data-theme="light"] .modal__dialog {
+  border-color: #d3dcd6;
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06), 0 8px 24px rgba(16, 32, 25, 0.12);
+}
+
+[data-theme="light"] .toast {
+  border-color: rgba(14, 143, 81, 0.4);
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06), 0 8px 24px rgba(16, 32, 25, 0.12);
+}
+
+@media (max-width: 899px) {
+  [data-theme="light"] .sidebar {
+    box-shadow: 10px 0 30px rgba(16, 32, 25, 0.12);
+  }
+
+  [dir="rtl"][data-theme="light"] .sidebar,
+  [data-theme="light"] [dir="rtl"] .sidebar {
+    box-shadow: -10px 0 30px rgba(16, 32, 25, 0.12);
+  }
+
+  [data-theme="light"] body:not(.sidebar-collapsed) .sidebar-backdrop {
+    background-color: rgba(16, 32, 25, 0.25);
+  }
+}
+
+[data-theme="light"] .history-item.is-active {
+  background-color: #dce4df;
+  color: #07613A;
+}
+
+/* Phones: tighter header so the language and theme buttons fit. */
+@media (max-width: 480px) {
+  .header { padding-inline: 12px; }
+  .header__left, .header__right { gap: 8px; }
 }

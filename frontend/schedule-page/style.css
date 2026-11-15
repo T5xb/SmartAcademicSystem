@@ -2304,11 +2304,14 @@ body.modal-open {
 /* ==========================================================
    Responsive
    ========================================================== */
-@media (min-width: 768px) {
+/* The term pill only fits beside the language and theme buttons on wide screens. */
+@media (min-width: 1200px) {
   .status-pill {
     display: flex;
   }
+}
 
+@media (min-width: 768px) {
   .user__info {
     display: block;
   }
@@ -2410,4 +2413,298 @@ html[dir="rtl"] .timetable__head .is-off,
 html[dir="rtl"] .timetable__head .is-time {
   letter-spacing: 0;
   text-transform: none;
+}
+
+/* ---------- Light theme ---------- */
+:root[data-theme="light"] {
+  --primary: #07613A;
+  --primary-light: #0A6E42;
+  --primary-05: rgba(14, 143, 81, 0.05);
+  --primary-10: rgba(14, 143, 81, 0.1);
+  --primary-15: rgba(14, 143, 81, 0.15);
+  --primary-20: rgba(14, 143, 81, 0.2);
+  --primary-25: rgba(14, 143, 81, 0.25);
+  --primary-30: rgba(14, 143, 81, 0.3);
+  --primary-40: rgba(14, 143, 81, 0.4);
+  --primary-50: rgba(14, 143, 81, 0.5);
+
+  --bg: #f2f5f3;
+  --surface: #ffffff;
+  --surface-2: #eef2ef;
+  --surface-3: #e5ebe7;
+  --surface-4: #dce4df;
+  --surface-5: #ced8d2;
+  --surface-dim-70: rgba(242, 245, 243, 0.85);
+  --logo-bg: #e3f3ea;
+  --modal-bg: #ffffff;
+
+  --border: #d3dcd6;
+  --border-soft: #e1e7e3;
+  --border-header: rgba(211, 220, 214, 0.7);
+
+  --white: #102019;
+  --text: #1e2b24;
+  --text-200: #1e2b24;
+  --text-300: #3a4a42;
+  --text-400: #55655d;
+  --text-500: #5C6B64;
+  --muted: #55655d;
+  --on-primary: #06140d;
+
+  --amber-200: #7a4b00;
+  --amber-300: #8a5600;
+  --amber-400: #9a6100;
+  --amber-500: #b45309;
+  --danger: #b42318;
+}
+
+[data-theme="light"] ::selection {
+  background-color: rgba(14, 143, 81, 0.25);
+  color: #102019;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #b6c2bb;
+}
+
+/* Bright green fills keep the brand colour with dark text */
+[data-theme="light"] .dot,
+[data-theme="light"] .btn-primary,
+[data-theme="light"] .btn-generate,
+[data-theme="light"] .days-off__btn.is-active,
+[data-theme="light"] .range__fill,
+[data-theme="light"] .switch__input:checked + .switch__track {
+  background-color: #16d076;
+}
+
+[data-theme="light"] .btn-primary:hover:not(:disabled),
+[data-theme="light"] .btn-generate:hover,
+[data-theme="light"] .icon-btn__badge,
+[data-theme="light"] .time-picker__head .dot,
+[data-theme="light"] .range__input::-webkit-slider-thumb,
+[data-theme="light"] .range__input::-moz-range-thumb {
+  background-color: #22e584;
+}
+
+[data-theme="light"] .btn-primary,
+[data-theme="light"] .btn-generate {
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.1), 0 4px 12px rgba(22, 208, 118, 0.15);
+}
+
+[data-theme="light"] .btn-primary:hover:not(:disabled),
+[data-theme="light"] .btn-generate:hover {
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.1), 0 6px 16px rgba(22, 208, 118, 0.2);
+}
+
+[data-theme="light"] .days-off__btn.is-active {
+  border-color: #16d076;
+  color: #06140d;
+  box-shadow: none;
+}
+
+[data-theme="light"] .range__fill {
+  box-shadow: none;
+}
+
+[data-theme="light"] .range__input::-webkit-slider-thumb,
+[data-theme="light"] .range__input::-moz-range-thumb {
+  box-shadow: 0 1px 3px rgba(16, 32, 25, 0.3);
+}
+
+[data-theme="light"] .switch__track::after {
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.25);
+}
+
+[data-theme="light"] .brand__logo,
+[data-theme="light"] .modal__icon,
+[data-theme="light"] .dropzone__icon {
+  box-shadow: none;
+}
+
+/* Glass / translucent surfaces */
+[data-theme="light"] .status-pill,
+[data-theme="light"] .sidebar__footer {
+  background-color: rgba(255, 255, 255, 0.85);
+}
+
+[data-theme="light"] .import-card {
+  background-color: rgba(255, 255, 255, 0.9);
+  box-shadow: none;
+}
+
+[data-theme="light"] .import-card:hover {
+  background-color: #f7faf8;
+}
+
+[data-theme="light"] .course-item {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="light"] .toolbar {
+  background-color: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="light"] .summary,
+[data-theme="light"] .dropzone,
+[data-theme="light"] .sample-row {
+  background-color: rgba(255, 255, 255, 0.75);
+}
+
+[data-theme="light"] .section-card {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+[data-theme="light"] .nav-tab.is-active,
+[data-theme="light"] .segmented__btn.is-active {
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.1);
+}
+
+[data-theme="light"] .section-card__top,
+[data-theme="light"] .section-card__exam {
+  border-color: #e1e7e3;
+}
+
+[data-theme="light"] .toast {
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06), 0 8px 24px rgba(16, 32, 25, 0.08);
+}
+
+[data-theme="light"] .modal__backdrop {
+  background-color: rgba(16, 32, 25, 0.25);
+}
+
+[data-theme="light"] .modal__dialog {
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06), 0 8px 24px rgba(16, 32, 25, 0.08), 0 24px 48px -12px rgba(16, 32, 25, 0.15);
+}
+
+/* Timetable */
+[data-theme="light"] .timetable {
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06), 0 8px 24px rgba(16, 32, 25, 0.08);
+}
+
+[data-theme="light"] .timetable__head {
+  background-color: rgba(238, 242, 239, 0.9);
+}
+
+[data-theme="light"] .tt-col.is-off {
+  background-color: rgba(16, 32, 25, 0.05);
+}
+
+[data-theme="light"] .tt-time {
+  background-color: rgba(238, 242, 239, 0.6);
+}
+
+/* Per-course colours (--c): light tints, dark same-hue text */
+[data-theme="light"] .course-item.is-selected {
+  border-color: color-mix(in srgb, var(--c) 55%, transparent);
+  box-shadow: none;
+}
+
+[data-theme="light"] .course-item:hover .course-item__name,
+[data-theme="light"] .crn__copy:hover {
+  color: color-mix(in srgb, var(--c) 50%, #000);
+}
+
+[data-theme="light"] .lock-row__status.is-locked,
+[data-theme="light"] .chip.is-locked,
+[data-theme="light"] .tt-block__title,
+[data-theme="light"] .tt-block__badge,
+[data-theme="light"] .tt-block__bottom,
+[data-theme="light"] .tt-block__room,
+[data-theme="light"] .section-card__badge,
+[data-theme="light"] .seats__value {
+  color: color-mix(in srgb, var(--c) 45%, #000);
+}
+
+[data-theme="light"] .chip.is-locked {
+  background-color: color-mix(in srgb, var(--c) 16%, #fff);
+}
+
+[data-theme="light"] .tt-block {
+  background-color: color-mix(in srgb, var(--c) 16%, #fff);
+  border-color: color-mix(in srgb, var(--c) 75%, transparent);
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.08);
+}
+
+[data-theme="light"] .tt-block:hover {
+  border-color: var(--c);
+  box-shadow: 0 2px 8px rgba(16, 32, 25, 0.15);
+}
+
+[data-theme="light"] .tt-block--lab {
+  background-color: color-mix(in srgb, var(--c) 8%, #fff);
+  border-color: color-mix(in srgb, var(--c) 55%, transparent);
+  box-shadow: none;
+}
+
+[data-theme="light"] .tt-block__badge {
+  background-color: color-mix(in srgb, var(--c) 22%, #fff);
+}
+
+[data-theme="light"] .tt-block__bottom {
+  opacity: 1;
+}
+
+[data-theme="light"] .section-card {
+  border-color: color-mix(in srgb, var(--c) 70%, transparent);
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06);
+}
+
+[data-theme="light"] .section-card:hover {
+  border-color: var(--c);
+}
+
+[data-theme="light"] .section-card__badge {
+  background-color: color-mix(in srgb, var(--c) 16%, #fff);
+  border-color: color-mix(in srgb, var(--c) 45%, transparent);
+}
+
+[data-theme="light"] .seats__value {
+  background-color: color-mix(in srgb, var(--c) 12%, #fff);
+  border-color: color-mix(in srgb, var(--c) 30%, transparent);
+}
+
+[data-theme="light"] .seats__value.is-full {
+  background-color: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #b42318;
+}
+
+/* Conflict / validation notices */
+[data-theme="light"] .conflict-banner {
+  background-color: rgba(217, 119, 6, 0.12);
+  border-bottom-color: rgba(217, 119, 6, 0.35);
+  color: #7a4b00;
+}
+
+[data-theme="light"] .conflict-banner__date {
+  color: #8a5600;
+}
+
+[data-theme="light"] .conflict-banner__muted {
+  color: #6e5a30;
+}
+
+[data-theme="light"] .conflict-chip {
+  background-color: rgba(217, 119, 6, 0.14);
+  border-color: rgba(217, 119, 6, 0.35);
+  color: #7a4b00;
+}
+
+[data-theme="light"] .conflict-banner__btn:hover {
+  color: #5c3800;
+}
+
+/* Inputs */
+[data-theme="light"] .time-picker:focus-within {
+  border-color: rgba(14, 143, 81, 0.6);
+}
+
+/* Solid badge: full-strength dark green for readable contrast. */
+[data-theme="light"] .badge--solid { color: #07613A; }
+
+/* Phones: tighter header so the language and theme buttons fit. */
+@media (max-width: 480px) {
+  .header { padding-inline: 12px; }
+  .header__left, .header__right { gap: 8px; }
 }

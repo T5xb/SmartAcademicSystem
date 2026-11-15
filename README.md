@@ -143,6 +143,10 @@ the browser. Strings live in `frontend/<page>/strings.js` and `frontend/shared/i
 (which also translates the server's error messages); chat answers, documents, course
 names and anything people write are never translated.
 
+A sun/moon button next to it switches between dark (the default) and light mode;
+the choice is kept in the browser. Each page's `style.css` ends with its
+`[data-theme="light"]` colours.
+
 ### Advising tickets
 
 Every student page has a round ticket button at the bottom-right. A student

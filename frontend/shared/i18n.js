@@ -41,6 +41,68 @@ const I18n = (() => {
   // Hides [data-i18n] text until the first apply(), so no English flashes.
   root.classList.add('i18n-pending');
 
+  /* ---------- theme (dark by default, light on request) ---------- */
+  const THEME_KEY = 'sas_theme';
+  const themeListeners = [];
+
+  function storedTheme() {
+    try {
+      const v = localStorage.getItem(THEME_KEY);
+      return v === 'light' || v === 'dark' ? v : null;
+    } catch {
+      return null;
+    }
+  }
+
+  let theme = storedTheme() || 'dark';
+
+  function setThemeDocument() {
+    root.dataset.theme = theme;
+    root.style.colorScheme = theme; // native scrollbars, selects and date inputs follow
+  }
+  setThemeDocument();
+
+  function setTheme(next) {
+    if (next !== 'light' && next !== 'dark') return;
+    theme = next;
+    try {
+      localStorage.setItem(THEME_KEY, next);
+    } catch {
+      // Not remembered on this browser; still switches now
+    }
+    setThemeDocument();
+    renderThemeButton();
+    for (const fn of themeListeners) {
+      try { fn(theme); } catch (err) { console.error(err); }
+    }
+  }
+
+  function onThemeChange(fn) {
+    themeListeners.push(fn);
+  }
+
+  const SUN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>';
+  const MOON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+
+  /* The button shows the theme it switches to: a sun in dark mode, a moon in light mode. */
+  function renderThemeButton() {
+    let btn = document.querySelector('.theme-toggle');
+    if (!btn) {
+      const anchor = document.querySelector('.lang-switch');
+      if (!anchor) return;
+      btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'theme-toggle';
+      btn.addEventListener('click', () => setTheme(theme === 'dark' ? 'light' : 'dark'));
+      anchor.after(btn);
+    }
+    const label = t(theme === 'dark' ? 'common.themeLight' : 'common.themeDark');
+    btn.innerHTML = theme === 'dark' ? SUN : MOON;
+    btn.title = label;
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('aria-pressed', String(theme === 'light'));
+  }
+
   function add(more) {
     for (const l of ['en', 'ar']) Object.assign(tables[l], (more && more[l]) || {});
   }
@@ -67,6 +129,7 @@ const I18n = (() => {
       scope.querySelectorAll(`[${data}]`).forEach((el) => el.setAttribute(attr, t(el.getAttribute(data))));
     }
     renderSwitch();
+    renderThemeButton();
   }
 
   function set(next) {
@@ -180,6 +243,8 @@ const I18n = (() => {
   add({
     en: {
       'common.language': 'Interface language',
+      'common.themeLight': 'Switch to light mode',
+      'common.themeDark': 'Switch to dark mode',
       'common.justNow': 'Just now',
       'common.signOut': 'Sign out',
       'common.loading': 'Loading',
@@ -210,6 +275,8 @@ const I18n = (() => {
     },
     ar: {
       'common.language': 'لغة الواجهة',
+      'common.themeLight': 'التبديل إلى الوضع الفاتح',
+      'common.themeDark': 'التبديل إلى الوضع الداكن',
       'common.justNow': 'الآن',
       'common.signOut': 'تسجيل الخروج',
       'common.loading': 'جارٍ التحميل',
@@ -286,6 +353,7 @@ const I18n = (() => {
   return {
     get lang() { return lang; },
     get dir() { return lang === 'ar' ? 'rtl' : 'ltr'; },
-    add, t, set, onChange, apply, date, time, dateTime, relative, server,
+    get theme() { return theme; },
+    add, t, set, onChange, apply, date, time, dateTime, relative, server, setTheme, onThemeChange,
   };
 })();

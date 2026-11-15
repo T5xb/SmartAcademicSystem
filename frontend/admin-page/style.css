@@ -935,3 +935,68 @@ code {
   .table td.cell-actions { justify-content: flex-start; padding-top: 6px; }
   .table td.cell-actions::before { display: none; }
 }
+
+/* ---------- Light theme ---------- */
+:root[data-theme="light"] {
+  --primary: #07613A;
+  --primary-light: #0A6E42;
+  --primary-10: rgba(14, 143, 81, 0.1);
+  --primary-20: rgba(14, 143, 81, 0.2);
+  --primary-25: rgba(14, 143, 81, 0.15);
+  --primary-30: rgba(14, 143, 81, 0.3);
+  --primary-40: rgba(14, 143, 81, 0.4);
+  --primary-45: rgba(14, 143, 81, 0.45);
+
+  --emerald: #0A6E42;
+  --emerald-10: rgba(14, 143, 81, 0.1);
+  --emerald-20: rgba(14, 143, 81, 0.2);
+
+  --bg: #f2f5f3;
+  --surface-dim-70: rgba(242, 245, 243, 0.85);
+  --card: #ffffff;
+  --card-90: rgba(255, 255, 255, 0.9);
+  --card-80: rgba(255, 255, 255, 0.8);
+  --card-60: rgba(255, 255, 255, 0.85);
+  --logo-bg: #e3f5ec;
+
+  --border: #d3dcd6;
+  --border-40: rgba(211, 220, 214, 0.7);
+  --border-60: #e1e7e3;
+
+  --white: #102019;
+  --black: #06140d;
+  --gray-200: #1e2b24;
+  --gray-300: #3a4a42;
+  --gray-400: #55655d;
+  --gray-600: #7f8f87;
+  --danger: #b42318;
+  --danger-10: rgba(220, 38, 38, 0.1);
+  --danger-30: rgba(220, 38, 38, 0.3);
+  --warn: #9a6100;
+  --warn-10: rgba(217, 119, 6, 0.12);
+  --warn-30: rgba(217, 119, 6, 0.35);
+}
+
+/* Bright green fills keep dark text */
+[data-theme="light"] ::selection { background-color: #16d076; color: #06140d; }
+[data-theme="light"] .btn--primary { background-color: #16d076; color: #06140d; }
+[data-theme="light"] .btn--primary:not(:disabled):hover { background-color: #3ae395; }
+[data-theme="light"] .progress::before { background-color: #16d076; }
+[data-theme="light"] .dot { background-color: #16d076; }
+[data-theme="light"] .btn--danger { background-color: #b42318; color: #ffffff; }
+[data-theme="light"] .btn--danger:not(:disabled):hover { background-color: #912018; }
+
+/* Literal colours */
+[data-theme="light"] .row:hover { background-color: rgba(16, 32, 25, 0.04); }
+[data-theme="light"] .badge--docx { color: #1d4ed8; border-color: rgba(29, 78, 216, 0.3); }
+[data-theme="light"] .dialog { box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06), 0 8px 24px rgba(16, 32, 25, 0.08); }
+[data-theme="light"] .dialog::backdrop { background-color: rgba(16, 32, 25, 0.25); }
+[data-theme="light"] .toast { box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06), 0 8px 24px rgba(16, 32, 25, 0.08); }
+[data-theme="light"] .brand__logo { box-shadow: none; }
+
+/* Phones: tighter header so the language and theme buttons fit. */
+@media (max-width: 480px) {
+  .header { padding-inline: 12px; }
+  .header__left, .header__right { gap: 8px; }
+  .brand__name { display: none; }
+}

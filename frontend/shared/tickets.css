@@ -314,3 +314,46 @@ body.tk-raised .tk-dialog.is-tall { height: min(600px, calc(100vh - 220px)); }
 @media (prefers-reduced-motion: reduce) {
   .tk-backdrop, .tk-dialog { animation: none; }
 }
+
+/* ---------- Light mode ---------- */
+[data-theme="light"] .tk-root {
+  --tk-primary: #07613A;          /* text, icons and outlines on light backgrounds */
+  --tk-primary-light: #0A6E42;
+  --tk-primary-10: rgba(14, 143, 81, 0.1);
+  --tk-primary-20: rgba(14, 143, 81, 0.2);
+  --tk-primary-30: rgba(14, 143, 81, 0.3);
+  --tk-primary-40: rgba(14, 143, 81, 0.4);
+  --tk-bg: #F2F5F3;
+  --tk-card: #FFFFFF;
+  --tk-card-2: #EEF2EF;
+  --tk-card-3: #E5EBE7;
+  --tk-border: #D3DCD6;
+  --tk-white: #102019;
+  --tk-text: #1E2B24;
+  --tk-muted: #55655D;
+  --tk-faint: #5C6B64;
+  --tk-warn: #9A6100;
+  --tk-warn-10: rgba(217, 119, 6, 0.12);
+  --tk-warn-30: rgba(217, 119, 6, 0.35);
+  --tk-danger: #B42318;
+  --tk-danger-10: rgba(220, 38, 38, 0.1);
+}
+[data-theme="light"] .tk-backdrop { background-color: rgba(16, 32, 25, 0.25); }
+[data-theme="light"] .tk-dialog {
+  border-color: #D3DCD6;
+  box-shadow: 0 1px 2px rgba(16, 32, 25, 0.06), 0 16px 40px rgba(16, 32, 25, 0.14);
+}
+/* Filled green keeps the bright brand colour with dark text. */
+[data-theme="light"] .tk-btn--primary,
+[data-theme="light"] .tk-choice__count.is-unread {
+  background-color: #16d076;
+  color: #06140D;
+  box-shadow: none;
+}
+[data-theme="light"] .tk-fab {
+  color: #06140D;
+  box-shadow: 0 4px 14px rgba(16, 32, 25, 0.18);
+}
+[data-theme="light"] .tk-fab:focus-visible { outline-color: #07613A; }
+[data-theme="light"] .tk-trigger__badge { border-color: #F2F5F3; background-color: #DC2626; }
+[data-theme="light"] .tk-dot { box-shadow: none; }
