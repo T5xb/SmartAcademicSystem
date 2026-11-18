@@ -194,6 +194,7 @@ const I18n = (() => {
     [/^Unknown course code\(s\): (.+)$/, 'server.unknownCourses', ['codes']],
     [/^Course (.+) has no section (.+)$/, 'server.noSection', ['code', 'section']],
     [/^Server error \((\d+)\)$/, 'server.error', ['n']],
+    [/^The file is missing these columns: (.+)$/, 'server.missingColumns', ['columns']],
   ];
 
   function server(message) {
@@ -338,6 +339,13 @@ const I18n = (() => {
       'server:This ticket is closed, so no more messages can be added.': 'تمت معالجة هذه التذكرة، فلا يمكن إضافة رسائل جديدة.',
       'server:Ticket not found.': 'التذكرة غير موجودة.',
       'server:Too many failed sign-in attempts. Try again in a few minutes.': 'محاولات دخول فاشلة كثيرة. حاول بعد بضع دقائق.',
+      'server:Please upload the course file as .xlsx (Excel).': 'ارفع ملف المقررات بصيغة xlsx. (Excel).',
+      'server:This is not an Excel file. Upload the .xlsx file downloaded from this page.': 'هذا ليس ملف Excel. ارفع ملف xlsx. الذي نزّلته من هذه الصفحة.',
+      'server:The file has no course rows.': 'الملف لا يحتوي على صفوف مقررات.',
+      'server.missingColumns': 'الملف ينقصه هذه الأعمدة: {columns}',
+      'server:An account with this university ID already exists. Sign in instead, or ask the administrator to reset its password.': 'يوجد حساب بهذا الرقم الجامعي. سجّل الدخول، أو اطلب من مسؤول النظام إعادة تعيين كلمة المرور.',
+      'server:Sign-up is turned off. Ask the system administrator for an account.': 'إنشاء الحسابات متوقف حاليًا. اطلب حسابًا من مسؤول النظام.',
+      'server:Too many new accounts from this device. Try again later.': 'حسابات جديدة كثيرة من هذا الجهاز. حاول لاحقًا.',
       'server:Too many questions in a short time. Please wait a minute and try again.': 'أسئلة كثيرة في وقت قصير. انتظر دقيقة ثم حاول مرة أخرى.',
       'server:Unknown ticket status.': 'حالة تذكرة غير معروفة.',
       'server:Write a message first.': 'اكتب رسالة أولًا.',

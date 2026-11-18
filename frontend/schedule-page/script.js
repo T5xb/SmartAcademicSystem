@@ -20,7 +20,8 @@ const ROW_HEIGHT = 96;               // px per hour (matches --row-height)
 // The CSP scheduler runs in fastapi_app.py (src/scheduling) — same server as the chatbot.
 const apiFetch = Auth.api;
 
-const DEFAULT_SELECTED = ['ريض 1112', 'عال 1140', 'عال 1220'];
+// The planner opens with no courses chosen; the student picks them.
+const DEFAULT_SELECTED = [];
 const MAX_UPLOAD_SIZE = 15 * 1024 * 1024;
 
 /* ----------------------------------------------------------
@@ -143,6 +144,7 @@ const state = {
   schedules: [],
   truncated: false,
   emptyReason: null,     // function returning the text (so it follows the language)
+  problems: [],          // why nothing fits, from the server: [{kind, ...}]
   index: 0,
   loading: false,
   completed: null,       // Set of plan codes from an imported transcript (null = unknown)
@@ -202,6 +204,7 @@ async function generateSchedules() {
   state.schedules = [];
   state.truncated = false;
   state.emptyReason = null;
+  state.problems = [];
   state.index = 0;
 
   const body = scheduleRequest();
@@ -228,6 +231,7 @@ async function generateSchedules() {
   if (seq !== requestSeq) return; // a newer request replaced this one
   state.loading = false;
 
+  state.problems = data.problems || [];
   if (data.errors && data.errors.length) {
     const errors = data.errors;
     state.emptyReason = () => errors.map(serverText).join('\n');
@@ -414,8 +418,52 @@ function renderConflictBanner(schedule) {
   banner.hidden = false;
 }
 
+/* One card per problem: what is wrong, then what to do about it. */
+const PROBLEM_ICON = '<svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>';
+
+function problemVars(p) {
+  const list = (names) => (names || []).join(I18n.lang === 'ar' ? '، ' : ', ');
+  return {
+    ...p,
+    names: list(p.names),
+    locked: list(p.locked),
+    to: p.to === '23:59' ? '24:00' : p.to,
+  };
+}
+
+function renderProblems() {
+  const items = state.problems.map((p) => {
+    const vars = problemVars(p);
+    const text = tr(`schedule.problem.${p.kind}`, vars);
+    let fix = tr(`schedule.fix.${p.kind}`, vars);
+    if ((p.kind === 'time_clash' || p.kind === 'no_combination') && p.locked && p.locked.length) {
+      fix += ' ' + tr('schedule.fix.lockedToo', vars);
+    }
+    return `
+      <li class="problem">
+        <span class="problem__icon">${PROBLEM_ICON}</span>
+        <div>
+          <p class="problem__text" dir="auto">${escapeHtml(text)}</p>
+          <p class="problem__fix" dir="auto"><b>${escapeHtml(tr('schedule.fixLabel'))}</b> ${escapeHtml(fix)}</p>
+        </div>
+      </li>`;
+  }).join('');
+  const n = state.problems.length;
+  $('#timetable').innerHTML = `
+    <div class="timetable__empty">
+      ${ICONS.emptyCalendar}
+      <h3>${escapeHtml(tr('schedule.noSchedulesTitle'))}</h3>
+      <p>${escapeHtml(tr(n === 1 ? 'schedule.problemsOne' : n === 2 ? 'schedule.problemsTwo' : 'schedule.problemsMany', { n }))}</p>
+      <ul class="problems">${items}</ul>
+    </div>`;
+}
+
 function renderEmptyTimetable() {
   const noCourses = state.selected.size === 0;
+  if (!noCourses && !state.loading && state.problems.length) {
+    renderProblems();
+    return;
+  }
   const title = tr(noCourses ? 'schedule.noCoursesTitle' : state.loading ? 'schedule.generatingTitle' : 'schedule.noSchedulesTitle');
   const text = noCourses
     ? tr('schedule.noCoursesText')
@@ -1166,26 +1214,21 @@ function savePlanner() {
 /* Puts back the imported transcript and the last planner choices. Courses
    or sections no longer offered this term are dropped. */
 function restoreProfile(profile) {
-  const known = (code) => Boolean(COURSE_BY_CODE[code]);
   const transcript = profile.transcript;
   if (transcript && Array.isArray(transcript.completed)) {
     state.completed = new Set(transcript.completed);
   }
+  // Courses (and their pinned sections) are not put back: every visit
+  // starts with an empty schedule and the student picks the courses.
+  // The other choices (days off, time range, closed sections) stay.
   const planner = profile.planner;
-  if (planner && Array.isArray(planner.selected)) {
-    state.selected = new Set(planner.selected.filter(known));
-    state.locks = Object.fromEntries(
-      Object.entries(planner.locks || {}).filter(([code, sectionId]) =>
-        state.selected.has(code) && COURSE_BY_CODE[code].sections.some((s) => s.id === sectionId)),
-    );
+  if (planner && typeof planner === 'object') {
     state.daysOff = Number(planner.daysOff) || 0;
     if (Number.isFinite(planner.timeFrom) && Number.isFinite(planner.timeTo) && planner.timeTo > planner.timeFrom) {
       state.timeFrom = Math.max(SCALE_START, planner.timeFrom);
       state.timeTo = Math.min(SCALE_END, planner.timeTo);
     }
     state.includeClosed = Boolean(planner.includeClosed);
-  } else if (transcript && Array.isArray(transcript.suggested)) {
-    state.selected = new Set(transcript.suggested.filter(known));
   }
   plannerSaved = JSON.stringify(plannerSnapshot());
 }

@@ -2,6 +2,7 @@
 import json
 import logging
 import os
+import threading
 import time
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
@@ -23,6 +24,7 @@ from src.accounts.deps import current_user  # noqa: E402
 from src.accounts.tickets import router as tickets_router  # noqa: E402
 from src.clarify import MAX_HISTORY  # noqa: E402
 from src.index import DATA_DIR  # noqa: E402
+from src.scheduling.api import admin_router as courses_admin_router  # noqa: E402
 from src.scheduling.api import router as schedule_router  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
@@ -40,6 +42,23 @@ def _load_workflow() -> None:
     workflow = create_workflow()
 
 
+def _warm_up_embeddings() -> None:
+    """
+    Ollama loads bge-m3 into memory on the first embedding, which made the
+    first student question after a start take ~40 s. Embedding one phrase in
+    the background right after startup moves that wait off the first user.
+    """
+    from llama_index.core import Settings
+
+    started = time.monotonic()
+    try:
+        Settings.embed_model.get_query_embedding("الإنذار الأكاديمي")
+        logger.info("Embedding model warmed up in %.1f s", time.monotonic() - started)
+    except Exception:
+        # Only an optimisation: the first real question still works, just slower.
+        logger.warning("Embedding warm-up failed (is Ollama running?)", exc_info=True)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global starter_questions
@@ -55,6 +74,7 @@ async def lifespan(app: FastAPI):
 
     logger.info("Loading index and building workflow...")
     _load_workflow()
+    threading.Thread(target=_warm_up_embeddings, name="embed-warmup", daemon=True).start()
     # After the admin rebuilds the index, the chatbot switches to it.
     documents.on_index_rebuilt = _load_workflow
 
@@ -91,6 +111,8 @@ app.include_router(tickets_router)
 # Study-schedule generator (CSP) used by frontend/schedule-page; signed-in
 # users only.
 app.include_router(schedule_router, dependencies=[Depends(current_user)])
+# The admin edits the offered courses, sections and seats as an Excel file.
+app.include_router(courses_admin_router)
 
 # The source documents. The chat links to the study-plan files here, so the
 # mount is needed for those links to open.

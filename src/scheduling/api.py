@@ -74,3 +74,91 @@ def transcript(file: UploadFile = File(...), user: dict = Depends(current_user))
     if user["role"] == "student" and result["parsed_courses"]:
         store.update_profile(user["id"], {"transcript": result})
     return result
+
+
+# ---------------------------------------------------------------- admin: the offered courses (Excel)
+# The admin downloads the courses, sections, times, CRNs and seats as an Excel
+# file, edits it and uploads it back; the schedule page uses it at once.
+
+from datetime import datetime as _datetime  # noqa: E402
+
+from fastapi.responses import Response  # noqa: E402
+
+from src.accounts.deps import require_admin  # noqa: E402
+
+from . import offerings  # noqa: E402
+
+admin_router = APIRouter(prefix="/api/admin/courses", tags=["admin"])
+MAX_EXCEL_BYTES = 5 * 1024 * 1024
+XLSX_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+_READ_ERRORS = {
+    "not_excel": "This is not an Excel file. Upload the .xlsx file downloaded from this page.",
+    "no_header": "The file has no course rows.",
+    "empty": "The file has no course rows.",
+}
+
+
+def _summary() -> dict:
+    data = service.current_offerings()
+    sections = []
+    for c in data:
+        for s in c["sections"]:
+            closed = s.get("capacity") is not None and (s.get("enrolled") or 0) >= s["capacity"]
+            sections.append({
+                "code": c["code"], "name": c["name"], "credits": c["credits"],
+                "section": s["id"], "crn": s["crn"], "instructor": s.get("instructor") or "",
+                "capacity": s.get("capacity"), "enrolled": s.get("enrolled") or 0, "closed": closed,
+                "meetings": s["meetings"],
+            })
+    return {
+        **service.source_info(),
+        "courses": len(data),
+        "sections": len(sections),
+        "closed": sum(1 for s in sections if s["closed"]),
+        "rows": sections,
+    }
+
+
+@admin_router.get("")
+def offered_courses(_: dict = Depends(require_admin)):
+    return _summary()
+
+
+@admin_router.get("/excel")
+def download_excel(_: dict = Depends(require_admin)):
+    data = offerings.to_excel(service.current_offerings())
+    name = f"course-offerings-{_datetime.now():%Y-%m-%d}.xlsx"
+    return Response(data, media_type=XLSX_TYPE,
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+@admin_router.post("/excel")
+def upload_excel(file: UploadFile = File(...), user: dict = Depends(require_admin)):
+    if not (file.filename or "").lower().endswith(".xlsx"):
+        raise HTTPException(status_code=415, detail="Please upload the course file as .xlsx (Excel).")
+    data = file.file.read(MAX_EXCEL_BYTES + 1)
+    if len(data) > MAX_EXCEL_BYTES:
+        raise HTTPException(status_code=413, detail="File is too large. The maximum size is 5MB.")
+    try:
+        courses, problems = offerings.parse_excel(data)
+    except offerings.OfferingsError as e:
+        code = str(e)
+        if code.startswith("missing_columns:"):
+            raise HTTPException(status_code=422, detail=f"The file is missing these columns: {code.split(':', 1)[1]}")
+        raise HTTPException(status_code=422, detail=_READ_ERRORS.get(code, _READ_ERRORS["not_excel"]))
+    if problems:
+        # Nothing is saved; the page lists each problem with its row.
+        return {"saved": False, "problems": problems[:200], "total_problems": len(problems)}
+    offerings.save(courses, user["name"])
+    service.refresh(force=True)
+    logger.info("Course offerings replaced by %s: %d courses", user["username"], len(courses))
+    return {"saved": True, **_summary()}
+
+
+@admin_router.post("/reset")
+def reset_to_default(user: dict = Depends(require_admin)):
+    offerings.clear_saved()
+    service.refresh(force=True)
+    logger.info("Course offerings reset to the built-in data by %s", user["username"])
+    return {"saved": True, **_summary()}

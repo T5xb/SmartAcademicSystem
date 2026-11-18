@@ -658,7 +658,9 @@ body {
 }
 
 .form-error[hidden],
-.auth-form[hidden] {
+.auth-form[hidden],
+.tabs[hidden],
+.register-prompt[hidden] {
   display: none;
 }
 
@@ -768,6 +770,34 @@ body {
   background-color: #16d076;
   border-color: #07613A;
   background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='%2306140d' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+}
+
+/* An error shown right under the field it is about */
+.field__error {
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #fca5a5;
+}
+
+.field__error[hidden] {
+  display: none;
+}
+
+.field__input.is-invalid,
+.field__input.is-invalid:focus {
+  border-color: #f87171;
+  box-shadow: 0 0 0 1px #f87171;
+}
+
+[data-theme="light"] .field__error {
+  color: #b42318;
+}
+
+[data-theme="light"] .field__input.is-invalid,
+[data-theme="light"] .field__input.is-invalid:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 1px #dc2626;
 }
 
 [data-theme="light"] .form-error {

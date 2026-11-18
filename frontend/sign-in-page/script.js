@@ -31,11 +31,61 @@ document.addEventListener('DOMContentLoaded', async () => {
   const savePasswordBtn = document.getElementById('save-password-btn');
   const passwordError = document.getElementById('password-error');
 
+  const tabs = document.getElementById('auth-tabs');
+  const tabSignIn = document.getElementById('tab-sign-in');
+  const tabRegister = document.getElementById('tab-register');
+  const registerForm = document.getElementById('register-form');
+  const regId = document.getElementById('reg-id');
+  const regName = document.getElementById('reg-name');
+  const regPassword = document.getElementById('reg-password');
+  const regConfirm = document.getElementById('reg-confirm');
+  const registerBtn = document.getElementById('register-btn');
+  const registerError = document.getElementById('register-error');
+  const promptToRegister = document.getElementById('prompt-to-register');
+  const promptToSignIn = document.getElementById('prompt-to-sign-in');
+
+  const regFields = [regId, regName, regPassword, regConfirm];
+
   let temporaryPassword = '';
+
+  // An error shown right under its field, with the field outlined in red.
+  function setFieldError(input, message) {
+    showError(document.getElementById(`${input.id}-error`), message);
+    input.classList.toggle('is-invalid', Boolean(message));
+    input.setAttribute('aria-invalid', String(Boolean(message)));
+  }
+  // Typing in a field clears its error.
+  regFields.forEach((input) => input.addEventListener('input', () => setFieldError(input, '')));
+
+  // ---------- Sign in / Create account tabs ----------
+  function showMode(mode) {
+    const registering = mode === 'register';
+    form.hidden = registering;
+    registerForm.hidden = !registering;
+    tabSignIn.classList.toggle('is-active', !registering);
+    tabRegister.classList.toggle('is-active', registering);
+    tabSignIn.setAttribute('aria-selected', String(!registering));
+    tabRegister.setAttribute('aria-selected', String(registering));
+    promptToRegister.hidden = registering;
+    promptToSignIn.hidden = !registering;
+    showError(authError, '');
+    showError(registerError, '');
+    regFields.forEach((input) => setFieldError(input, ''));
+    (registering ? regId : userInput).focus();
+  }
+
+  tabSignIn.addEventListener('click', () => showMode('sign-in'));
+  tabRegister.addEventListener('click', () => showMode('register'));
+  document.querySelectorAll('[data-switch]').forEach((btn) =>
+    btn.addEventListener('click', () => showMode(btn.dataset.switch)));
 
   // ---------- Where a signed-in user goes ----------
   function enter(user) {
     if (user.must_change_password) {
+      tabs.hidden = true;
+      promptToRegister.hidden = true;
+      promptToSignIn.hidden = true;
+      registerForm.hidden = true;
       form.hidden = true;
       passwordForm.hidden = false;
       newPasswordInput.focus();
@@ -85,6 +135,45 @@ document.addEventListener('DOMContentLoaded', async () => {
       passwordInput.select();
     } finally {
       setBusy(signInBtn, false);
+    }
+  });
+
+  // ---------- Create a student account ----------
+  registerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = regId.value.trim();
+    const name = regName.value.trim().replace(/\s+/g, ' ');
+    const password = regPassword.value;
+    const problems = new Map();
+    if (!/^\d{6,12}$/.test(username)) problems.set(regId, I18n.t('signin.badId'));
+    if (name.length < 3 || name.split(' ').length < 2) problems.set(regName, I18n.t('signin.badName'));
+    if (password.length < MIN_PASSWORD_LENGTH) problems.set(regPassword, I18n.t('signin.minLength', { n: MIN_PASSWORD_LENGTH }));
+    else if (password !== regConfirm.value) problems.set(regConfirm, I18n.t('signin.mismatch'));
+    showError(registerError, '');
+    regFields.forEach((input) => setFieldError(input, problems.get(input) || ''));
+    if (problems.size) {
+      problems.keys().next().value.focus();
+      return;
+    }
+    setBusy(registerBtn, true);
+    try {
+      const data = await Auth.api('/api/auth/register', {
+        method: 'POST',
+        body: { username, name, password, remember: rememberInput.checked },
+        keepPage: true,
+      });
+      enter(data.user);
+    } catch (err) {
+      // An ID that is already taken is about the ID field; anything else
+      // (sign-up off, too many tries, server down) goes under the form.
+      if (err.status === 409) {
+        setFieldError(regId, err.message);
+        regId.focus();
+      } else {
+        showError(registerError, err.message);
+      }
+    } finally {
+      setBusy(registerBtn, false);
     }
   });
 

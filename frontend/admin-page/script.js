@@ -233,7 +233,7 @@ function wireDropZone({ drop, input, onPick }) {
    Tabs
    ========================================================== */
 function selectTab(name) {
-  const tabs = { docs: $('#tab-docs'), accounts: $('#tab-accounts') };
+  const tabs = { docs: $('#tab-docs'), accounts: $('#tab-accounts'), courses: $('#tab-courses') };
   Object.entries(tabs).forEach(([key, tab]) => {
     const on = key === name;
     tab.classList.toggle('is-active', on);
@@ -242,10 +242,11 @@ function selectTab(name) {
     $(`#panel-${key}`).hidden = !on;
   });
   if (name === 'accounts' && !state.usersLoaded) loadUsers();
+  if (name === 'courses' && !courses.loaded) loadCourses();
 }
 
 function initTabs() {
-  const order = ['docs', 'accounts'];
+  const order = ['docs', 'accounts', 'courses'];
   order.forEach((name, i) => {
     const tab = $(`#tab-${name}`);
     tab.addEventListener('click', () => selectTab(name));
@@ -1069,8 +1070,21 @@ function init() {
   $('#account-form').addEventListener('submit', submitAccount);
   $('#secret-copy').addEventListener('click', copySecret);
 
+  // Course schedule (Excel)
+  $('#course-search').addEventListener('input', renderCourses);
+  $('#seat-filter').addEventListener('change', renderCourses);
+  $('#courses-upload-btn').addEventListener('click', () => $('#courses-file').click());
+  $('#courses-file').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (file) uploadCourses(file);
+  });
+  $('#courses-reset').addEventListener('click', confirmResetCourses);
+
   // Redraw everything the script wrote when the language switches
   I18n.onChange(() => {
+    if (courses.loaded) renderCourses();
+    renderProblems();
     renderIndexBar();
     renderJobResult();
     if (state.filesLoaded) {
@@ -1099,6 +1113,148 @@ function init() {
   renderConfirmText();
   renderIndexBar();
   loadFiles();
+}
+
+/* ==========================================================
+   Course schedule: the offered courses, sections, times, CRNs
+   and seats, edited as an Excel file (GET/POST /api/admin/courses/excel).
+   The schedule page reads the same data.
+   ========================================================== */
+const courses = { loaded: false, data: null, problems: null, busy: false };
+const DAY_KEYS = { 'الأحد': 'sun', 'الاثنين': 'mon', 'الثلاثاء': 'tue', 'الأربعاء': 'wed', 'الخميس': 'thu' };
+
+const dayName = (day) => (DAY_KEYS[day] ? t(`admin.day.${DAY_KEYS[day]}`) : day);
+const meetingText = (m) => `${m.days.map(dayName).join(' / ')}  ⁦${m.start} - ${m.end}⁩`;
+
+async function loadCourses() {
+  $('#course-list').innerHTML = `<div class="state">${esc(t('admin.loadingCourses'))}</div>`;
+  try {
+    courses.data = await Auth.api('/api/admin/courses');
+    courses.loaded = true;
+    renderCourses();
+  } catch (err) {
+    $('#course-list').innerHTML = `<div class="state state--error">${esc(err.message)}</div>`;
+  }
+}
+
+function visibleSections() {
+  const query = $('#course-search').value.trim().toLowerCase();
+  const filter = $('#seat-filter').value;
+  return courses.data.rows.filter((r) =>
+    (!filter || (filter === 'closed') === r.closed) &&
+    (!query || [r.code, r.name, r.crn, r.instructor, r.section].some((v) => String(v).toLowerCase().includes(query))));
+}
+
+function renderCourses() {
+  const data = courses.data;
+  if (!data) return;
+  $('#courses-source').textContent = data.custom
+    ? t('admin.coursesCustom', { date: formatDateTime(data.updated_at), name: data.updated_by || '-' })
+    : t('admin.coursesBuiltIn');
+  $('#courses-reset').hidden = !data.custom;
+  const rows = visibleSections();
+  $('#course-count').textContent = t('admin.courseCount', {
+    courses: data.courses, sections: data.sections, closed: data.closed, shown: rows.length,
+  });
+  if (!rows.length) {
+    $('#course-list').innerHTML = `<div class="state"><strong>${esc(t('admin.noSectionsMatch'))}</strong></div>`;
+    return;
+  }
+  const head = ['admin.colCourse', 'admin.colSection', 'admin.colCrn', 'admin.colTimes', 'admin.colInstructor', 'admin.colSeats']
+    .map((k) => `<th>${esc(t(k))}</th>`).join('');
+  $('#course-list').innerHTML = `
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr>${head}</tr></thead>
+        <tbody>
+          ${rows.map((r) => `
+            <tr class="${r.closed ? 'is-full' : ''}">
+              <td class="cell-name" data-label="${esc(t('admin.colCourse'))}"><span dir="auto">${esc(r.code)} · ${esc(r.name)}</span> <span class="cell-muted">(${esc(t('admin.creditsShort', { n: r.credits }))})</span></td>
+              <td class="cell-mono" data-label="${esc(t('admin.colSection'))}" dir="auto">${esc(r.section)}</td>
+              <td class="cell-mono" data-label="${esc(t('admin.colCrn'))}">${esc(r.crn)}</td>
+              <td class="cell-times" data-label="${esc(t('admin.colTimes'))}">${r.meetings.map((m) => esc(meetingText(m))).join('<br>')}</td>
+              <td data-label="${esc(t('admin.colInstructor'))}" dir="auto">${esc(r.instructor || t('admin.noInstructor'))}</td>
+              <td data-label="${esc(t('admin.colSeats'))}">
+                <span class="seats">${r.capacity == null ? esc(t('admin.unlimited')) : `⁦${r.enrolled} / ${r.capacity}⁩`}</span>
+                <span class="badge ${r.closed ? 'badge--danger' : 'badge--primary'}">${esc(t(r.closed ? 'admin.full' : 'admin.open'))}</span>
+              </td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
+function renderProblems() {
+  const box = $('#courses-problems');
+  const result = courses.problems;
+  box.hidden = !result;
+  if (!result) return;
+  const more = result.total > result.list.length ? `<li>${esc(t('admin.moreProblems', { n: result.total - result.list.length }))}</li>` : '';
+  box.innerHTML = `
+    <p class="problems__title">${esc(t('admin.problemsTitle', { name: result.name, n: result.total }))}</p>
+    <ul class="problems__list">
+      ${result.list.map((p) => `
+        <li>
+          <span class="problems__row">${esc(t('admin.problemRow', { row: p.row }))}</span>
+          <span><bdi>${esc(p.column)}</bdi>: ${esc(t(`admin.problem.${p.code}`))}</span>
+          ${p.value ? `<span class="problems__value" dir="auto">«${esc(p.value)}»</span>` : ''}
+        </li>`).join('')}
+      ${more}
+    </ul>`;
+}
+
+async function uploadCourses(file) {
+  if (courses.busy) return;
+  courses.problems = null;
+  renderProblems();
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    toast(t('admin.excelOnly'), 'error');
+    return;
+  }
+  courses.busy = true;
+  const button = $('#courses-upload-btn');
+  button.disabled = true;
+  button.textContent = t('admin.uploadingExcel');
+  try {
+    const body = new FormData();
+    body.append('file', file);
+    const result = await Auth.api('/api/admin/courses/excel', { method: 'POST', body });
+    if (!result.saved) {
+      courses.problems = { name: file.name, list: result.problems, total: result.total_problems };
+      renderProblems();
+      $('#courses-problems').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      toast(t('admin.excelNotSaved'), 'error');
+      return;
+    }
+    courses.data = result;
+    courses.loaded = true;
+    renderCourses();
+    toast(t('admin.excelSaved', { courses: result.courses, sections: result.sections, closed: result.closed }));
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    courses.busy = false;
+    button.disabled = false;
+    button.textContent = t('admin.uploadExcel');
+  }
+}
+
+function confirmResetCourses() {
+  confirmDialog({
+    danger: true,
+    text: () => ({
+      title: t('admin.resetCoursesTitle'),
+      body: [{ text: t('admin.resetCoursesBody') }, { text: t('admin.resetCoursesWarn'), warn: true }],
+      label: t('admin.resetCourses'),
+    }),
+    action: async () => {
+      courses.data = await Auth.api('/api/admin/courses/reset', { method: 'POST' });
+      courses.problems = null;
+      renderProblems();
+      renderCourses();
+      toast(t('admin.coursesResetDone'));
+    },
+  });
 }
 
 Auth.requireRole('admin').then((user) => {

@@ -8,7 +8,7 @@ from datetime import timedelta
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from . import store
 from .deps import (
@@ -56,6 +56,30 @@ class PasswordChange(BaseModel):
     new_password: str = Password
 
 
+# Students can create their own account from the sign-in page; it is always
+# a student account (advisors and admins are still made by an admin).
+# ALLOW_SIGNUP=0 in src/.env turns it off.
+ALLOW_SIGNUP = os.getenv("ALLOW_SIGNUP", "1").strip().lower() not in ("0", "false", "no", "off")
+SIGNUPS_PER_HOUR = int(os.getenv("SIGNUPS_PER_HOUR", "5"))   # per address; 0 = no limit
+_signups: dict[str, deque] = defaultdict(deque)
+
+
+class SignUpRequest(BaseModel):
+    # The university ID is the sign-in name.
+    username: str = Field(pattern=r"^\d{6,12}$")
+    name: str = Field(min_length=3, max_length=120)
+    password: str = Password
+    remember: bool = False
+
+    @field_validator("name")
+    @classmethod
+    def full_name(cls, value: str) -> str:
+        value = " ".join(value.split())
+        if len(value.split(" ")) < 2:
+            raise ValueError("Enter your full name (at least first and family name).")
+        return value
+
+
 def _client_address(request: Request) -> str:
     # Same rule as the chat rate limit: through ngrok the visitor's own
     # address is the last entry of X-Forwarded-For.
@@ -99,19 +123,53 @@ def login(req: LoginRequest, request: Request, response: Response):
             status_code=403, detail="This account is disabled. Contact the system administrator."
         )
     _failures.pop(key, None)
+    _start_session(user, req.remember, request, response)
+    return {"user": store.public_user(user)}
 
-    lifetime = REMEMBERED_SESSION if req.remember else BROWSER_SESSION
+
+def _start_session(user: dict, remember: bool, request: Request, response: Response) -> None:
+    lifetime = REMEMBERED_SESSION if remember else BROWSER_SESSION
     token = store.create_session(user["id"], lifetime)
     response.set_cookie(
         SESSION_COOKIE,
         token,
         # Without "remember me" the cookie goes when the browser closes.
-        max_age=int(lifetime.total_seconds()) if req.remember else None,
+        max_age=int(lifetime.total_seconds()) if remember else None,
         httponly=True,
         samesite="lax",
         secure=_is_https(request),
         path="/",
     )
+
+
+@router.post("/auth/register", status_code=201)
+def register(req: SignUpRequest, request: Request, response: Response):
+    """A student creates their own account and is signed in straight away."""
+    if not ALLOW_SIGNUP:
+        raise HTTPException(status_code=403, detail="Sign-up is turned off. Ask the system administrator for an account.")
+    if SIGNUPS_PER_HOUR > 0:
+        now = time.monotonic()
+        if len(_signups) > 5000:
+            _signups.clear()
+        hits = _signups[_client_address(request)]
+        while hits and now - hits[0] > 3600:
+            hits.popleft()
+        if len(hits) >= SIGNUPS_PER_HOUR:
+            raise HTTPException(status_code=429, detail="Too many new accounts from this device. Try again later.")
+    try:
+        user = store.create_user(req.username, req.name, "student", req.password)
+    except store.UsernameTaken:
+        raise HTTPException(
+            status_code=409,
+            detail="An account with this university ID already exists. Sign in instead, or ask the administrator to reset its password.",
+        )
+    if SIGNUPS_PER_HOUR > 0:
+        _signups[_client_address(request)].append(time.monotonic())
+    # Imported here: it loads the scheduling module.
+    from .samples import ensure_sample_record
+
+    ensure_sample_record(user)
+    _start_session(user, req.remember, request, response)
     return {"user": store.public_user(user)}
 
 

@@ -67,9 +67,15 @@ class StudentCSPScheduler:
     # ---------- التحقق من H2 (تعارض المحاضرات) و H3 (تعارض الفاينل) ----------
 
     def _is_conflict(self, section1: CourseSection, section2: CourseSection) -> bool:
-        slots1 = {ts.index for ts in section1.time_slots}
-        slots2 = {ts.index for ts in section2.time_slots}
-        return len(slots1.intersection(slots2)) > 0
+        # Same day and overlapping minutes. The admin's Excel file can give any
+        # times, so two different slots (08:00-09:15 and 09:00-10:15) can clash.
+        for a in section1.time_slots:
+            for b in section2.time_slots:
+                if a.index == b.index:
+                    return True
+                if set(a.days) & set(b.days) and                         a.start_minutes() < b.end_minutes() and b.start_minutes() < a.end_minutes():
+                    return True
+        return False
 
     def _exam_clash(self, course1: Course, course2: Course) -> bool:
         exam1 = parse_exam_datetime(course1.final_exam)

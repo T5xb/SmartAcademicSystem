@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 
 <body>
@@ -61,6 +61,12 @@
         </div>
         <h1 class="card-header__title">Academic AI</h1>
         <p class="card-header__subtitle" data-i18n="signin.subtitle">Intelligent Academic Planning &amp; AI Assistant</p>
+      </div>
+
+      <!-- Sign in / Create account -->
+      <div class="tabs" id="auth-tabs" role="tablist">
+        <button type="button" class="tab is-active" id="tab-sign-in" role="tab" aria-selected="true" aria-controls="auth-form" data-i18n="signin.tabSignIn">Sign in</button>
+        <button type="button" class="tab" id="tab-register" role="tab" aria-selected="false" aria-controls="register-form" data-i18n="signin.tabRegister">Create account</button>
       </div>
 
       <!-- Sign in -->
@@ -121,6 +127,86 @@
         </button>
       </form>
 
+      <!-- Create a student account -->
+      <form id="register-form" class="auth-form" novalidate hidden>
+        <div class="field">
+          <div class="field__header">
+            <label for="reg-id" class="field__label" data-i18n="signin.universityId">University ID</label>
+            <span class="field__hint" data-i18n="signin.idHint">e.g. 441000001</span>
+          </div>
+          <div class="field__control">
+            <div class="field__icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.206" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+            </div>
+            <input type="text" id="reg-id" class="field__input" inputmode="numeric" maxlength="12"
+                   placeholder="Your university ID" data-i18n-placeholder="signin.idPlaceholder" autocomplete="username" required>
+          </div>
+          <p class="field__error" id="reg-id-error" role="alert" hidden></p>
+        </div>
+
+        <div class="field">
+          <div class="field__header">
+            <label for="reg-name" class="field__label" data-i18n="signin.fullName">Full name</label>
+            <span class="field__hint" data-i18n="signin.fullNameHint">As in your university records</span>
+          </div>
+          <div class="field__control">
+            <div class="field__icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                <circle cx="12" cy="7" r="4" stroke-width="2"></circle>
+              </svg>
+            </div>
+            <input type="text" id="reg-name" class="field__input" dir="auto" maxlength="120"
+                   placeholder="First and family name" data-i18n-placeholder="signin.fullNamePlaceholder" autocomplete="name" required>
+          </div>
+          <p class="field__error" id="reg-name-error" role="alert" hidden></p>
+        </div>
+
+        <div class="field">
+          <div class="field__header">
+            <label for="reg-password" class="field__label" data-i18n="signin.password">Password</label>
+            <span class="field__hint" data-i18n="signin.newPasswordHint">At least 8 characters</span>
+          </div>
+          <div class="field__control">
+            <div class="field__icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+            </div>
+            <input type="password" id="reg-password" class="field__input" autocomplete="new-password" minlength="8" required>
+          </div>
+          <p class="field__error" id="reg-password-error" role="alert" hidden></p>
+        </div>
+
+        <div class="field">
+          <div class="field__header">
+            <label for="reg-confirm" class="field__label" data-i18n="signin.repeatPasswordPlain">Repeat the password</label>
+          </div>
+          <div class="field__control">
+            <div class="field__icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+            </div>
+            <input type="password" id="reg-confirm" class="field__input" autocomplete="new-password" minlength="8" required>
+          </div>
+          <p class="field__error" id="reg-confirm-error" role="alert" hidden></p>
+        </div>
+
+        <p class="form-note" data-i18n="signin.studentOnly">New accounts are student accounts. Advisors and admins get theirs from the system administrator.</p>
+
+        <p id="register-error" class="form-error" role="alert" hidden></p>
+
+        <button type="submit" id="register-btn" class="btn-primary">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM20 8v6M23 11h-6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2"></path>
+          </svg>
+          <span data-i18n="signin.createAccount">Create account</span>
+        </button>
+      </form>
+
       <!-- Shown after signing in with a temporary password -->
       <form id="password-form" class="auth-form" novalidate hidden>
         <p class="form-note" data-i18n="signin.tempNote">
@@ -164,8 +250,13 @@
         <button type="button" id="cancel-password-btn" class="btn-text" data-i18n="common.signOut">Sign out</button>
       </form>
 
-      <p class="register-prompt" data-i18n="signin.accountsNote">
-        Accounts are created by the system administrator.
+      <p class="register-prompt" id="prompt-to-register">
+        <span data-i18n="signin.newStudent">New student?</span>
+        <button type="button" class="register-prompt__link btn-link" data-switch="register" data-i18n="signin.createOne">Create an account</button>
+      </p>
+      <p class="register-prompt" id="prompt-to-sign-in" hidden>
+        <span data-i18n="signin.haveAccount">Already have an account?</span>
+        <button type="button" class="register-prompt__link btn-link" data-switch="sign-in" data-i18n="signin.submit">Sign in</button>
       </p>
     </div>
   </main>
@@ -189,7 +280,7 @@
   </footer>
 
   <script src="../shared/auth.js?v=3"></script>
-  <script src="strings.js?v=1"></script>
-  <script src="script.js?v=3"></script>
+  <script src="strings.js?v=2"></script>
+  <script src="script.js?v=5"></script>
 </body>
 </html>

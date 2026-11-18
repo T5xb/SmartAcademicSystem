@@ -13,7 +13,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap">
 
   <!-- Styles -->
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
 </head>
 
 <body>
@@ -55,6 +55,7 @@
     <div class="tabs" role="tablist" data-i18n-aria-label="admin.sections" aria-label="Admin sections">
       <button type="button" class="tab is-active" role="tab" id="tab-docs" aria-selected="true" aria-controls="panel-docs" data-i18n="admin.tabDocs">Documents</button>
       <button type="button" class="tab" role="tab" id="tab-accounts" aria-selected="false" aria-controls="panel-accounts" tabindex="-1" data-i18n="admin.tabAccounts">Accounts</button>
+      <button type="button" class="tab" role="tab" id="tab-courses" aria-selected="false" aria-controls="panel-courses" tabindex="-1" data-i18n="admin.tabCourses">Course schedule</button>
     </div>
 
     <!-- ---------- Documents ---------- -->
@@ -100,6 +101,40 @@
 
       <p id="user-count" class="meta"></p>
       <div id="user-list"></div>
+    </section>
+
+    <!-- ---------- Course schedule (Excel) ---------- -->
+    <section class="panel" id="panel-courses" role="tabpanel" aria-labelledby="tab-courses" hidden>
+      <div class="index-bar courses-intro">
+        <div class="courses-intro__text">
+          <strong class="index-bar__title" data-i18n="admin.coursesTitle">Courses, sections and seats</strong>
+          <p data-i18n="admin.coursesHelp">The schedule page takes its courses, times, instructors, CRNs and seats from this data. Download it as Excel, edit it, then upload it back. To close a section, make its taken seats equal to its seat count.</p>
+          <p class="meta" id="courses-source"></p>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="field field--grow">
+          <label class="sr-only" for="course-search" data-i18n="admin.searchCourses">Search courses</label>
+          <input type="search" id="course-search" class="input" placeholder="Search by code, name, CRN or instructor" data-i18n-placeholder="admin.searchCoursesPh" autocomplete="off" dir="auto">
+        </div>
+        <div class="field">
+          <label class="sr-only" for="seat-filter" data-i18n="admin.seats">Seats</label>
+          <select id="seat-filter" class="input">
+            <option value="" data-i18n="admin.allSections">All sections</option>
+            <option value="open" data-i18n="admin.openSections">Open sections</option>
+            <option value="closed" data-i18n="admin.closedSections">Full (closed) sections</option>
+          </select>
+        </div>
+        <a class="btn btn--outline" id="courses-download" href="/api/admin/courses/excel" download data-i18n="admin.downloadExcel">Download Excel</a>
+        <button type="button" class="btn btn--primary" id="courses-upload-btn" data-i18n="admin.uploadExcel">Upload Excel</button>
+        <input type="file" id="courses-file" class="sr-only" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" tabindex="-1" aria-hidden="true">
+        <button type="button" class="btn btn--outline" id="courses-reset" data-i18n="admin.resetCourses">Restore built-in data</button>
+      </div>
+
+      <div id="courses-problems" class="problems" role="alert" hidden></div>
+      <p id="course-count" class="meta"></p>
+      <div id="course-list"></div>
     </section>
   </main>
 
@@ -279,7 +314,7 @@
 
   <!-- Scripts -->
   <script src="../shared/auth.js?v=3"></script>
-  <script src="strings.js?v=1"></script>
-  <script src="script.js?v=4"></script>
+  <script src="strings.js?v=2"></script>
+  <script src="script.js?v=5"></script>
 </body>
 </html>
