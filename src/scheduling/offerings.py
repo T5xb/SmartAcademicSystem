@@ -17,10 +17,12 @@ Plain data here is a list of course dicts:
      "sections": [{"id", "crn", "instructor", "capacity", "enrolled",
                    "meetings": [{"days": [...], "start": "HH:MM", "end": "HH:MM"}]}]}
 """
+import base64
 import io
 import json
 import re
 from datetime import datetime, time as dtime
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from .models import (
@@ -28,6 +30,10 @@ from .models import (
 )
 
 META_KEY = "course_offerings"
+# The Excel file itself, as last uploaded (base64), so downloads give that file.
+FILE_KEY = "course_offerings_file"
+# The file for the built-in data, kept in the project (made by default_offerings()).
+DEFAULT_FILE = Path(__file__).with_name("course_offerings.xlsx")
 
 DAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"]
 _DAY_ALIASES = {
@@ -590,16 +596,53 @@ def load_saved() -> Optional[dict]:
     return saved if isinstance(saved, dict) and isinstance(saved.get("courses"), list) else None
 
 
-def save(courses: List[dict], updated_by: str) -> dict:
+def save(courses: List[dict], updated_by: str, file: Optional[bytes] = None,
+         file_name: str = "") -> dict:
+    """
+    Saves the courses the site uses and, with them, the Excel file exactly as
+    it was uploaded, so everyone who downloads it gets that same file.
+    """
     from src.accounts import store
     from src.accounts.db import now_iso
 
     saved = {"courses": courses, "updated_at": now_iso(), "updated_by": updated_by}
     store.set_meta(META_KEY, json.dumps(saved, ensure_ascii=False))
+    save_file(file if file is not None else to_excel(courses), file_name)
     return saved
+
+
+def save_file(data: bytes, file_name: str = "") -> None:
+    from src.accounts import store
+
+    store.set_meta(FILE_KEY, json.dumps({
+        "name": file_name or DEFAULT_FILE.name,
+        "data": base64.b64encode(data).decode("ascii"),
+    }))
+
+
+def load_file() -> Optional[Tuple[bytes, str]]:
+    """(the last uploaded Excel file, its name), or None if none was uploaded."""
+    from src.accounts import store
+
+    raw = store.get_meta(FILE_KEY)
+    if not raw:
+        return None
+    try:
+        saved = json.loads(raw)
+        return base64.b64decode(saved["data"]), saved.get("name") or DEFAULT_FILE.name
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
+def default_file() -> bytes:
+    """The Excel file kept in the project for the built-in data."""
+    if DEFAULT_FILE.exists():
+        return DEFAULT_FILE.read_bytes()
+    return to_excel(default_offerings())
 
 
 def clear_saved() -> None:
     from src.accounts import store
 
     store.set_meta(META_KEY, "")
+    store.set_meta(FILE_KEY, "")

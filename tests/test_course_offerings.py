@@ -151,3 +151,32 @@ def test_excel_times_and_days_in_other_forms():
     assert offerings._days("الثلاثاء والأحد") == ["الأحد", "الثلاثاء"]
     assert offerings._days("Mon, Wed") == ["الاثنين", "الأربعاء"]
     assert offerings._exam("5-1-2027 8:00 am") == "05-01-2027 08:00 AM"
+
+
+def test_the_project_keeps_a_file_for_the_built_in_data():
+    # If course_data.py changes, rebuild it:
+    #   open(offerings.DEFAULT_FILE, "wb").write(offerings.to_excel(offerings.default_offerings()))
+    courses, problems = offerings.parse_excel(offerings.DEFAULT_FILE.read_bytes())
+    assert problems == [] and courses == offerings.default_offerings()
+
+
+def test_everyone_downloads_the_last_uploaded_file_as_it_was(sign_in):
+    admin = sign_in("admin")
+    first = admin.get("/api/admin/courses/excel").content
+    assert first == offerings.DEFAULT_FILE.read_bytes()       # nothing uploaded yet
+
+    wb, ws = _sheet(first)
+    ws.cell(_row_of(ws, "عال 1241", "C5"), _column(ws, "اسم الدكتور")).value = "د. ملف مرفوع"
+    ws["P1"] = "ملاحظة من المدير"                               # kept, even though the site ignores it
+    uploaded = _save(wb)
+    assert _upload(admin, uploaded, "مقررات الترم.xlsx").json()["saved"]
+
+    # Another admin gets the very same file, not a new one made from the data.
+    other = sign_in("admin")
+    r = other.get("/api/admin/courses/excel")
+    assert r.content == uploaded
+    assert "filename*=UTF-8''" in r.headers["content-disposition"]
+
+    # Back to the built-in data: the project's file again.
+    admin.post("/api/admin/courses/reset")
+    assert admin.get("/api/admin/courses/excel").content == offerings.DEFAULT_FILE.read_bytes()

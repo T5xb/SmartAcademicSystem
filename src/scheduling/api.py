@@ -1,6 +1,7 @@
 """FastAPI routes for the study-schedule page (frontend/schedule-page)."""
 import io
 import logging
+from urllib.parse import quote
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -80,7 +81,6 @@ def transcript(file: UploadFile = File(...), user: dict = Depends(current_user))
 # The admin downloads the courses, sections, times, CRNs and seats as an Excel
 # file, edits it and uploads it back; the schedule page uses it at once.
 
-from datetime import datetime as _datetime  # noqa: E402
 
 from fastapi.responses import Response  # noqa: E402
 
@@ -127,10 +127,25 @@ def offered_courses(_: dict = Depends(require_admin)):
 
 @admin_router.get("/excel")
 def download_excel(_: dict = Depends(require_admin)):
-    data = offerings.to_excel(service.current_offerings())
-    name = f"course-offerings-{_datetime.now():%Y-%m-%d}.xlsx"
-    return Response(data, media_type=XLSX_TYPE,
-                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
+    # The last file an admin uploaded, exactly as it was uploaded (shared by
+    # everyone through the database); the project's own file until then.
+    data, name = _current_file()
+    return Response(data, media_type=XLSX_TYPE, headers={
+        "Content-Disposition": f"attachment; filename=\"course-offerings.xlsx\"; "
+                               f"filename*=UTF-8''{quote(name)}",
+    })
+
+
+def _current_file():
+    stored = offerings.load_file()
+    if stored:
+        return stored
+    if service.source_info()["custom"]:
+        # Saved before files were kept: make it once from the saved data and keep it.
+        data = offerings.to_excel(service.current_offerings())
+        offerings.save_file(data)
+        return data, offerings.DEFAULT_FILE.name
+    return offerings.default_file(), offerings.DEFAULT_FILE.name
 
 
 @admin_router.post("/excel")
@@ -150,7 +165,7 @@ def upload_excel(file: UploadFile = File(...), user: dict = Depends(require_admi
     if problems:
         # Nothing is saved; the page lists each problem with its row.
         return {"saved": False, "problems": problems[:200], "total_problems": len(problems)}
-    offerings.save(courses, user["name"])
+    offerings.save(courses, user["name"], file=data, file_name=file.filename or "")
     service.refresh(force=True)
     logger.info("Course offerings replaced by %s: %d courses", user["username"], len(courses))
     return {"saved": True, **_summary()}
